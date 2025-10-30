@@ -28,7 +28,7 @@ pipeline {
           withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
             sh '''
               docker version
-              docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+              docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} -f apps/platform-ui/Dockerfile apps/platform-ui
               echo $TOKEN | docker login -u $USER --password-stdin
               docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
               docker push ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
