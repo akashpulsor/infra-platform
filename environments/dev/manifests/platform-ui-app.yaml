@@ -6,11 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/akashpulsor/dalai-llama.git'
+    repoURL: https://github.com/akashpulsor/dalai-llama.git
     targetRevision: v4
     path: apps/platform-ui/k8s/homepage
-    directory:
-      recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: front-dev

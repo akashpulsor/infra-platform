@@ -1,43 +1,30 @@
 pipeline {
   agent any
   environment {
-    APP_NAME = "platform-ui"
-    ENV = "dev"
     REGISTRY = "docker.io"
     DOCKER_USER = "akashtripathi"
-    IMAGE_TAG = "latest"
+    IMAGE_NAME = "platform-ui"
+    BRANCH = "v4"
+    APP_REPO = "https://github.com/akashpulsor/dalai-llama.git"
     ARGOCD_SERVER = "http://localhost:8081"
   }
   stages {
-    stage('Build & Push Docker Image') {
+    stage('Checkout') {
       steps {
-        dir('apps/platform-ui') {
-          withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
-            sh '''
-              echo "Building Docker image..."
-              docker build -t ${REGISTRY}/${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG} .
-              echo $TOKEN | docker login -u $USER --password-stdin
-              docker push ${REGISTRY}/${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}
-            '''
-          }
-        }
+        git branch: "${BRANCH}", url: "${APP_REPO}"
       }
     }
-    stage('Trigger ArgoCD Syncs') {
+    stage('Build & Push Docker image') {
       steps {
-        withCredentials([string(credentialsId: 'argocd-token', variable: 'ARGOCD_TOKEN')]) {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
           sh '''
-            curl -X POST -H "Authorization: Bearer $ARGOCD_TOKEN" -H "Content-Type: application/json" \
-              ${ARGOCD_SERVER}/api/v1/applications/platform-ui-gateway/sync || true
-            curl -X POST -H "Authorization: Bearer $ARGOCD_TOKEN" -H "Content-Type: application/json" \
-              ${ARGOCD_SERVER}/api/v1/applications/platform-ui-dev/sync || true
+            docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+            echo $TOKEN | docker login -u $USER --password-stdin
+            docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
+            docker push ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
           '''
         }
       }
     }
-  }
-  post {
-    success { echo "✅ Deployed ${APP_NAME}-${ENV} via Argo CD" }
-    failure { echo "❌ Deployment failed" }
   }
 }
