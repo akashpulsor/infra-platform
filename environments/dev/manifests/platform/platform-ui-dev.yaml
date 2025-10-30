@@ -4,7 +4,7 @@ metadata:
   name: platform-ui-dev
   namespace: argocd
 spec:
-  project: dalai-llama
+  project: default
   source:
     repoURL: 'https://github.com/akashpulsor/dalai-llama.git'
     targetRevision: v4
