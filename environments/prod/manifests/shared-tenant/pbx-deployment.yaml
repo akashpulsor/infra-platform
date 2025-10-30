@@ -1,0 +1,21 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: freepbx
+  namespace: tenant-shared
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: freepbx }
+  template:
+    metadata:
+      labels: { app: freepbx }
+    spec:
+      containers:
+      - name: freepbx
+        image: tiredofit/freepbx:latest
+        ports:
+        - { containerPort: 80 }
+        env:
+        - { name: VIRTUAL_HOST, value: "dalaillama-tier1.localhost" }
+        - { name: DB_EMBEDDED, value: "TRUE" }

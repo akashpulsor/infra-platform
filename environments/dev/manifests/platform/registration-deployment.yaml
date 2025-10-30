@@ -1,0 +1,18 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registration-service
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: registration-service }
+  template:
+    metadata:
+      labels: { app: registration-service }
+    spec:
+      containers:
+      - name: registration-service
+        image: nginx
+        ports:
+        - { containerPort: 8080 }

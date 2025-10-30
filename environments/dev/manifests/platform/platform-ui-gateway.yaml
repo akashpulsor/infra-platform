@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-ui-gateway
+  namespace: argocd
+spec:
+  project: dalai-llama
+  source:
+    repoURL: 'https://github.com/akashpulsor/dalai-llama.git'
+    targetRevision: v4
+    path: apps/platform-ui/k8s/homepage/gateway
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-ingress
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
