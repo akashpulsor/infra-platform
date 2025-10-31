@@ -70,8 +70,9 @@ stage('Build & Push Docker Image') {
             git add apps/platform-ui/k8s/homepage/deployment.yaml
             git commit -m "ci: bump ${IMAGE_NAME} image to ${IMAGE_TAG}" || echo "⚠️ Nothing to commit"
 
-            git remote set-url origin https://${GHTOKEN}:x-oauth-basic@github.com/akashpulsor/dalai-llama.git
-            git push origin ${BRANCH}
+              git remote set-url origin https://akashpulsor:${GHTOKEN}@github.com/akashpulsor/dalai-llama.git
+              git push origin ${BRANCH}
+
           """
         }
       }
