@@ -25,30 +25,34 @@ pipeline {
     }
 
     // =====================================================
-    stage('Build & Push Docker Image') {
-      steps {
-        container('docker') {
-          withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
-            script {
-              env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-              env.IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
+stage('Build & Push Docker Image') {
+  steps {
+    container('docker') {
+      withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
+        script {
+          // Fix: allow Git to run inside Jenkins workspace
+          sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/deploy-platform-ui'
 
-              sh """
-                echo "🔨 Building Docker image using root context..."
-                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -f apps/platform-ui/Dockerfile .
-                
-                echo "🔑 Logging into Docker Hub..."
-                echo \$TOKEN | docker login -u \$USER --password-stdin
-                
-                echo "🚀 Tagging and pushing image..."
-                docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                docker push ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-              """
-            }
-          }
+          // Capture commit hash
+          env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+          env.IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
+
+          sh """
+            echo "🔨 Building Docker image using root context..."
+            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -f apps/platform-ui/Dockerfile .
+
+            echo "🔑 Logging into Docker Hub..."
+            echo \$TOKEN | docker login -u \$USER --password-stdin
+
+            echo "🚀 Tagging and pushing image..."
+            docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+            docker push ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+          """
         }
       }
     }
+  }
+}
 
     // =====================================================
     stage('Update Deployment Manifest') {
