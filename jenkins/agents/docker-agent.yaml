@@ -1,10 +1,16 @@
 apiVersion: v1
 kind: Pod
 metadata:
+<<<<<<< HEAD
+=======
+  name: docker-agent
+  namespace: jenkins
+>>>>>>> fd21aa8 (Added code for jenkins)
   labels:
     jenkins: docker-agent
 spec:
   serviceAccountName: jenkins
+<<<<<<< HEAD
   containers:
   - name: docker
     image: docker:24.0-dind
@@ -21,3 +27,55 @@ spec:
   volumes:
   - name: dind-storage
     emptyDir: {}
+=======
+  restartPolicy: Never
+  containers:
+    # ----------------------------------------------------
+    # Docker daemon (Docker-in-Docker)
+    # ----------------------------------------------------
+    - name: docker
+      image: docker:24.0-dind
+      securityContext:
+        privileged: true           # ✅ Required to run Docker-in-Docker
+      tty: true
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "512Mi"
+        limits:
+          cpu: "1000m"
+          memory: "1Gi"
+      volumeMounts:
+        - name: docker-storage
+          mountPath: /var/lib/docker
+        - name: workspace-volume
+          mountPath: /home/jenkins/agent
+
+    # ----------------------------------------------------
+    # Jenkins inbound agent (connects to master)
+    # ----------------------------------------------------
+    - name: jnlp
+      image: jenkins/inbound-agent:latest
+      args: ["$(JENKINS_SECRET)", "$(JENKINS_NAME)"]
+      env:
+        - name: JENKINS_URL
+          value: "http://jenkins.jenkins.svc.cluster.local:8080/"
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+      volumeMounts:
+        - name: workspace-volume
+          mountPath: /home/jenkins/agent
+
+  # ----------------------------------------------------
+  # Volumes for Docker storage + workspace
+  # ----------------------------------------------------
+  volumes:
+    - name: docker-storage
+      emptyDir: {}
+    - name: workspace-volume
+      emptyDir: {}
+  nodeSelector:
+    kubernetes.io/os: linux
+>>>>>>> fd21aa8 (Added code for jenkins)
