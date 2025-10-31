@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-ui-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/akashpulsor/dalai-llama.git
+    targetRevision: v4
+    path: apps/dashboard-ui/k8s/homepage
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: front-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

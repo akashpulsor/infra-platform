@@ -54,29 +54,30 @@ stage('Build & Push Docker Image') {
   }
 }
 
-    // =====================================================
     stage('Update Deployment Manifest') {
-      steps {
-        withCredentials([string(credentialsId: 'github-pat', variable: 'GHTOKEN')]) {
-          sh """
-            echo "📝 Updating deployment image in k8s/homepage/deployment.yaml..."
-            
-            git config user.email "ci@${DOCKER_USER}.local"
-            git config user.name "jenkins-ci"
+  steps {
+    withCredentials([string(credentialsId: 'github-pat', variable: 'GHTOKEN')]) {
+      sh '''
+        echo "📝 Updating deployment image in k8s/homepage/deployment.yaml..."
 
-            # Replace image tag in deployment.yaml
-            sed -i 's#${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:.*#${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}#' apps/platform-ui/k8s/homepage/deployment.yaml
+        git config user.email "ci@${DOCKER_USER}.local"
+        git config user.name "jenkins-ci"
 
-            git add apps/platform-ui/k8s/homepage/deployment.yaml
-            git commit -m "ci: bump ${IMAGE_NAME} image to ${IMAGE_TAG}" || echo "⚠️ Nothing to commit"
+        sed -i "s#${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:.*#${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}#" apps/platform-ui/k8s/homepage/deployment.yaml
 
-              git remote set-url origin https://akashpulsor:${GHTOKEN}@github.com/akashpulsor/dalai-llama.git
-              git push origin ${BRANCH}
+        git add apps/platform-ui/k8s/homepage/deployment.yaml
+        git commit -m "ci: bump ${IMAGE_NAME} image to ${IMAGE_TAG}" || echo "⚠️ Nothing to commit"
 
-          """
-        }
-      }
+        echo "🔐 Configuring remote with GitHub PAT..."
+        git remote set-url origin https://x-access-token:${GHTOKEN}@github.com/akashpulsor/dalai-llama.git
+
+        echo "🚀 Pushing changes to branch ${BRANCH}..."
+        git push origin ${BRANCH}
+      '''
     }
+  }
+}
+
 
     // =====================================================
     stage('Trigger ArgoCD Sync') {
