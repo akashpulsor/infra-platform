@@ -92,3 +92,7 @@ auth:
   roleClaim: "role"
   allowedRoles: ["super-admin","platform-admin","org-admin"]
   requiredScopes: ["dashboard:admin"]
+
+podSecurityContext:
+  runAsNonRoot: false
+  fsGroup: 101
