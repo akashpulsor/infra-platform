@@ -14,7 +14,7 @@ pipeline {
 
     APP_REPO        = "https://github.com/akashpulsor/dalai-llama.git"
     INFRA_REPO      = "https://github.com/akashpulsor/infra-platform.git"
-    INFRA_BRANCH    =  echo ${params.APP_BRANCH}
+    INFRA_BRANCH    = "main"
 
     ARGOCD_SERVER   = "https://argocd-server.argocd.svc.cluster.local:443"
     CHART_PATH      = "charts/admin-dashboard-ui"
