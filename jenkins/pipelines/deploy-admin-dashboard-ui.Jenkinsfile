@@ -4,7 +4,7 @@ pipeline {
   parameters {
     choice(name: 'DEPLOY_ENV', choices: ['development', 'staging', 'production'], description: 'Select target environment')
     string(name: 'APP_BRANCH', defaultValue: 'v4', description: 'App repo branch')
-    string(name: 'IMAGE_TAG',  defaultValue: '',  description: 'Optional image tag; leave empty to build new')
+    string(name: 'IMAGE_TAG',  defaultValue: 'latest',  description: 'Optional image tag; leave empty to build new')
   }
 
   environment {
