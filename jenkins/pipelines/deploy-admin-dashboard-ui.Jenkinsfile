@@ -16,7 +16,7 @@ pipeline {
     INFRA_REPO      = "https://github.com/akashpulsor/infra-platform.git"
     INFRA_BRANCH    = "main"
 
-    ARGOCD_SERVER   = "http://argocd-server.argocd.svc.cluster.local:443"
+    ARGOCD_SERVER   = "https://argocd-server.argocd.svc.cluster.local:443"
     CHART_PATH      = "charts/admin-dashboard-ui"
   }
 
@@ -205,7 +205,7 @@ auth:
 
               echo "⏳ Waiting 20s for sync to settle..."
               sleep 20
-              curl -k -s -H "Authorization: Bearer \$ARGOCD_TOKEN" ${ARGOCD_SERVER}/api/v1/applications/${appName} | jq '.status.sync.status, .status.health.status'
+              curl -k -s -H "Authorization: Bearer \$ARGOCD_TOKEN" ${ARGOCD_SERVER}/api/v1/applications/${appName} | grep -E '"sync|health"'
             """
           }
         }
