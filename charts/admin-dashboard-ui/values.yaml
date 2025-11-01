@@ -56,6 +56,10 @@ networkPolicy:
           protocol: TCP
         - port: 443
           protocol: TCP
+        - port: 15012   # ✅ Allow Istiod mTLS
+          protocol: TCP
+        - port: 15017   # ✅ Allow Istiod gRPC config (xDS)
+          protocol: TCP  
 
 # values.yaml
 istio:
