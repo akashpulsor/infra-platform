@@ -108,10 +108,10 @@ pipeline {
     }
 
     stage('Create Environment Override File') {
-      steps {
-        script {
-          def overrideFile = "/tmp/admin-dashboard-${params.DEPLOY_ENV}-override.yaml"
-          def content = """
+  steps {
+    script {
+      def overrideFile = "${env.WORKSPACE}/admin-dashboard-${params.DEPLOY_ENV}-override.yaml"
+      def content = """
 image:
   repository: ${env.REGISTRY}/${env.DOCKER_USER}/${env.IMAGE_NAME}
   tag: "${env.FINAL_TAG}"
@@ -136,13 +136,18 @@ auth:
   allowedRoles: ["super-admin","platform-admin","org-admin"]
   requiredScopes: ["dashboard:admin"]
 """
-          writeFile file: overrideFile, text: content
-          echo "🧾 Generated Helm override file:"
-          sh "cat ${overrideFile}"
-          archiveArtifacts artifacts: overrideFile, onlyIfSuccessful: true
-        }
-      }
+      writeFile file: overrideFile, text: content
+
+      echo "🧾 Generated Helm override file at: ${overrideFile}"
+      sh "ls -l ${env.WORKSPACE} | grep override || true"
+      sh "cat ${overrideFile}"
+
+      // ✅ archiveArtifacts now can find it
+      archiveArtifacts artifacts: "admin-dashboard-${params.DEPLOY_ENV}-override.yaml", onlyIfSuccessful: true
     }
+  }
+}
+
 
     stage('Deploy via ArgoCD API (HTTPS)') {
       steps {
