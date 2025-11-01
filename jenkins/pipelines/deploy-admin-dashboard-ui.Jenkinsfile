@@ -192,20 +192,20 @@ auth:
             sh """
               echo "🚀 Creating or updating ArgoCD app: ${appName}"
               curl -k -s -X POST ${ARGOCD_SERVER}/api/v1/applications \
-                -H "Authorization: Bearer \$ARGOCD_TOKEN" \
+                -H "Authorization: Bearer ${ARGOCD_TOKEN}" \
                 -H "Content-Type: application/json" \
                 -d '${argoAppSpec}' || true
 
               echo "🔁 Triggering ArgoCD sync..."
               curl -k -s -X POST \
-                -H "Authorization: Bearer \$ARGOCD_TOKEN" \
+                -H "Authorization: Bearer ${ARGOCD_TOKEN}" \
                 -H "Content-Type: application/json" \
                 -d '{"name": "${appName}"}' \
                 ${ARGOCD_SERVER}/api/v1/applications/${appName}/sync || true
 
               echo "⏳ Waiting 20s for sync to settle..."
               sleep 20
-              curl -k -s -H "Authorization: Bearer \$ARGOCD_TOKEN" ${ARGOCD_SERVER}/api/v1/applications/${appName} | grep -E '"sync|health"'
+              curl -k -s -H "Authorization: Bearer ${ARGOCD_TOKEN}" ${ARGOCD_SERVER}/api/v1/applications/${appName} | grep -E '"sync|health"'
             """
           }
         }
