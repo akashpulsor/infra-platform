@@ -1,0 +1,81 @@
+# Default values for admin-dashboard-ui (Development baseline)
+# These are overridden dynamically by Jenkins based on environment (dev/staging/prod)
+# or by tenant charts for multi-tenancy later.
+
+image:
+  repository: docker.io/akashtripathi/admin-dashboard-ui
+  tag: "latest"
+  pullPolicy: Always
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+env:
+  NODE_ENV: "development"
+  API_BASE_URL: "https://api.dev.localhost"
+  AUTH_ISSUER: "https://auth.dev.localhost"
+  CLIENT_ID: "admin-dashboard-ui-development"
+
+secretEnv: {}
+
+serviceAccount:
+  create: true
+  name: ""
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  cpu: 60
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  allowFromNamespaces:
+    - istio-ingress
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 80
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+
+istio:
+  enabled: true
+  gatewayName: "platform-ui-gateway"
+  host: "admin.dashboard.dev.localhost"
+  timeout: 10s
+  retries:
+    attempts: 3
+    perTryTimeout: 3s
+    retryOn: "5xx,connect-failure,reset"
+  destinationRule:
+    outlierDetection:
+      consecutive5xx: 5
+      interval: 5s
+      baseEjectionTime: 30s
+
+auth:
+  enabled: true
+  issuer: "https://auth.dev.localhost/"
+  jwksUri: "https://auth.dev.localhost/.well-known/jwks.json"
+  audiences: ["admin-dashboard-ui"]
+  roleClaim: "role"
+  allowedRoles: ["super-admin","platform-admin","org-admin"]
+  requiredScopes: ["dashboard:admin"]

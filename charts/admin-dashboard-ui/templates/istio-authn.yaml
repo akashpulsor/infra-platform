@@ -1,0 +1,14 @@
+{{- if and .Values.istio.enabled .Values.auth.enabled }}
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: {{ include "admin.fullname" . }}-jwt
+  labels: {{- include "admin.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: { app: {{ include "admin.fullname" . }} }
+  jwtRules:
+    - issuer: {{ .Values.auth.issuer | quote }}
+      jwksUri: {{ .Values.auth.jwksUri | quote }}
+      audiences: {{ toYaml .Values.auth.audiences | nindent 6 }}
+{{- end }}

@@ -1,0 +1,11 @@
+Host:
+  {{ .Values.istio.host }}
+
+Add to /etc/hosts:
+  127.0.0.1 {{ .Values.istio.host }}
+
+Ingress nodePort:
+  kubectl -n istio-ingress get svc istio-ingress -o jsonpath='{.spec.ports[?(@.port==80)].nodePort}'
+
+Test:
+  curl -I -H "Host: {{ .Values.istio.host }}" http://127.0.0.1:<nodePort>/

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: admin-dashboard-ui
+description: Admin dashboard (React/NGINX) with Istio mTLS + JWT authn/z
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

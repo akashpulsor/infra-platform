@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "admin.fullname" . }}-env
+  labels: {{- include "admin.labels" . | nindent 4 }}
+data:
+  NODE_ENV: "{{ .Values.env.NODE_ENV }}"
+  API_BASE_URL: "{{ .Values.env.API_BASE_URL }}"
+  AUTH_ISSUER: "{{ .Values.env.AUTH_ISSUER }}"
+  CLIENT_ID: "{{ .Values.env.CLIENT_ID }}"

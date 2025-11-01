@@ -1,0 +1,17 @@
+{{- if and .Values.istio.enabled .Values.auth.enabled }}
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "admin.fullname" . }}-allow
+  labels: {{- include "admin.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: { app: {{ include "admin.fullname" . }} }
+  action: ALLOW
+  rules:
+    - when:
+        - key: request.auth.claims[{{ .Values.auth.roleClaim }}]
+          values: {{ toYaml .Values.auth.allowedRoles | nindent 10 }}
+        - key: request.auth.claims[scope]
+          values: {{ toYaml .Values.auth.requiredScopes | nindent 10 }}
+{{- end }}

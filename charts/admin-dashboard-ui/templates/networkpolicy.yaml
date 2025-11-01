@@ -1,0 +1,22 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "admin.fullname" . }}
+  labels: {{- include "admin.labels" . | nindent 4 }}
+spec:
+  podSelector: { matchLabels: { app: {{ include "admin.fullname" . }} } }
+  policyTypes: ["Ingress","Egress"]
+  ingress:
+    - from:
+      {{- range .Values.networkPolicy.allowFromNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . | quote }}
+      {{- end }}
+  egress:
+    - to:
+      {{- range .Values.networkPolicy.egress }}
+      {{ toYaml . | nindent 6 }}
+      {{- end }}
+{{- end }}

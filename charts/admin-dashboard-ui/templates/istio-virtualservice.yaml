@@ -1,0 +1,20 @@
+{{- if .Values.istio.enabled }}
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ include "admin.fullname" . }}
+  labels: {{- include "admin.labels" . | nindent 4 }}
+spec:
+  hosts: [ "{{ .Values.istio.host }}" ]
+  gateways: [ "{{ .Values.istio.gatewayName }}" ]
+  http:
+    - route:
+        - destination:
+            host: {{ include "admin.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+            port: { number: 80 }
+      retries:
+        attempts: {{ .Values.istio.retries.attempts }}
+        perTryTimeout: {{ .Values.istio.retries.perTryTimeout }}
+        retryOn: {{ .Values.istio.retries.retryOn | quote }}
+      timeout: {{ .Values.istio.timeout }}
+{{- end }}

@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: admin-dashboard-ui
+  namespace: argocd
+spec:
+  project: dalai-llama
+  source:
+    repoURL: https://github.com/akashpulsor/infra-platform.git
+    targetRevision: main
+    path: charts/admin-dashboard-ui
+    helm:
+      values: |
+        image:
+          repository: docker.io/akashtripathi/admin-dashboard-ui
+          tag: latest
+        istio:
+          enabled: true
+          gatewayName: platform-ui-gateway
+          host: admin.dashboard.dev.localhost
+        env:
+          NODE_ENV: production
+          API_BASE_URL: https://api.dev.localhost
+          AUTH_ISSUER: https://auth.dev.localhost
+          CLIENT_ID: admin-dashboard-ui
+        auth:
+          enabled: true
+          issuer: https://auth.dev.localhost/
+          jwksUri: https://auth.dev.localhost/.well-known/jwks.json
+          audiences: [admin-dashboard-ui]
+          roleClaim: role
+          allowedRoles: [super-admin, platform-admin, org-admin]
+          requiredScopes: [dashboard:admin]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: front-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

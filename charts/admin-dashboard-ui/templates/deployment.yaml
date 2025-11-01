@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "admin.fullname" . }}
+  labels: {{- include "admin.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: { app: {{ include "admin.fullname" . }} }
+  template:
+    metadata:
+      labels: { app: {{ include "admin.fullname" . }} }
+    spec:
+      serviceAccountName: {{ default (include "admin.fullname" .) .Values.serviceAccount.name }}
+      containers:
+        - name: admin-dashboard-ui
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports: [{ containerPort: 80 }]
+          envFrom:
+            - configMapRef: { name: {{ include "admin.fullname" . }}-env }
+          {{- if .Values.secretEnv }}
+            - secretRef:    { name: {{ include "admin.fullname" . }}-secrets }
+          {{- end }}
+          readinessProbe: { httpGet: { path: "/", port: 80 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          livenessProbe:  { httpGet: { path: "/", port: 80 }, initialDelaySeconds: 10, periodSeconds: 20 }
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 101
