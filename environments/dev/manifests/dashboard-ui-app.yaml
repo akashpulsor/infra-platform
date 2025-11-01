@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/akashpulsor/dalai-llama.git
     targetRevision: v4
-    path: apps/dashboard-ui/k8s/homepage
+    path: apps/dashboard-ui/k8s
   destination:
     server: https://kubernetes.default.svc
     namespace: front-dev

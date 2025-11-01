@@ -69,6 +69,7 @@ stage('Build & Push Docker Image') {
         git commit -m "ci: bump ${IMAGE_NAME} image to ${IMAGE_TAG}" || echo "⚠️ Nothing to commit"
 
         echo "🔐 Configuring remote with GitHub PAT..."
+        echo ${GHTOKEN}
         git remote set-url origin https://x-access-token:${GHTOKEN}@github.com/akashpulsor/dalai-llama.git
 
         echo "🚀 Pushing changes to branch ${BRANCH}..."
