@@ -1,0 +1,61 @@
+pipeline {
+  agent {
+    kubernetes {
+      yamlFile 'jenkins/agents/docker-agent.yaml'
+    }
+  }
+
+  parameters {
+    choice(name: 'DEPLOY_ENV', choices: ['development', 'staging', 'production'], description: 'Environment to deploy to')
+    choice(name: 'DEPLOY_ACTION', choices: ['deploy', 'destroy'], description: 'Deploy or destroy the admin dashboard')
+  }
+
+  environment {
+    REGISTRY       = "docker.io"
+    DOCKER_USER    = "akashtripathi"
+    IMAGE_NAME     = "admin-dashboard-ui"
+    ARGOCD_SERVER  = "http://argocd-server.argocd.svc.cluster.local:80"
+  }
+
+  stages {
+    stage('Checkout Repo') {
+      steps {
+        git branch: 'main', url: 'https://github.com/akashpulsor/infra-platform.git'
+      }
+    }
+
+    stage('Build & Push Docker Image') {
+      when { expression { params.DEPLOY_ACTION == 'deploy' } }
+      steps {
+        container('docker') {
+          withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
+            sh """
+              docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} -f apps/admin-dashboard-ui/Dockerfile .
+              echo \$TOKEN | docker login -u \$USER --password-stdin
+              docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
+              docker push ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
+            """
+          }
+        }
+      }
+    }
+
+    stage('Toggle Dashboard Deployment') {
+      steps {
+        sh """
+          chmod +x ./infra-platform/scripts/toggle-admin-dashboard.sh
+          ./infra-platform/scripts/toggle-admin-dashboard.sh ${params.DEPLOY_ACTION} ${params.DEPLOY_ENV}
+        """
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "✅ ${params.DEPLOY_ACTION} completed successfully for ${params.DEPLOY_ENV}"
+    }
+    failure {
+      echo "❌ ${params.DEPLOY_ACTION} failed for ${params.DEPLOY_ENV}"
+    }
+  }
+}
