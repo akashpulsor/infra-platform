@@ -56,20 +56,33 @@ networkPolicy:
         - port: 443
           protocol: TCP
 
+# values.yaml
 istio:
   enabled: true
-  gatewayName: "platform-ui-gateway"
+
+  # ✅ Use the existing, shared Gateway created by platform-ui
+  gateway:
+    create: false         # <— CRITICAL: do NOT create/replace Gateway from this chart
+    name: "platform-ui-gateway"
+    selector:
+      istio: ingress      # only used if create=true; safe to keep
+
   host: "admin.dashboard.dev.localhost"
+
   timeout: 10s
   retries:
     attempts: 3
     perTryTimeout: 3s
     retryOn: "5xx,connect-failure,reset"
+
   destinationRule:
+    enabled: true
     outlierDetection:
       consecutive5xx: 5
       interval: 5s
       baseEjectionTime: 30s
+    tls:
+      mode: ISTIO_MUTUAL   # assumes mesh mTLS (default in many Istio setups)
 
 auth:
   enabled: true

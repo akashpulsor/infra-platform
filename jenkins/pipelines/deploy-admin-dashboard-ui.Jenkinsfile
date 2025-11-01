@@ -157,7 +157,10 @@ auth:
           { "name": "env.NODE_ENV", "value": "${params.DEPLOY_ENV}" },
           { "name": "env.API_BASE_URL", "value": "${env.API_BASE_URL}" },
           { "name": "env.AUTH_ISSUER", "value": "${env.AUTH_ISSUER}" },
-          { "name": "istio.host", "value": "admin.dashboard.${env.DOMAIN_SUFFIX}" }
+          { "name": "istio.host", "value": "admin.dashboard.${env.DOMAIN_SUFFIX}" },
+           // ✅ keep gateway intact
+          { "name": "istio.gateway.create", "value": "false" },
+          { "name": "istio.gateway.name",   "value": "platform-ui-gateway" }
         ]
       }
     },
@@ -172,21 +175,26 @@ auth:
 }
 """
 
-            // Create or update ArgoCD Application dynamically
-            sh """
-              echo "Deploying ArgoCD Application: ${appName}"
-              curl -s -X POST ${ARGOCD_SERVER}/api/v1/applications \
-                   -H "Authorization: Bearer \$ARGOCD_TOKEN" \
-                   -H "Content-Type: application/json" \
-                   -d '${argoAppSpec}' || true
+// Create or update ArgoCD Application dynamically (safe deployment)
+sh """
+  echo "Deploying ArgoCD Application: ${appName}"
 
-              echo "Triggering ArgoCD sync..."
-              curl -s -X POST \
-                   -H "Authorization: Bearer \$ARGOCD_TOKEN" \
-                   -H "Content-Type: application/json" \
-                   -d '{"name": "${appName}"}' \
-                   ${ARGOCD_SERVER}/api/v1/applications/${appName}/sync || true
-            """
+  # Important: ensure gateway is NOT deployed again
+  yq eval 'del(.spec.template.spec.gateways)' charts/admin-dashboard-ui/templates/virtualservice.yaml || true
+
+  curl -s -X POST ${ARGOCD_SERVER}/api/v1/applications \
+       -H "Authorization: Bearer \$ARGOCD_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d '${argoAppSpec}' || true
+
+  echo "Triggering ArgoCD sync..."
+  curl -s -X POST \
+       -H "Authorization: Bearer \$ARGOCD_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d '{"name": "${appName}"}' \
+       ${ARGOCD_SERVER}/api/v1/applications/${appName}/sync || true
+"""
+
           }
         }
       }
