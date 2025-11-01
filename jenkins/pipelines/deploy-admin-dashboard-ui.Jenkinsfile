@@ -16,7 +16,7 @@ pipeline {
     INFRA_REPO      = "https://github.com/akashpulsor/infra-platform.git"
     INFRA_BRANCH    = "main"
 
-    ARGOCD_SERVER   = "https://argocd-server.argocd.svc.cluster.local:443"
+    ARGOCD_SERVER   = "http://argocd-server.argocd.svc.cluster.local:443"
     CHART_PATH      = "charts/admin-dashboard-ui"
   }
 
