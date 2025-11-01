@@ -74,6 +74,9 @@ pipeline {
           withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
             dir('app-src') {
               script {
+                // FIX: Add current directory to Git's safe list to avoid "dubious ownership" error
+                sh 'git config --global --add safe.directory "$PWD"' 
+                
                 env.SHORT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
                 env.BUILD_TAG = "${env.BUILD_NUMBER}-${env.SHORT_SHA}"
               }
