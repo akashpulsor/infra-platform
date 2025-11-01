@@ -68,29 +68,36 @@ pipeline {
     }
 
     stage('Build & Push image (optional)') {
-      when { expression { return !params.IMAGE_TAG?.trim() } }
-      steps {
-        container('docker') {
-          withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
-            dir('app-src') {
-              script {
-                // FIX: Add current directory to Git's safe list to avoid "dubious ownership" error
-                sh 'git config --global --add safe.directory "$PWD"' 
-                
-                env.SHORT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-                env.BUILD_TAG = "${env.BUILD_NUMBER}-${env.SHORT_SHA}"
-              }
-              sh """
-                docker build -t ${IMAGE_NAME}:${BUILD_TAG} -f apps/admin-dashboard-ui/Dockerfile .
-                echo \$TOKEN | docker login -u \$USER --password-stdin
-                docker tag ${IMAGE_NAME}:${BUILD_TAG} ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_TAG}
-                docker push ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_TAG}
-              """
-            }
+  when { expression { return !params.IMAGE_TAG?.trim() } }
+  steps {
+    container('docker') {
+      withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
+        dir('app-src') {
+          script {
+            sh 'git config --global --add safe.directory "$PWD"'
+            env.SHORT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+            env.BUILD_TAG = "${env.BUILD_NUMBER}-${env.SHORT_SHA}"
           }
+
+          sh '''
+            echo "🔧 Building Docker image ${IMAGE_NAME}:${BUILD_TAG}..."
+            docker build -t ${IMAGE_NAME}:${BUILD_TAG} -f apps/admin-dashboard-ui/Dockerfile .
+            
+            echo "🔐 Logging in to Docker Hub..."
+            echo "$TOKEN" | docker login -u "$USER" --password-stdin || exit 1
+
+            echo "📦 Tagging and pushing image..."
+            docker tag ${IMAGE_NAME}:${BUILD_TAG} ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_TAG}
+            docker push ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_TAG} || exit 1
+
+            echo "✅ Image pushed successfully!"
+          '''
         }
       }
     }
+  }
+}
+
 
     stage('Set final image tag') {
       steps {
