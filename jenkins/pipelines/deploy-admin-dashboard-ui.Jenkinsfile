@@ -8,16 +8,16 @@ pipeline {
   }
 
   environment {
-    REGISTRY      = "docker.io"
-    DOCKER_USER   = "akashtripathi"
-    IMAGE_NAME    = "admin-dashboard-ui"
+    REGISTRY        = "docker.io"
+    DOCKER_USER     = "akashtripathi"
+    IMAGE_NAME      = "admin-dashboard-ui"
 
-    APP_REPO      = "https://github.com/akashpulsor/dalai-llama.git"
-    INFRA_REPO    = "https://github.com/akashpulsor/infra-platform.git"
-    INFRA_BRANCH  = "main"
+    APP_REPO        = "https://github.com/akashpulsor/dalai-llama.git"
+    INFRA_REPO      = "https://github.com/akashpulsor/infra-platform.git"
+    INFRA_BRANCH    = "main"
 
-    ARGOCD_SERVER = "http://argocd-server.argocd.svc.cluster.local:80"
-    CHART_PATH    = "charts/admin-dashboard-ui"
+    ARGOCD_SERVER   = "http://argocd-server.argocd.svc.cluster.local:80"
+    CHART_PATH      = "charts/admin-dashboard-ui"
   }
 
   stages {
@@ -26,30 +26,30 @@ pipeline {
       steps {
         script {
           if (params.DEPLOY_ENV == 'development') {
-            env.NAMESPACE     = "front-dev"
+            env.NAMESPACE     = "front-dev"
             env.DOMAIN_SUFFIX = "dev.localhost"
             env.ARGO_APP_NAME = "admin-dashboard-ui-dev"
-            env.API_BASE_URL  = "https://api.dev.localhost"
-            env.AUTH_ISSUER   = "https://auth.dev.localhost"
+            env.API_BASE_URL  = "https://api.dev.localhost"
+            env.AUTH_ISSUER   = "https://auth.dev.localhost"
           } else if (params.DEPLOY_ENV == 'staging') {
-            env.NAMESPACE     = "front-staging"
+            env.NAMESPACE     = "front-staging"
             env.DOMAIN_SUFFIX = "staging.localhost"
             env.ARGO_APP_NAME = "admin-dashboard-ui-staging"
-            env.API_BASE_URL  = "https://api.staging.localhost"
-            env.AUTH_ISSUER   = "https://auth.staging.localhost"
+            env.API_BASE_URL  = "https://api.staging.localhost"
+            env.AUTH_ISSUER   = "https://auth.staging.localhost"
           } else {
-            env.NAMESPACE     = "front-prod"
+            env.NAMESPACE     = "front-prod"
             env.DOMAIN_SUFFIX = "prod.localhost"
             env.ARGO_APP_NAME = "admin-dashboard-ui-prod"
-            env.API_BASE_URL  = "https://api.prod.localhost"
-            env.AUTH_ISSUER   = "https://auth.prod.localhost"
+            env.API_BASE_URL  = "https://api.prod.localhost"
+            env.AUTH_ISSUER   = "https://auth.prod.localhost"
           }
 
           echo """
           Environment context:
-          DEPLOY_ENV  = ${params.DEPLOY_ENV}
-          Namespace   = ${env.NAMESPACE}
-          Hostname    = admin.dashboard.${env.DOMAIN_SUFFIX}
+          DEPLOY_ENV  = ${params.DEPLOY_ENV}
+          Namespace   = ${env.NAMESPACE}
+          Hostname    = admin.dashboard.${env.DOMAIN_SUFFIX}
           """
         }
       }
@@ -188,7 +188,7 @@ auth:
         }
       }
     } 
-  } // <--- CORRECT CLOSING BRACE for the 'stages' block
+  }
 
   post {
     success { echo "✅ Deployed Admin Dashboard (${env.FINAL_TAG}) to ${params.DEPLOY_ENV}" }
