@@ -168,6 +168,14 @@ auth:
            // ✅ keep gateway intact
           { "name": "istio.gateway.create", "value": "false" },
           { "name": "istio.gateway.name",   "value": "platform-ui-gateway" }
+          // --- 👇 ADD THESE MISSING PARAMS 👇 ---
+          { "name": "auth.enabled", "value": "true" },
+          { "name": "auth.issuer", "value": "${env.AUTH_ISSUER}/" },
+          { "name": "auth.jwksUri", "value": "${env.AUTH_ISSUER}/.well-known/jwks.json" },
+          { "name": "auth.audiences", "value": "[\"admin-dashboard-ui\"]" },
+          { "name": "auth.roleClaim", "value": "role" },
+          { "name": "auth.allowedRoles", "value": "[\"super-admin\",\"platform-admin\",\"org-admin\"]" },
+          { "name": "auth.requiredScopes", "value": "[\"dashboard:admin\"]" }
         ]
       }
     },
