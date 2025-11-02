@@ -1,0 +1,19 @@
+auth:
+  adminUser: admin
+  adminPassword: admin123
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+istio:
+  host: auth.dev.localhost
+  gatewayName: platform-ui-gateway
