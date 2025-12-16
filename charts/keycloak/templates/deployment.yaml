@@ -2,9 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: keycloak
-  namespace: auth-system
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: keycloak
@@ -15,17 +14,53 @@ spec:
     spec:
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:26.0
-          args: ["start-dev"]
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - start-dev
+
           env:
             - name: KEYCLOAK_ADMIN
-              value: "admin"
+              value: {{ .Values.auth.adminUser | quote }}
             - name: KEYCLOAK_ADMIN_PASSWORD
-              value: "admin123"
+              value: {{ .Values.auth.adminPassword | quote }}
+
             - name: KC_PROXY
-              value: "edge"
+              value: {{ .Values.keycloak.proxy | quote }}
             - name: KC_HOSTNAME
-              value: "auth.dev.localhost"
+              value: {{ .Values.istio.host | quote }}
+            - name: KC_HOSTNAME_STRICT
+              value: {{ .Values.keycloak.hostnameStrict | quote }}
+            - name: KC_HTTP_ENABLED
+              value: {{ .Values.keycloak.httpEnabled | quote }}
+
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: {{ .Values.service.port }}
+
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+
+          readinessProbe:
+            httpGet:
+              path: /realms/master
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /realms/master
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 120
+            periodSeconds: 20
+
+{{- if .Values.extraVolumeMounts }}
+          volumeMounts:
+{{ toYaml .Values.extraVolumeMounts | indent 12 }}
+{{- end }}
+
+{{- if .Values.extraVolumes }}
+      volumes:
+{{ toYaml .Values.extraVolumes | indent 8 }}
+{{- end }}

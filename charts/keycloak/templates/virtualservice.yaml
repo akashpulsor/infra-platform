@@ -1,19 +1,18 @@
-apiVersion: networking.istio.io/v1
+apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: keycloak
-  namespace: auth-system
 spec:
   hosts:
-    - auth.dev.localhost
+    - {{ .Values.istio.host }}
   gateways:
-    - platform-ui-gateway
+    - {{ .Values.istio.gatewayName }}
   http:
     - match:
         - uri:
-            prefix: / # Crucial fix: Routes all paths, including /auth/ to Keycloak
+            prefix: /
       route:
         - destination:
-            host: keycloak.auth-system.svc.cluster.local
+            host: keycloak.{{ .Release.Namespace }}.svc.cluster.local
             port:
-             number: 8080
+              number: {{ .Values.service.port }}

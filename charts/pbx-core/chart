@@ -1,0 +1,36 @@
+#!/bin/bash
+
+FILE="values.yaml"
+
+echo "Extracting all image: repository + tag pairs from $FILE"
+echo "--------------------------------------------------------"
+
+# Extract lines with "repository:" and "tag:" using grep
+REPOS=($(grep -R "repository:" $FILE | awk '{print $2}'))
+TAGS=($(grep -R "tag:" $FILE | awk '{print $2}'))
+
+IMAGES=()
+
+# Pair repositories with tags in order found
+for i in "${!REPOS[@]}"; do
+    IMG="${REPOS[$i]}:${TAGS[$i]}"
+    IMAGES+=("$IMG")
+done
+
+echo "Images detected:"
+printf '%s\n' "${IMAGES[@]}"
+echo "--------------------------------------------------------"
+
+# Validate images
+for IMG in "${IMAGES[@]}"; do
+    echo "Checking image → $IMG"
+
+    if docker pull "$IMG" >/dev/null 2>&1; then
+        echo "✔ EXISTS"
+    else
+        echo "❌ NOT FOUND"
+    fi
+
+    echo "--------------------------------------------------------"
+done
+

@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+nameSuffix: -dev
+
+resources:
+  - ../base
+  - ../../istio/gateway/platform-ui-gateway.yaml
+  - ../../istio/security/request-authentication.yaml
+  - ../../istio/security/authorization-policy.yaml
+  - ../../istio/security/rate-limit.yaml

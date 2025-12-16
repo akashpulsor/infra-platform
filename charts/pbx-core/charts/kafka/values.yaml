@@ -1,0 +1,26 @@
+image:
+  repository: apache/kafka
+  tag: "3.7.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 3
+
+persistence:
+  size: 10Gi
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: 500m      # Reduced from 2000m
+    memory: 1Gi    # Reduced from 4Gi
+  limits:
+    cpu: 1000m     # Reduced from 4000m
+    memory: 2Gi    # Reduced from 8Gi
+
+kraft:
+  enabled: true
+  clusterId: ""
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

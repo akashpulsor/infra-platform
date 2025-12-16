@@ -1,0 +1,235 @@
+pipeline {
+  agent { kubernetes { yamlFile 'jenkins/agents/docker-agent.yaml' } }
+
+  parameters {
+    choice(name: 'DEPLOY_ENV', choices: ['development', 'staging', 'production'], description: 'Select target environment')
+    choice(name: 'SERVICE', choices: ['auth-service', 'platform-api'], description: 'Select which backend service to deploy')
+    string(name: 'APP_BRANCH', defaultValue: 'main', description: 'Git branch to build from')
+    string(name: 'IMAGE_TAG',  defaultValue: '',  description: 'Optional existing image tag; leave empty to build new')
+  }
+
+  environment {
+    REGISTRY        = "docker.io"
+    DOCKER_USER     = "akashtripathi"
+
+    APP_REPO        = "https://github.com/akashpulsor/dallai-llama-backend.git"
+    INFRA_REPO      = "https://github.com/akashpulsor/infra-platform.git"
+    INFRA_BRANCH    = "main"
+
+    ARGOCD_SERVER   = "https://argocd-server.argocd.svc.cluster.local:443"
+  }
+
+  stages {
+
+    /* ------------------------------------------------------------- */
+    /* 🌍 Environment Context Setup                                  */
+    /* ------------------------------------------------------------- */
+    stage('Set Environment Context') {
+      steps {
+        script {
+          if (params.SERVICE == 'auth-service') {
+            env.IMAGE_NAME   = "auth-service"
+            env.NAMESPACE    = "auth-system"
+            env.CHART_PATH   = "charts/auth-service"
+            env.ARGO_APP_NAME = "auth-service-${params.DEPLOY_ENV}"
+            env.HOSTNAME     = "auth.${params.DEPLOY_ENV}.localhost"
+          } else {
+            env.IMAGE_NAME   = "platform-api"
+            env.NAMESPACE    = "platform-dev"
+            env.CHART_PATH   = "charts/platform-api"
+            env.ARGO_APP_NAME = "platform-api-${params.DEPLOY_ENV}"
+            env.HOSTNAME     = "api.${params.DEPLOY_ENV}.localhost"
+          }
+
+          if (params.DEPLOY_ENV == 'development') {
+            env.DOMAIN_SUFFIX = "dev.localhost"
+          } else if (params.DEPLOY_ENV == 'staging') {
+            env.DOMAIN_SUFFIX = "staging.localhost"
+          } else {
+            env.DOMAIN_SUFFIX = "prod.localhost"
+          }
+
+          echo """
+          🌍 Deployment Context:
+          Service      = ${params.SERVICE}
+          Environment  = ${params.DEPLOY_ENV}
+          Namespace    = ${env.NAMESPACE}
+          Chart Path   = ${env.CHART_PATH}
+          """
+        }
+      }
+    }
+
+    /* ------------------------------------------------------------- */
+    /* 📦 Checkout Source Repositories                               */
+    /* ------------------------------------------------------------- */
+    stage('Checkout Repositories') {
+      steps {
+        parallel (
+          "Infra Repo": {
+            git branch: "${INFRA_BRANCH}", url: "${INFRA_REPO}"
+          },
+          "App Repo": {
+            dir('app-src') {
+              git branch: "${params.APP_BRANCH}", url: "${APP_REPO}"
+            }
+          }
+        )
+      }
+    }
+
+    /* ------------------------------------------------------------- */
+    /* 🐳 Build & Push Docker Image                                  */
+    /* ------------------------------------------------------------- */
+    stage('Build & Push Docker Image') {
+      when { expression { return !params.IMAGE_TAG?.trim() } }
+      steps {
+        container('docker') {
+          withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
+            dir('app-src') {
+              script {
+                env.SHORT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                env.BUILD_TAG = "${env.BUILD_NUMBER}-${env.SHORT_SHA}"
+              }
+
+              sh '''
+                echo "🔧 Building Docker image ${IMAGE_NAME}:${BUILD_TAG}..."
+                docker build -t ${IMAGE_NAME}:${BUILD_TAG} -f ${SERVICE}/Dockerfile ${SERVICE}
+
+                echo "🔐 Logging in to Docker Hub..."
+                echo "$TOKEN" | docker login -u "$USER" --password-stdin || exit 1
+
+                echo "📦 Tagging and pushing image..."
+                docker tag ${IMAGE_NAME}:${BUILD_TAG} ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_TAG}
+                docker push ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${BUILD_TAG} || exit 1
+
+                echo "✅ Image pushed successfully to Docker Hub!"
+              '''
+            }
+          }
+        }
+      }
+    }
+
+    /* ------------------------------------------------------------- */
+    /* 🏷️ Set Final Image Tag                                       */
+    /* ------------------------------------------------------------- */
+    stage('Set Final Image Tag') {
+      steps {
+        script {
+          env.FINAL_TAG = params.IMAGE_TAG?.trim() ? params.IMAGE_TAG.trim() : env.BUILD_TAG
+          echo "🧩 Using final image tag: ${env.FINAL_TAG}"
+        }
+      }
+    }
+
+    /* ------------------------------------------------------------- */
+    /* ⚙️ Generate Helm Overrides                                   */
+    /* ------------------------------------------------------------- */
+    stage('Create Environment Override File') {
+      steps {
+        script {
+          def overrideFile = "${env.WORKSPACE}/${params.SERVICE}-${params.DEPLOY_ENV}-override.yaml"
+          def content = """
+image:
+  repository: ${env.REGISTRY}/${env.DOCKER_USER}/${env.IMAGE_NAME}
+  tag: "${env.FINAL_TAG}"
+
+env:
+  SPRING_PROFILES_ACTIVE: "${params.DEPLOY_ENV}"
+  SERVER_PORT: "8080"
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+istio:
+  enabled: true
+  gatewayName: platform-ui-gateway
+  host: ${env.HOSTNAME}
+
+service:
+  type: ClusterIP
+  port: 8080
+"""
+          writeFile file: overrideFile, text: content
+          echo "🧾 Generated Helm override file at: ${overrideFile}"
+          archiveArtifacts artifacts: "${params.SERVICE}-${params.DEPLOY_ENV}-override.yaml", onlyIfSuccessful: true
+        }
+      }
+    }
+
+    /* ------------------------------------------------------------- */
+    /* 🚀 Deploy via ArgoCD API                                     */
+    /* ------------------------------------------------------------- */
+    stage('Deploy via ArgoCD') {
+      steps {
+        withCredentials([string(credentialsId: 'argocd-token', variable: 'ARGOCD_TOKEN')]) {
+          script {
+            def argoAppSpec = """
+{
+  "metadata": { "name": "${env.ARGO_APP_NAME}", "namespace": "argocd" },
+  "spec": {
+    "project": "default",
+    "source": {
+      "repoURL": "${INFRA_REPO}",
+      "targetRevision": "${INFRA_BRANCH}",
+      "path": "${env.CHART_PATH}",
+      "helm": {
+        "parameters": [
+          { "name": "image.repository", "value": "${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}" },
+          { "name": "image.tag", "value": "${FINAL_TAG}" },
+          { "name": "istio.enabled", "value": "true" },
+          { "name": "istio.gatewayName", "value": "platform-ui-gateway" },
+          { "name": "istio.host", "value": "${env.HOSTNAME}" }
+        ]
+      }
+    },
+    "destination": {
+      "server": "https://kubernetes.default.svc",
+      "namespace": "${env.NAMESPACE}"
+    },
+    "syncPolicy": {
+      "automated": { "prune": true, "selfHeal": true }
+    }
+  }
+}
+"""
+
+            sh """
+              echo "🚀 Creating or updating ArgoCD app: ${env.ARGO_APP_NAME}"
+              curl -k -s -X POST ${ARGOCD_SERVER}/api/v1/applications \
+                -H "Authorization: Bearer ${ARGOCD_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d '${argoAppSpec}' || true
+
+              echo "🔁 Triggering ArgoCD sync..."
+              curl -k -s -X POST \
+                -H "Authorization: Bearer ${ARGOCD_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d '{"name": "${env.ARGO_APP_NAME}"}' \
+                ${ARGOCD_SERVER}/api/v1/applications/${env.ARGO_APP_NAME}/sync || true
+
+              echo "⏳ Waiting 15s for sync to settle..."
+              sleep 15
+              curl -k -s -H "Authorization: Bearer ${ARGOCD_TOKEN}" ${ARGOCD_SERVER}/api/v1/applications/${env.ARGO_APP_NAME} | grep -E '"sync|health"'
+            """
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "✅ Successfully deployed ${params.SERVICE} (${env.FINAL_TAG}) to ${params.DEPLOY_ENV}"
+    }
+    failure {
+      echo "❌ Deployment failed. Check ArgoCD logs or API connectivity."
+    }
+  }
+}

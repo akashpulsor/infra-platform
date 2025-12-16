@@ -1,0 +1,57 @@
+# --------------------------------------------------------------------
+# 🧩 Image Configuration
+# --------------------------------------------------------------------
+image:
+  repository: docker.io/akashtripathi/auth-service
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# --------------------------------------------------------------------
+# 🌍 Deployment Environment
+# --------------------------------------------------------------------
+env:
+  SPRING_PROFILES_ACTIVE: "development"
+  SERVER_PORT: "8080"
+
+# Optional environment variables
+  DB_URL: "jdbc:postgresql://postgres.auth-system.svc.cluster.local:5432/authdb"
+  DB_USERNAME: "auth_user"
+  DB_PASSWORD: "securepassword"
+  KEYCLOAK_URL: "https://auth.dev.localhost"
+  KEYCLOAK_REALM: "dalai-llama"
+
+# --------------------------------------------------------------------
+# ⚙️ Resource Allocation
+# --------------------------------------------------------------------
+resources:
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+# --------------------------------------------------------------------
+# ☸️ Kubernetes Service
+# --------------------------------------------------------------------
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+# --------------------------------------------------------------------
+# 🚪 Istio Gateway
+# --------------------------------------------------------------------
+istio:
+  enabled: true
+  gatewayName: platform-ui-gateway
+  host: auth.dev.localhost
+  retries:
+    attempts: 3
+    perTryTimeout: 2s
+    retryOn: "5xx"
+
+# --------------------------------------------------------------------
+# 🧩 Misc
+# --------------------------------------------------------------------
+replicaCount: 2

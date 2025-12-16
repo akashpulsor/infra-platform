@@ -1,11 +1,41 @@
+# --------------------------------------------------
+# Image
+# --------------------------------------------------
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "26.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# --------------------------------------------------
+# Keycloak runtime config
+# --------------------------------------------------
+keycloak:
+  proxy: edge
+  hostnameStrict: false
+  httpEnabled: true
+
+  # Used by bootstrap Job to talk to Keycloak internally
+  internalUrl: http://keycloak:8080
+
+# --------------------------------------------------
+# Admin credentials (dev only)
+# --------------------------------------------------
 auth:
   adminUser: admin
   adminPassword: admin123
 
+# --------------------------------------------------
+# Service
+# --------------------------------------------------
 service:
   type: ClusterIP
   port: 8080
 
+# --------------------------------------------------
+# Resources (safe for dev, prod-like)
+# --------------------------------------------------
 resources:
   requests:
     cpu: 200m
@@ -14,6 +44,38 @@ resources:
     cpu: 500m
     memory: 512Mi
 
+# --------------------------------------------------
+# Istio exposure
+# --------------------------------------------------
 istio:
   host: auth.dev.localhost
-  gatewayName: platform-ui-gateway
+  gatewayName: front-dev/platform-ui-gateway
+
+# --------------------------------------------------
+# Bootstrap (IDENTITY CONTROL PLANE)
+# --------------------------------------------------
+bootstrap:
+  enabled: true
+  clientSecret: platform-api-secret-123
+  realm:
+    name: platform
+    displayName: Dalai Llama Platform
+
+  client:
+    id: platform-api
+    name: Platform Backend
+    secret: platform-api-secret
+
+    public: false
+    serviceAccountsEnabled: true
+    directAccessGrantsEnabled: true
+
+    redirectUris:
+      - "https://ui.dev.localhost/*"
+
+  # Multiple tenants supported from day 1
+  tenants:
+    - id: tenant-123
+      name: Tenant 123
+    - id: tenant-456
+      name: Tenant 456

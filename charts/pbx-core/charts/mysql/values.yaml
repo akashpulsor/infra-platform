@@ -1,0 +1,39 @@
+image:
+  repository: mysql
+  tag: "8.0"
+  pullPolicy: IfNotPresent
+
+existingSecret: "mysql-auth"
+auth:
+  rootPassword: ""
+  user: "pbx_user"
+  password: ""
+  database: "pbx_core_db"
+
+replication:
+  enabled: true
+  replicas: 2
+
+persistence:
+  size: 5Gi
+  storageClass: ""
+
+resources:
+  primary:
+    requests:
+      cpu: "500m"
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  replica:
+    requests:
+      cpu: "300m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

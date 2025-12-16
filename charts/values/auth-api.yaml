@@ -1,0 +1,7 @@
+image:
+  repository: docker.io/akashtripathi/auth-api
+  tag: latest
+
+istio:
+  host: auth-api.dev.localhost
+  gatewayRef: "front-dev/platform-ui-gateway"

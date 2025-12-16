@@ -1,0 +1,47 @@
+{{- if .Values.bootstrap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-bootstrap-client
+  namespace: {{ .Release.Namespace }}
+data:
+  client.json: |
+    {
+      "realm": "{{ .Values.bootstrap.realm.name }}",
+      "clients": [
+        {
+          "clientId": "{{ .Values.bootstrap.client.id }}",
+          "name": "{{ .Values.bootstrap.client.name }}",
+          "protocol": "openid-connect",
+          "publicClient": {{ .Values.bootstrap.client.public }},
+          "serviceAccountsEnabled": {{ .Values.bootstrap.client.serviceAccountsEnabled }},
+          "directAccessGrantsEnabled": {{ .Values.bootstrap.client.directAccessGrantsEnabled }},
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "redirectUris": [
+            {{- $lastIndex := sub (len .Values.bootstrap.client.redirectUris) 1 }}
+            {{- range $i, $uri := .Values.bootstrap.client.redirectUris }}
+            "{{ $uri }}"{{- if lt $i $lastIndex }},{{- end }}
+            {{- end }}
+          ],
+          "webOrigins": ["+"],
+          "protocolMappers": [
+            {
+              "name": "tenant-id",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-attribute-mapper",
+              "consentRequired": false,
+              "config": {
+                "user.attribute": "tenant_id",
+                "claim.name": "tenant_id",
+                "jsonType.label": "String",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            }
+          ]
+        }
+      ]
+    }
+{{- end }}

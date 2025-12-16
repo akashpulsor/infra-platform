@@ -1,0 +1,10 @@
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: platform-jwt
+  namespace: apps
+spec:
+  jwtRules:
+    - issuer: "https://auth.dev.localhost/realms/platform"
+      jwksUri: "https://auth.dev.localhost/realms/platform/protocol/openid-connect/certs"
+      forwardOriginalToken: true

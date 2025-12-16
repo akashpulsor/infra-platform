@@ -1,0 +1,20 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: tenant-quota
+  namespace: istio-system
+spec:
+  workloadSelector:
+    labels:
+      istio: ingress
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            stat_prefix: tenant_quota

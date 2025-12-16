@@ -1,0 +1,59 @@
+{{- if .Values.bootstrap.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-bootstrap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: keycloak-bootstrap
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+
+      containers:
+        - name: bootstrap
+          image: adorsys/keycloak-config-cli:latest
+          imagePullPolicy: IfNotPresent
+
+          env:
+            - name: KEYCLOAK_URL
+              value: {{ .Values.keycloak.internalUrl | quote }}
+
+            - name: KEYCLOAK_USER
+              value: {{ .Values.auth.adminUser | quote }}
+
+            - name: KEYCLOAK_PASSWORD
+              value: {{ .Values.auth.adminPassword | quote }}
+
+            - name: KEYCLOAK_AVAILABILITYCHECK_ENABLED
+              value: "true"
+
+            - name: KEYCLOAK_AVAILABILITYCHECK_TIMEOUT
+              value: "120s"
+
+            - name: IMPORT_FILES_LOCATIONS
+              value: /config/*
+
+            - name: IMPORT_BEHAVIOR
+              value: IGNORE_EXISTING
+
+          volumeMounts:
+            - name: realm-config
+              mountPath: /config/realm.json
+              subPath: realm.json
+
+            - name: client-config
+              mountPath: /config/client.json
+              subPath: client.json
+
+      volumes:
+        - name: realm-config
+          configMap:
+            name: keycloak-bootstrap-config
+
+        - name: client-config
+          configMap:
+            name: keycloak-bootstrap-client
+{{- end }}

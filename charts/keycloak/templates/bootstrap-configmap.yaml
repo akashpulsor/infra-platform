@@ -1,0 +1,30 @@
+{{- if .Values.bootstrap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-bootstrap-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: keycloak-bootstrap
+data:
+  realm.json: |
+    {
+      "realm": "{{ .Values.bootstrap.realm.name }}",
+      "displayName": "{{ .Values.bootstrap.realm.displayName }}",
+      "enabled": true,
+      "loginWithEmailAllowed": true,
+      "duplicateEmailsAllowed": false,
+      "resetPasswordAllowed": true,
+      "editUsernameAllowed": false,
+      "sslRequired": "external",
+      "attributes": {
+        "frontendUrl": "https://{{ .Values.istio.host }}"
+      },
+      
+      # *** CRITICAL FIX: Add empty lists for clients and users ***
+      "clients": [],
+      "users": [],
+      "clientScopes": [],
+      "roles": {}
+    }
+{{- end }}

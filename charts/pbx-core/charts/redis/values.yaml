@@ -1,0 +1,22 @@
+image:
+  repository: redis
+  tag: "7.2"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+persistence:
+  size: 5Gi
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 2Gi
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

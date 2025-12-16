@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  labels:
+    app: kafka
+spec:
+  serviceName: kafka-headless
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: kafka
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          
+          # Use init container to extract numeric ID
+          command:
+            - sh
+            - -c
+            - |
+              # Extract numeric ordinal from hostname (kafka-0 -> 0)
+              export BROKER_ID=$(hostname | rev | cut -d'-' -f1 | rev)
+              export KAFKA_NODE_ID=$BROKER_ID
+              
+              # Set Kafka config
+              export KAFKA_PROCESS_ROLES=broker,controller
+              export KAFKA_CONTROLLER_QUORUM_VOTERS="0@kafka-0.kafka-headless.{{ .Release.Namespace }}.svc.cluster.local:9093,1@kafka-1.kafka-headless.{{ .Release.Namespace }}.svc.cluster.local:9093,2@kafka-2.kafka-headless.{{ .Release.Namespace }}.svc.cluster.local:9093"
+              export KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+              export KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://$(hostname).kafka-headless.{{ .Release.Namespace }}.svc.cluster.local:9092"
+              export KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+              export KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+              export KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+              export CLUSTER_ID="{{ .Values.kraft.clusterId }}"
+              
+              # Start Kafka
+              exec /etc/kafka/docker/run
+          
+          env:
+            - name: CLUSTER_ID
+              value: "{{ .Values.kraft.clusterId }}"
+          
+          ports:
+            - name: kafka
+              containerPort: 9092
+            - name: controller
+              containerPort: 9093
+          
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+          
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+  
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}

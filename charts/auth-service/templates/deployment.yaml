@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "auth-service.fullname" . }}
+  labels:
+    app: {{ include "auth-service.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "auth-service.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "auth-service.fullname" . }}
+    spec:
+      containers:
+        - name: auth-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: {{ .Values.env.SPRING_PROFILES_ACTIVE | quote }}
+            - name: SERVER_PORT
+              value: {{ .Values.env.SERVER_PORT | quote }}
+            - name: DB_URL
+              value: {{ .Values.env.DB_URL | quote }}
+            - name: DB_USERNAME
+              value: {{ .Values.env.DB_USERNAME | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.env.DB_PASSWORD | quote }}
+            - name: KEYCLOAK_URL
+              value: {{ .Values.env.KEYCLOAK_URL | quote }}
+            - name: KEYCLOAK_REALM
+              value: {{ .Values.env.KEYCLOAK_REALM | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
