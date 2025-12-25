@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-bootstrap-config
+  labels:
+    app: keycloak
+data:
+  realm.json: |
+    {
+      "realm": "platform",
+      "enabled": true,
+      "displayName": "Dalai Llama Platform",
+
+      "sslRequired": "external",
+      "registrationAllowed": false,
+      "loginWithEmailAllowed": true,
+      "duplicateEmailsAllowed": false,
+
+      "resetPasswordAllowed": true,
+      "rememberMe": true,
+
+      "bruteForceProtected": false,
+
+      "accessTokenLifespan": 300,
+      "ssoSessionIdleTimeout": 1800,
+      "ssoSessionMaxLifespan": 36000
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-bootstrap-client
+  labels:
+    app: keycloak
+data:
+  client.json: |
+    {
+      "clientId": "platform-api",
+      "name": "Platform Backend API",
+      "protocol": "openid-connect",
+
+      "enabled": true,
+      "publicClient": false,
+
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+
+      "clientAuthenticatorType": "client-secret",
+      "secret": "CHANGE_ME_PLATFORM_API_SECRET",
+
+      "redirectUris": [
+        "http://localhost/*"
+      ],
+
+      "webOrigins": [
+        "+"
+      ],
+
+      "fullScopeAllowed": true
+    }

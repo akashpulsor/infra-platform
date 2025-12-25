@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: keycloak
+  labels:
+    app: keycloak
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -9,58 +11,127 @@ spec:
       app: keycloak
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/rewriteAppHTTPProbers: "false"
       labels:
         app: keycloak
+        sidecar.istio.io/inject: "true"
     spec:
+      {{- if and .Values.theme.enabled .Values.theme.useInitContainer }}
+      initContainers:
+        - name: theme-init
+          image: {{ .Values.theme.initImage }}
+          imagePullPolicy: Never
+          command: ['sh', '-c', 'cp -r /themes/* /opt/keycloak/themes/']
+          volumeMounts:
+            - name: themes
+              mountPath: /opt/keycloak/themes
+      {{- end }}
       containers:
         - name: keycloak
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+
           args:
-            - start-dev
+            - start
 
           env:
-            - name: KEYCLOAK_ADMIN
+            # --- Core HTTP ---
+            - name: KC_HTTP_ENABLED
+              value: "true"
+
+            - name: KC_PROXY_HEADERS
+              value: "xforwarded"
+
+            # --- Hostname (v2 config - full URL) ---
+            - name: KC_HOSTNAME
+              value: {{ .Values.keycloak.hostname | quote }}
+
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+
+            # --- Management / Health ---
+            - name: KC_HTTP_MANAGEMENT_ENABLED
+              value: "true"
+
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+
+            - name: KC_METRICS_ENABLED
+              value: "true"
+
+            # --- Bootstrap Admin ---
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
               value: {{ .Values.auth.adminUser | quote }}
-            - name: KEYCLOAK_ADMIN_PASSWORD
+
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
               value: {{ .Values.auth.adminPassword | quote }}
 
-            - name: KC_PROXY
-              value: {{ .Values.keycloak.proxy | quote }}
-            - name: KC_HOSTNAME
-              value: {{ .Values.istio.host | quote }}
-            - name: KC_HOSTNAME_STRICT
-              value: {{ .Values.keycloak.hostnameStrict | quote }}
-            - name: KC_HTTP_ENABLED
-              value: {{ .Values.keycloak.httpEnabled | quote }}
+            {{- if .Values.database.enabled }}
+            # --- Database ---
+            - name: KC_DB
+              value: {{ .Values.database.vendor | quote }}
+
+            - name: KC_DB_URL_HOST
+              value: {{ .Values.database.host | quote }}
+
+            - name: KC_DB_URL_PORT
+              value: {{ .Values.database.port | quote }}
+
+            - name: KC_DB_URL_DATABASE
+              value: {{ .Values.database.name | quote }}
+
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: username
+
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: password
+            {{- end }}
 
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
+              protocol: TCP
 
-          resources:
-{{ toYaml .Values.resources | indent 12 }}
-
-          readinessProbe:
-            httpGet:
-              path: /realms/master
-              port: {{ .Values.service.port }}
-            initialDelaySeconds: 60
-            periodSeconds: 10
+            - name: management
+              containerPort: {{ .Values.service.managementPort }}
+              protocol: TCP
 
           livenessProbe:
             httpGet:
-              path: /realms/master
-              port: {{ .Values.service.port }}
+              path: /health/live
+              port: {{ .Values.service.managementPort }}
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.service.managementPort }}
             initialDelaySeconds: 120
-            periodSeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
 
-{{- if .Values.extraVolumeMounts }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+          {{- if and .Values.theme.enabled .Values.theme.useInitContainer }}
           volumeMounts:
-{{ toYaml .Values.extraVolumeMounts | indent 12 }}
-{{- end }}
+            - name: themes
+              mountPath: /opt/keycloak/themes
+          {{- end }}
 
-{{- if .Values.extraVolumes }}
+      {{- if and .Values.theme.enabled .Values.theme.useInitContainer }}
       volumes:
-{{ toYaml .Values.extraVolumes | indent 8 }}
-{{- end }}
+        - name: themes
+          emptyDir: {}
+      {{- end }}

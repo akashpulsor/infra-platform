@@ -1,0 +1,65 @@
+{{- if .Values.services.dashboardUi.enabled }}
+# Dashboard UI - VirtualService
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: dashboard-ui
+  namespace: {{ .Values.services.dashboardUi.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - "{{ .Values.services.dashboardUi.subdomain }}.{{ .Values.global.domain }}"
+    - "{{ .Values.services.dashboardUi.subdomain }}.{{ .Values.global.productionDomain }}"
+  gateways:
+    - {{ include "istio-config.gatewayRef" . }}
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: {{ .Values.services.dashboardUi.host }}
+            port:
+              number: 80
+---
+# Dashboard UI - JWT Authentication
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: dashboard-jwt-auth
+  namespace: {{ .Values.services.dashboardUi.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: dashboard-ui
+  jwtRules:
+    - issuer: "{{ .Values.keycloak.issuerUrl }}"
+      jwksUri: {{ include "istio-config.jwksUri" . }}
+      forwardOriginalToken: true
+      fromHeaders:
+        - name: Authorization
+          prefix: "Bearer "
+      fromCookies:
+        - access_token
+---
+# Dashboard UI - Require JWT
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: dashboard-require-jwt
+  namespace: {{ .Values.services.dashboardUi.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: dashboard-ui
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            requestPrincipals: ["*"]
+{{- end }}

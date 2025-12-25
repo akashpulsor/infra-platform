@@ -1,0 +1,87 @@
+{{- if .Values.services.keycloak.enabled }}
+# Keycloak - VirtualService
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: keycloak
+  namespace: {{ .Values.services.keycloak.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - "{{ .Values.services.keycloak.subdomain }}.{{ .Values.global.domain }}"
+    - "{{ .Values.services.keycloak.subdomain }}.{{ .Values.global.productionDomain }}"
+  gateways:
+    - {{ include "istio-config.gatewayRef" . }}
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: {{ .Values.services.keycloak.host }}
+            port:
+              number: 80
+      timeout: 30s
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+---
+# Keycloak - AuthorizationPolicy (Public)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: keycloak-public
+  namespace: {{ .Values.services.keycloak.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  action: ALLOW
+  rules:
+    - {}
+---
+{{- end }}
+{{- if .Values.services.platformUi.enabled }}
+# Platform UI - VirtualService
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: platform-ui
+  namespace: {{ .Values.services.platformUi.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - "{{ .Values.services.platformUi.subdomain }}.{{ .Values.global.domain }}"
+    - "{{ .Values.services.platformUi.subdomain }}.{{ .Values.global.productionDomain }}"
+  gateways:
+    - {{ include "istio-config.gatewayRef" . }}
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: {{ .Values.services.platformUi.host }}
+            port:
+              number: 80
+---
+# Platform UI - AuthorizationPolicy (Public)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: platform-ui-public
+  namespace: {{ .Values.services.platformUi.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: platform-ui
+  action: ALLOW
+  rules:
+    - {}
+{{- end }}

@@ -1,0 +1,52 @@
+{{- if and .Values.services.apiGateway.enabled .Values.services.apiGateway.rateLimit.enabled }}
+# API Gateway Rate Limit
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: api-rate-limit
+  namespace: {{ .Values.services.apiGateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  workloadSelector:
+    labels:
+      app: api-gateway
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+              subFilter:
+                name: "envoy.filters.http.router"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+            type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            value:
+              stat_prefix: http_local_rate_limiter
+              token_bucket:
+                max_tokens: {{ .Values.services.apiGateway.rateLimit.requestsPerMinute }}
+                tokens_per_fill: {{ .Values.services.apiGateway.rateLimit.requestsPerMinute }}
+                fill_interval: 60s
+              filter_enabled:
+                runtime_key: local_rate_limit_enabled
+                default_value:
+                  numerator: 100
+                  denominator: HUNDRED
+              filter_enforced:
+                runtime_key: local_rate_limit_enforced
+                default_value:
+                  numerator: 100
+                  denominator: HUNDRED
+              response_headers_to_add:
+                - append: false
+                  header:
+                    key: x-rate-limit-limit
+                    value: "{{ .Values.services.apiGateway.rateLimit.requestsPerMinute }}"
+{{- end }}

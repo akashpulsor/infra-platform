@@ -1,6 +1,3 @@
-# --------------------------------------------------
-# Image
-# --------------------------------------------------
 image:
   repository: quay.io/keycloak/keycloak
   tag: "26.0"
@@ -8,74 +5,148 @@ image:
 
 replicaCount: 1
 
-# --------------------------------------------------
-# Keycloak runtime config
-# --------------------------------------------------
 keycloak:
-  proxy: edge
-  hostnameStrict: false
-  httpEnabled: true
+  # Full URL with protocol and port (Keycloak v2 hostname config)
+  # For local dev: http://auth.localhost:8081
+  # For production: https://auth.yourdomain.com
+  hostname: http://auth.localhost:8081
 
-  # Used by bootstrap Job to talk to Keycloak internally
-  internalUrl: http://keycloak:8080
-
-# --------------------------------------------------
-# Admin credentials (dev only)
-# --------------------------------------------------
 auth:
   adminUser: admin
   adminPassword: admin123
 
-# --------------------------------------------------
-# Service
-# --------------------------------------------------
+# =============================================================================
+# Database Configuration
+# =============================================================================
+database:
+  enabled: true
+  vendor: postgres
+  host: postgres-keycloak
+  port: 5432
+  name: keycloak
+  username: keycloak
+  password: keycloak123
+
+# PostgreSQL deployment (set to false if using external DB)
+postgresql:
+  enabled: true
+  image: postgres:16-alpine
+  storage: 1Gi
+  storageClassName: ""  # Use default storage class
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# =============================================================================
+# Custom Theme Configuration
+# =============================================================================
+theme:
+  enabled: true
+  # Name of the custom theme (must match directory name in themes/)
+  name: dalaillama
+  # ConfigMap containing theme files (created by theme-configmap.yaml)
+  configMapName: keycloak-theme
+  # Or use a PVC with pre-built themes
+  usePvc: false
+  pvcName: keycloak-themes-pvc
+  # Theme image (alternative: build themes into a container)
+  useInitContainer: true
+  initImage: "k3d-localregistry:5000/keycloak-themes:latest"  # e.g., your-registry/keycloak-themes:latest
+
+# =============================================================================
+# Batch Jobs Configuration
+# =============================================================================
+jobs:
+  # Realm import job - imports realm configuration on first install
+  realmImport:
+    enabled: true
+    # ConfigMap containing realm JSON files
+    configMapName: keycloak-realm-config
+    # Wait for Keycloak to be ready before importing
+    waitForKeycloak: true
+    backoffLimit: 3
+    ttlSecondsAfterFinished: 600
+
+  # User sync job - syncs users from external sources
+  userSync:
+    enabled: true
+    schedule: "0 */6 * * *"  # Every 6 hours
+    image: curlimages/curl:latest
+    # Custom script ConfigMap
+    scriptConfigMap: keycloak-user-sync-script
+    backoffLimit: 2
+    ttlSecondsAfterFinished: 300
+
+  # Cleanup job - removes expired sessions, tokens
+  cleanup:
+    enabled: false
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    backoffLimit: 1
+    ttlSecondsAfterFinished: 300
+
+  # Custom batch job template
+  custom:
+    enabled: false
+    name: keycloak-custom-job
+    schedule: ""  # Leave empty for one-time job, set cron for recurring
+    image: curlimages/curl:latest
+    command: []
+    args: []
+    env: []
+    configMapName: ""
+    backoffLimit: 3
+    ttlSecondsAfterFinished: 600
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
 service:
   type: ClusterIP
-  port: 8080
+  port: 8080           # Keycloak application port
+  managementPort: 9000 # Keycloak 26 management / health port
+  servicePort: 80      # Service port used by Istio routing
 
-# --------------------------------------------------
-# Resources (safe for dev, prod-like)
-# --------------------------------------------------
+# =============================================================================
+# Istio Configuration
+# =============================================================================
+istio:
+  enabled: true
+  host: auth.localhost
+  gatewayName: istio-system/central-gateway
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
 resources:
   requests:
-    cpu: 200m
-    memory: 256Mi
-  limits:
     cpu: 500m
     memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
 
-# --------------------------------------------------
-# Istio exposure
-# --------------------------------------------------
-istio:
-  host: auth.dev.localhost
-  gatewayName: front-dev/platform-ui-gateway
+# =============================================================================
+# Extra environment variables
+# =============================================================================
+extraEnv: []
+  # - name: KC_LOG_LEVEL
+  #   value: "DEBUG"
+  # - name: KC_CACHE
+  #   value: "ispn"
 
-# --------------------------------------------------
-# Bootstrap (IDENTITY CONTROL PLANE)
-# --------------------------------------------------
-bootstrap:
-  enabled: true
-  clientSecret: platform-api-secret-123
-  realm:
-    name: platform
-    displayName: Dalai Llama Platform
+# =============================================================================
+# Extra volumes and volume mounts
+# =============================================================================
+extraVolumes: []
+extraVolumeMounts: []
 
-  client:
-    id: platform-api
-    name: Platform Backend
-    secret: platform-api-secret
-
-    public: false
-    serviceAccountsEnabled: true
-    directAccessGrantsEnabled: true
-
-    redirectUris:
-      - "https://ui.dev.localhost/*"
-
-  # Multiple tenants supported from day 1
-  tenants:
-    - id: tenant-123
-      name: Tenant 123
-    - id: tenant-456
-      name: Tenant 456
+# =============================================================================
+# Node selector, tolerations, affinity
+# =============================================================================
+nodeSelector: {}
+tolerations: []
+affinity: {}

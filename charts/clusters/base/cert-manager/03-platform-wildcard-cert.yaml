@@ -1,0 +1,24 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dalaillama-wildcard
+  namespace: istio-system
+spec:
+  secretName: dalaillama-wildcard-tls
+
+  commonName: dalaillama.dev
+  dnsNames:
+    - dalaillama.dev
+    - "*.dalaillama.dev"
+
+  usages:
+    - server auth
+
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Always
+
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer

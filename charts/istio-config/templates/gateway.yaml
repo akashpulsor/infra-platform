@@ -1,0 +1,20 @@
+# gateway.yaml
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ .Values.gateway.name }}
+  namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ingress
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: {{ .Values.gateway.port }}
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*.{{ .Values.global.domain }}"
+        - "*.{{ .Values.global.productionDomain }}"

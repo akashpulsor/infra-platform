@@ -1,0 +1,16 @@
+apiVersion: v2
+name: istio-config
+description: Core Istio configuration - Gateway, VirtualServices, AuthN/AuthZ, Rate Limiting
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - istio
+  - service-mesh
+  - authentication
+  - authorization
+  - gateway
+  - rate-limiting
+maintainers:
+  - name: Dalai Llama Team
+    email: team@dalaillama.in

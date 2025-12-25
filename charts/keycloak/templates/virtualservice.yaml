@@ -1,12 +1,23 @@
+{{- if .Values.istio.enabled }}
+# =============================================================================
+# VirtualService - Routes traffic to Keycloak
+# =============================================================================
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: keycloak
+  labels:
+    app: keycloak
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/component: auth
 spec:
   hosts:
-    - {{ .Values.istio.host }}
+    - {{ .Values.istio.host | quote }}
+    {{- if .Values.istio.productionHost }}
+    - {{ .Values.istio.productionHost | quote }}
+    {{- end }}
   gateways:
-    - {{ .Values.istio.gatewayName }}
+    - {{ .Values.istio.gatewayName | quote }}
   http:
     - match:
         - uri:
@@ -15,4 +26,70 @@ spec:
         - destination:
             host: keycloak.{{ .Release.Namespace }}.svc.cluster.local
             port:
-              number: {{ .Values.service.port }}
+              number: {{ .Values.service.servicePort }}
+      timeout: 30s
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+        retryOn: connect-failure,refused-stream,unavailable,cancelled,reset
+---
+# =============================================================================
+# DestinationRule - Traffic policy for Keycloak
+# =============================================================================
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/component: auth
+spec:
+  host: keycloak.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      http:
+        h2UpgradePolicy: DO_NOT_UPGRADE
+        maxRequestsPerConnection: 100
+      tcp:
+        maxConnections: 100
+---
+# =============================================================================
+# PeerAuthentication - mTLS mode for Keycloak
+# =============================================================================
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/component: auth
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  mtls:
+    mode: PERMISSIVE
+---
+# =============================================================================
+# AuthorizationPolicy - Keycloak is public (login page must be accessible)
+# =============================================================================
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: keycloak-public
+  labels:
+    app: keycloak
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/component: auth
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  action: ALLOW
+  rules:
+    - {}
+{{- end }}

@@ -14,4 +14,4 @@ spec:
             requestPrincipals: ["*"]
       when:
         - key: request.auth.claims[tenant_id]
-          notValues: [""]
+          values: ["*"]

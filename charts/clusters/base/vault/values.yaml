@@ -1,0 +1,23 @@
+server:
+  enabled: true
+
+  standalone:
+    enabled: true
+
+  dataStorage:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+
+  auditStorage:
+    enabled: true
+    size: 5Gi
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+
+ui:
+  enabled: true
+
+injector:
+  enabled: true

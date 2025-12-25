@@ -1,0 +1,75 @@
+{{- if .Values.services.keycloak.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: keycloak
+  namespace: {{ .Values.services.keycloak.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  host: {{ .Values.services.keycloak.host }}
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      http:
+        h2UpgradePolicy: DO_NOT_UPGRADE
+        maxRequestsPerConnection: 100
+      tcp:
+        maxConnections: 100
+---
+{{- end }}
+{{- if .Values.services.platformUi.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: platform-ui
+  namespace: {{ .Values.services.platformUi.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  host: {{ .Values.services.platformUi.host }}
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+{{- end }}
+{{- if .Values.services.dashboardUi.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: dashboard-ui
+  namespace: {{ .Values.services.dashboardUi.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  host: {{ .Values.services.dashboardUi.host }}
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+{{- end }}
+{{- if .Values.services.apiGateway.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: api-gateway
+  namespace: {{ .Values.services.apiGateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  host: {{ .Values.services.apiGateway.host }}
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+      tcp:
+        maxConnections: 100
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+{{- end }}

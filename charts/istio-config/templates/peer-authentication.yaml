@@ -1,0 +1,38 @@
+{{- if .Values.namespaces.auth.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: auth
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  mtls:
+    mode: {{ .Values.namespaces.auth.mtls }}
+---
+{{- end }}
+{{- if .Values.namespaces.apps.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: apps
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  mtls:
+    mode: {{ .Values.namespaces.apps.mtls }}
+---
+{{- end }}
+{{- if .Values.namespaces.istioSystem.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  mtls:
+    mode: {{ .Values.namespaces.istioSystem.mtls }}
+{{- end }}

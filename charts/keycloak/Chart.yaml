@@ -1,5 +1,15 @@
 apiVersion: v2
 name: keycloak
-description: Self-hosted Keycloak for development & testing
-version: 0.2.0
+description: Keycloak Identity and Access Management with PostgreSQL, custom themes, and batch jobs
+type: application
+version: 1.0.0
 appVersion: "26.0"
+keywords:
+  - keycloak
+  - identity
+  - access management
+  - oauth2
+  - oidc
+  - sso
+maintainers:
+  - name: DalaiLLAMA Team

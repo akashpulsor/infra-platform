@@ -1,0 +1,63 @@
+global:
+  domain: localhost
+  productionDomain: dalaillama.in
+
+gateway:
+  name: central-gateway
+  namespace: istio-system
+  port: 80
+
+keycloak:
+  namespace: auth
+  host: keycloak.auth.svc.cluster.local
+  realm: dalai-llama
+  issuerUrl: "http://auth.localhost:8080/realms/dalai-llama"
+  jwksPath: "/realms/dalai-llama/protocol/openid-connect/certs"
+
+namespaces:
+  auth:
+    enabled: true
+    mtls: PERMISSIVE
+  apps:
+    enabled: true
+    mtls: PERMISSIVE
+  istioSystem:
+    enabled: true
+    mtls: PERMISSIVE
+
+services:
+  keycloak:
+    enabled: false
+
+  platformUi:
+    enabled: false
+    namespace: apps
+    host: platform-ui.apps.svc.cluster.local
+    subdomain: platform
+
+  dashboardUi:
+    enabled: false
+    namespace: apps
+    host: dashboard-ui.apps.svc.cluster.local
+    subdomain: dashboard
+
+  apiGateway:
+    enabled: false
+    namespace: apps
+    host: api-gateway.apps.svc.cluster.local
+    subdomain: api
+    rateLimit:
+      enabled: true
+      requestsPerMinute: 100
+
+# Tenant configuration (disabled by default)
+tenant:
+  enabled: false
+  id: ""
+  name: ""
+  rateLimit:
+    enabled: true
+    requestsPerMinute: 60
+  balanceCheck:
+    enabled: false
+    endpoint: "billing-service.apps.svc.cluster.local"

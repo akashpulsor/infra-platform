@@ -1,0 +1,252 @@
+{{- if .Values.tenant.enabled }}
+# Tenant Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-{{ .Values.tenant.id }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+    istio-injection: enabled
+    tenant-id: {{ .Values.tenant.id }}
+    tenant-name: {{ .Values.tenant.name }}
+---
+# Tenant PeerAuthentication
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: tenant-{{ .Values.tenant.id }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  mtls:
+    mode: PERMISSIVE
+---
+# Tenant VirtualService
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: tenant-api
+  namespace: tenant-{{ .Values.tenant.id }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - "{{ .Values.tenant.id }}.{{ .Values.global.domain }}"
+    - "{{ .Values.tenant.id }}.{{ .Values.global.productionDomain }}"
+  gateways:
+    - {{ include "istio-config.gatewayRef" . }}
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: tenant-api.tenant-{{ .Values.tenant.id }}.svc.cluster.local
+            port:
+              number: 80
+      timeout: 30s
+---
+# Tenant DestinationRule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: tenant-api
+  namespace: tenant-{{ .Values.tenant.id }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  host: tenant-api.tenant-{{ .Values.tenant.id }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+      tcp:
+        maxConnections: 50
+---
+# Tenant JWT Authentication
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: tenant-jwt-auth
+  namespace: tenant-{{ .Values.tenant.id }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: tenant-api
+  jwtRules:
+    - issuer: "{{ .Values.keycloak.issuerUrl }}"
+      jwksUri: {{ include "istio-config.jwksUri" . }}
+      forwardOriginalToken: true
+      fromHeaders:
+        - name: Authorization
+          prefix: "Bearer "
+---
+# Tenant Require JWT
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: tenant-require-jwt
+  namespace: tenant-{{ .Values.tenant.id }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: tenant-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            requestPrincipals: ["*"]
+{{- if .Values.tenant.rateLimit.enabled }}
+---
+# Tenant Rate Limit
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: tenant-rate-limit
+  namespace: tenant-{{ .Values.tenant.id }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  workloadSelector:
+    labels:
+      app: tenant-api
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+              subFilter:
+                name: "envoy.filters.http.router"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+            type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            value:
+              stat_prefix: tenant_rate_limiter
+              token_bucket:
+                max_tokens: {{ .Values.tenant.rateLimit.requestsPerMinute }}
+                tokens_per_fill: {{ .Values.tenant.rateLimit.requestsPerMinute }}
+                fill_interval: 60s
+              filter_enabled:
+                runtime_key: local_rate_limit_enabled
+                default_value:
+                  numerator: 100
+                  denominator: HUNDRED
+              filter_enforced:
+                runtime_key: local_rate_limit_enforced
+                default_value:
+                  numerator: 100
+                  denominator: HUNDRED
+              response_headers_to_add:
+                - append: false
+                  header:
+                    key: x-tenant-id
+                    value: "{{ .Values.tenant.id }}"
+{{- end }}
+{{- if .Values.tenant.balanceCheck.enabled }}
+---
+# Tenant Balance Check (Lua Filter)
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: tenant-balance-check
+  namespace: tenant-{{ .Values.tenant.id }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  workloadSelector:
+    labels:
+      app: tenant-api
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+              subFilter:
+                name: "envoy.filters.http.router"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.lua
+          typed_config:
+            "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua"
+            inlineCode: |
+              function envoy_on_request(request_handle)
+                local tenant_id = "{{ .Values.tenant.id }}"
+                local auth_header = request_handle:headers():get("authorization")
+                
+                if auth_header == nil then
+                  request_handle:respond({[":status"] = "401"}, "Missing authorization header")
+                  return
+                end
+                
+                local headers, body = request_handle:httpCall(
+                  "balance_check_cluster",
+                  {
+                    [":method"] = "GET",
+                    [":path"] = "/api/balance/check?tenant_id=" .. tenant_id,
+                    [":authority"] = "{{ .Values.tenant.balanceCheck.endpoint }}",
+                    ["authorization"] = auth_header
+                  },
+                  "",
+                  5000
+                )
+                
+                if headers == nil or headers[":status"] ~= "200" then
+                  request_handle:respond({[":status"] = "402"}, "Insufficient balance")
+                  return
+                end
+                
+                request_handle:headers():add("x-tenant-id", tenant_id)
+                request_handle:headers():add("x-balance-checked", "true")
+              end
+---
+# Balance Check Cluster
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: balance-check-cluster
+  namespace: tenant-{{ .Values.tenant.id }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  workloadSelector:
+    labels:
+      app: tenant-api
+  configPatches:
+    - applyTo: CLUSTER
+      patch:
+        operation: ADD
+        value:
+          name: balance_check_cluster
+          type: STRICT_DNS
+          connect_timeout: 5s
+          lb_policy: ROUND_ROBIN
+          load_assignment:
+            cluster_name: balance_check_cluster
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: {{ .Values.tenant.balanceCheck.endpoint }}
+                          port_value: 80
+{{- end }}
+{{- end }}

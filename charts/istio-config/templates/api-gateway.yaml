@@ -1,0 +1,100 @@
+{{- if .Values.services.apiGateway.enabled }}
+# API Gateway - VirtualService
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: api-gateway
+  namespace: {{ .Values.services.apiGateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - "{{ .Values.services.apiGateway.subdomain }}.{{ .Values.global.domain }}"
+    - "{{ .Values.services.apiGateway.subdomain }}.{{ .Values.global.productionDomain }}"
+  gateways:
+    - {{ include "istio-config.gatewayRef" . }}
+  http:
+    - match:
+        - uri:
+            prefix: /health
+        - uri:
+            prefix: /ready
+        - uri:
+            prefix: /live
+      route:
+        - destination:
+            host: {{ .Values.services.apiGateway.host }}
+            port:
+              number: 80
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: {{ .Values.services.apiGateway.host }}
+            port:
+              number: 80
+      timeout: 30s
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+---
+# API Gateway - JWT Authentication
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: api-jwt-auth
+  namespace: {{ .Values.services.apiGateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  jwtRules:
+    - issuer: "{{ .Values.keycloak.issuerUrl }}"
+      jwksUri: {{ include "istio-config.jwksUri" . }}
+      forwardOriginalToken: true
+      fromHeaders:
+        - name: Authorization
+          prefix: "Bearer "
+---
+# API Gateway - Allow health endpoints without JWT
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: api-allow-health
+  namespace: {{ .Values.services.apiGateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            paths: ["/health", "/health/*", "/ready", "/live"]
+---
+# API Gateway - Require JWT for other endpoints
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: api-require-jwt
+  namespace: {{ .Values.services.apiGateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            requestPrincipals: ["*"]
+      to:
+        - operation:
+            notPaths: ["/health", "/health/*", "/ready", "/live"]
+{{- end }}

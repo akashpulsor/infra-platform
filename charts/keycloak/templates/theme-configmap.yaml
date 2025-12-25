@@ -1,0 +1,76 @@
+{{- if and .Values.theme.enabled (not .Values.theme.usePvc) (not .Values.theme.useInitContainer) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.theme.configMapName }}
+  labels:
+    app: keycloak
+data:
+  # Theme metadata
+  theme.properties: |
+    # Theme properties for {{ .Values.theme.name }}
+    parent=keycloak
+    import=common/keycloak
+
+  # ==========================================================================
+  # LOGIN THEME FILES
+  # ==========================================================================
+  # Place your custom login theme files here
+  # Structure: login/theme.properties, login/resources/css/*, login/messages/*
+
+  # login-theme.properties: |
+  #   parent=keycloak
+  #   styles=css/login.css css/custom.css
+  #   locales=en
+
+  # login.css: |
+  #   /* Custom login styles */
+  #   .login-pf body {
+  #     background: #f0f0f0;
+  #   }
+  #   .card-pf {
+  #     border-radius: 8px;
+  #     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  #   }
+
+  # messages_en.properties: |
+  #   loginTitle=Welcome to DalaiLLAMA
+  #   loginTitleHtml=<strong>DalaiLLAMA</strong> Contact Center
+
+  # ==========================================================================
+  # ACCOUNT THEME FILES  
+  # ==========================================================================
+  # account-theme.properties: |
+  #   parent=keycloak
+  #   locales=en
+
+  # ==========================================================================
+  # ADMIN THEME FILES
+  # ==========================================================================
+  # admin-theme.properties: |
+  #   parent=keycloak
+  #   locales=en
+
+  # ==========================================================================
+  # EMAIL THEME FILES
+  # ==========================================================================
+  # email-theme.properties: |
+  #   parent=keycloak
+  #   locales=en
+{{- end }}
+
+---
+{{- if and .Values.theme.enabled .Values.theme.usePvc }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.theme.pvcName }}
+  labels:
+    app: keycloak
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+{{- end }}

@@ -1,0 +1,106 @@
+{{- if .Values.postgresql.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-keycloak-pvc
+  labels:
+    app: postgres-keycloak
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.postgresql.storageClassName }}
+  storageClassName: {{ .Values.postgresql.storageClassName }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.postgresql.storage }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-keycloak
+  labels:
+    app: postgres-keycloak
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: postgres-keycloak
+  template:
+    metadata:
+      labels:
+        app: postgres-keycloak
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.postgresql.image }}
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.database.name | quote }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            {{- toYaml .Values.postgresql.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.database.username }}
+                - -d
+                - {{ .Values.database.name }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.database.username }}
+                - -d
+                - {{ .Values.database.name }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-keycloak-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.database.host }}
+  labels:
+    app: postgres-keycloak
+spec:
+  selector:
+    app: postgres-keycloak
+  ports:
+    - port: {{ .Values.database.port }}
+      targetPort: 5432
+      name: postgres
+{{- end }}

@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: test-vs
+  namespace: default
+spec:
+  hosts:
+  - auth.dalaillama.dev
+  gateways:
+  - istio-system/platform-ui-gateway
+  http:
+  - route:
+    - destination:
+        host: istio-ingressgateway.istio-system.svc.cluster.local
+        port:
+          number: 80

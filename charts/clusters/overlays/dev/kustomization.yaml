@@ -4,6 +4,7 @@ kind: Kustomization
 nameSuffix: -dev
 
 resources:
+  - ./namespaces.yaml
   - ../../base
   - ../../components/istio-gateway
   - ../../components/istio-security
