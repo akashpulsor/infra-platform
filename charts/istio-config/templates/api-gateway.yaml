@@ -29,6 +29,26 @@ spec:
     - match:
         - uri:
             prefix: /
+            corsPolicy:
+      allowOrigins:
+        - exact: "https://dalaillama-dev.local:8443"
+        - exact: "https://localhost:5173"
+        - exact: "https://localhost:5174" 
+      allowMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+      allowHeaders:
+        - Authorization
+        - Content-Type
+        - Accept
+        - Origin
+        - X-Requested-With
+      allowCredentials: true
+      maxAge: "86400s"    
       route:
         - destination:
             host: {{ .Values.services.apiGateway.host }}
@@ -75,6 +95,7 @@ spec:
   rules:
     - to:
         - operation:
+            methods: ["OPTIONS"]
             paths: ["/health", "/health/*", "/ready", "/live"]
 ---
 # API Gateway - Require JWT for other endpoints

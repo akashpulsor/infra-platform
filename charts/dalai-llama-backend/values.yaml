@@ -1,0 +1,468 @@
+# =============================================================================
+# DALAI LLAMA BACKEND SERVICES - VALUES
+# Aligns with existing istio-config helm chart
+# =============================================================================
+
+global:
+  domain: localhost
+  productionDomain: dalaillama.in
+  devDomain: dalaillama-dev.local
+  namespace: apps
+  production: false  # Set to true in production
+  
+  # Image configuration (MOVED HERE from keycloak section)
+  image:
+    registry: akashtripathi
+    pullPolicy: IfNotPresent
+  
+  # Reference to existing central gateway (matches istio-config)
+  gateway:
+    name: central-gateway
+    namespace: istio-system
+    ref: istio-system/central-gateway
+
+# =============================================================================
+# INFRASTRUCTURE - LOCAL SUBCHARTS
+# =============================================================================
+postgres:
+  enabled: true
+  mode: standalone
+  auth:
+    postgresPassword: "postgres123"
+    database: dalaillama
+  databases:
+    - tenant_db
+    - product_db
+    - billing_db
+    - kamalio_db
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+redis:
+  enabled: true
+  mode: standalone
+  auth:
+    enabled: true
+    password: "redis123"
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+kafka:
+  enabled: true
+  mode: standalone
+  kraft:
+    clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  topics:
+    - name: tenant.state.changed
+      partitions: 3
+      replicationFactor: 1
+    - name: tenant.created
+      partitions: 3
+      replicationFactor: 1
+    - name: tenant.deleted
+      partitions: 3
+      replicationFactor: 1
+    - name: tenant.activated
+      partitions: 3
+      replicationFactor: 1
+    - name: tenant.suspended
+      partitions: 3
+      replicationFactor: 1
+    - name: product.plan.assigned
+      partitions: 3
+      replicationFactor: 1
+    - name: product.plan.changed
+      partitions: 3
+      replicationFactor: 1
+    - name: product.did.purchased
+      partitions: 3
+      replicationFactor: 1
+    - name: product.did.provisioned
+      partitions: 3
+      replicationFactor: 1
+    - name: product.did.released
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.wallet.created
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.wallet.funded
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.wallet.low
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.state.changed
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.payment.received
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.cdr.rated
+      partitions: 3
+      replicationFactor: 1
+    - name: cdr.completed
+      partitions: 10
+      replicationFactor: 1
+    - name: provisioning.step.completed
+      partitions: 3
+      replicationFactor: 1
+    - name: provisioning.failed
+      partitions: 3
+      replicationFactor: 1
+
+# =============================================================================
+# KEYCLOAK CONFIGURATION (SINGLE SECTION - REMOVED DUPLICATE)
+# =============================================================================
+keycloak:
+  namespace: auth
+  host: keycloak.auth.svc.cluster.local
+  realm: dalai-llama
+  issuerUrl: "http://auth.localhost:8081/realms/dalai-llama"
+  jwksUri: "http://keycloak.auth.svc.cluster.local/realms/dalai-llama/protocol/openid-connect/certs"
+  adminUrl: "http://keycloak.auth.svc.cluster.local"
+  adminRealm: master
+  adminClientId: admin-cli
+  adminUsername: admin
+
+# =============================================================================
+# SERVICES CONFIGURATION
+# =============================================================================
+services:
+  # ===========================================================================
+  # TENANT SERVICE
+  # ===========================================================================
+  tenantService:
+    enabled: true
+    name: tenant-service
+    namespace: apps
+    host: tenant-service.apps.svc.cluster.local
+    subdomain: api
+    
+    image:
+      repository: tenant-service
+      tag: "2.0.4"
+    
+    replicaCount: 1
+    
+    service:
+      port: 80
+      targetPort: 8081
+    
+    pathPrefix: /api/v1/tenants
+    
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+    
+    jwt:
+      enabled: true
+    
+    rateLimit:
+      enabled: false
+      requestsPerMinute: 100
+    
+    database:
+      name: tenant_db
+      username: postgres
+    
+    # Environment variables matching application.yml
+    env:
+      SPRING_PROFILES_ACTIVE: "k8s"
+      SERVER_PORT: "8081"
+      # JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SPRING_JPA_SHOW_SQL: "false"
+      # Flyway
+      SPRING_FLYWAY_ENABLED: "true"
+      # Logging
+      LOG_LEVEL: "INFO"
+      # Health check scheduler
+      HEALTH_CHECK_ENABLED: "true"
+      HEALTH_CHECK_INTERVAL_SECONDS: "60"
+      HEALTH_CHECK_FAILURE_THRESHOLD: "3"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
+    # Provisioning config
+    provisioning:
+      maxRetries: 3
+      retryDelaySeconds: 10
+      ipWaitTimeoutMinutes: 10
+      ipPollIntervalSeconds: 10
+      minWalletBalance: 1000
+    
+    # Kubernetes client config
+    kubernetes:
+      namespace: dalai-llama
+      trustCerts: true
+    
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    
+    health:
+      path: /actuator/health
+      port: 8081
+    
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilization: 70
+
+  # ===========================================================================
+  # PRODUCT SERVICE
+  # ===========================================================================
+  productService:
+    enabled: true
+    name: product-service
+    namespace: apps
+    host: product-service.apps.svc.cluster.local
+    subdomain: api
+    image:
+      repository: product-service
+      tag: "1.0.3"
+      pullPolicy: Always
+    replicaCount: 1
+
+    securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+    
+    service:
+      port: 80
+      targetPort: 8082
+    
+    pathPrefixes:
+      - /product           # ADD THIS
+      - /api/v1/products
+      - /api/v1/plans
+      - /api/v1/did
+      #- /api/v1/tenants   for /api/v1/tenants/{id}/dids, /api/v1/tenants/{id}/entitlements
+      - /api/v1/sip-trunks
+      - /api/v1/sip-endpoints
+    
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+    
+    jwt:
+      enabled: true
+    
+    rateLimit:
+      enabled: false
+      requestsPerMinute: 100
+    
+    database:
+      name: product_db
+      username: postgres
+    
+    # Environment variables matching application.yml
+    env:
+      SPRING_PROFILES_ACTIVE: "k8s"
+      SERVER_PORT: "8082"
+      # JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SPRING_JPA_SHOW_SQL: "false"
+      # Flyway
+      SPRING_FLYWAY_ENABLED: "true"
+      # Cache
+      CACHE_ENTITLEMENTS_TTL: "5"
+      # Logging
+      LOG_LEVEL: "INFO"
+      SERVER_SERVLET_CONTEXT_PATH: "/"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=512m -XX:MetaspaceSize=256m"
+      
+    # SIP Configuration
+    sip:
+      domain: sip.dalaillama.in
+      realm: dalaillama.in
+    
+    # DIDWW Configuration
+    didww:
+      apiUrl: "https://api.didww.com/v3"
+      syncEnabled: true
+      syncIntervalMinutes: 60
+    
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 768Mi
+    
+    health:
+      path: /actuator/health
+      port: 8082
+    
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilization: 70
+
+  # ===========================================================================
+  # BILLING SERVICE
+  # ===========================================================================
+  billingService:
+    enabled: true
+    name: billing-service
+    namespace: apps
+    host: billing-service.apps.svc.cluster.local
+    subdomain: api
+    
+    image:
+      repository: billing-service
+      tag: "1.0.6"
+    
+    replicaCount: 1
+    
+    service:
+      port: 80
+      targetPort: 8083
+    
+    pathPrefixes:
+      - /api/v1/internal/tenants
+      #- /api/v1/tenants  # for /api/v1/tenants/{id}/wallet, /api/v1/tenants/{id}/billing
+      - /api/v1/payments
+      - /api/v1/usage
+      - /api/v1/cdrs
+      - /api/v1/rate-plans
+      - /api/v1/webhooks/razorpay
+    
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+    
+    jwt:
+      enabled: true
+    
+    rateLimit:
+      enabled: false
+      requestsPerMinute: 100
+    
+    database:
+      name: billing_db
+      username: postgres
+    
+    # Environment variables matching application.yml
+    env:
+      SPRING_PROFILES_ACTIVE: "k8s"
+      SERVER_PORT: "8083"
+      # JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SQL_LOG_LEVEL: "WARN"
+      # Flyway
+      SPRING_FLYWAY_ENABLED: "true"
+      # Logging
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
+
+    
+    # Billing settings
+    billing:
+      gracePeriodDays: 7
+      lowBalanceThreshold: 500
+      defaultCurrency: INR
+    
+    # Razorpay
+    razorpay:
+      enabled: true
+    
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 768Mi
+    
+    health:
+      path: /actuator/health
+      port: 8083
+    
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilization: 70
+
+# =============================================================================
+# INTERNAL SERVICE COMMUNICATION
+# =============================================================================
+internalServices:
+  enabled: true
+  pathPrefixes:
+    tenant: /api/v1/internal/tenants
+    product: /api/v1/internal/products
+    billing: /api/v1/internal/billing
+
+# =============================================================================
+# SECRETS REFERENCES
+# =============================================================================
+secrets:
+  postgres:
+    name: postgres-secret
+    passwordKey: postgres-password
+  redis:
+    name: redis-secret
+    passwordKey: redis-password
+  keycloak:
+    name: dalai-backend-keycloak
+    clientSecretKey: client-secret
+    adminPasswordKey: admin-password
+  didww:
+    name: dalai-backend-didww
+    apiKeyKey: api-key
+    webhookSecretKey: webhook-secret
+  razorpay:
+    name: dalai-backend-razorpay
+    keyIdKey: key-id
+    keySecretKey: key-secret
+    webhookSecretKey: webhook-secret
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true

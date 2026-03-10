@@ -1,0 +1,189 @@
+{{- if .Values.services.billingService.enabled }}
+# =============================================================================
+# BILLING SERVICE - DEPLOYMENT
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.services.billingService.name }}
+  namespace: {{ .Values.services.billingService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+    app: {{ .Values.services.billingService.name }}
+spec:
+  replicas: {{ .Values.services.billingService.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.services.billingService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.services.billingService.name }}
+        app.kubernetes.io/part-of: dalai-llama-backend
+        sidecar.istio.io/inject: "true"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.services.billingService.service.targetPort }}"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: {{ .Values.services.billingService.name }}
+      containers:
+        - name: {{ .Values.services.billingService.name }}
+          image: "{{ .Values.global.image.registry }}/{{ .Values.services.billingService.image.repository }}:{{ .Values.services.billingService.image.tag }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.services.billingService.service.targetPort }}
+              name: http
+          env:
+            # ===== Spring Profile =====
+            {{- range $key, $value := .Values.services.billingService.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            
+            # ===== Database =====
+            - name: DB_HOST
+              value: "postgres.{{ .Values.global.namespace }}.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: {{ .Values.services.billingService.database.name }}
+            - name: DB_USERNAME
+              value: {{ .Values.services.billingService.database.username }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.postgres.name }}
+                  key: {{ .Values.secrets.postgres.passwordKey }}
+            
+            # ===== Redis =====
+            - name: REDIS_HOST
+              value: "redis.{{ .Values.global.namespace }}.svc.cluster.local"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.redis.name }}
+                  key: {{ .Values.secrets.redis.passwordKey }}
+            
+            # ===== Kafka =====
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka.{{ .Values.global.namespace }}.svc.cluster.local:9092"
+            
+            # ===== Keycloak (OAuth2/JWT) =====
+            - name: KEYCLOAK_ISSUER_URI
+              value: {{ .Values.keycloak.issuerUrl }}
+            - name: KEYCLOAK_JWKS_URI
+              value: {{ .Values.keycloak.jwksUri }}
+            
+            # ===== Billing Configuration =====
+            - name: GRACE_PERIOD_DAYS
+              value: "{{ .Values.services.billingService.billing.gracePeriodDays }}"
+            - name: LOW_BALANCE_THRESHOLD
+              value: "{{ .Values.services.billingService.billing.lowBalanceThreshold }}"
+            - name: DEFAULT_CURRENCY
+              value: {{ .Values.services.billingService.billing.defaultCurrency }}
+            
+            # ===== Razorpay =====
+            {{- if .Values.services.billingService.razorpay.enabled }}
+            - name: RAZORPAY_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.razorpay.name }}
+                  key: {{ .Values.secrets.razorpay.keyIdKey }}
+            - name: RAZORPAY_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.razorpay.name }}
+                  key: {{ .Values.secrets.razorpay.keySecretKey }}
+            - name: RAZORPAY_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.razorpay.name }}
+                  key: {{ .Values.secrets.razorpay.webhookSecretKey }}
+            {{- end }}
+            
+            # ===== Internal Service URLs =====
+            - name: TENANT_SERVICE_URL
+              value: "http://{{ .Values.services.tenantService.host }}"
+            - name: PRODUCT_SERVICE_URL
+              value: "http://{{ .Values.services.productService.host }}"
+
+  
+                
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.services.billingService.health.path }}
+              port: {{ .Values.services.billingService.health.port }}
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.services.billingService.health.path }}
+              port: {{ .Values.services.billingService.health.port }}
+            initialDelaySeconds: 90
+            periodSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.services.billingService.resources | nindent 12 }}
+---
+# =============================================================================
+# BILLING SERVICE - SERVICE
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.services.billingService.name }}
+  namespace: {{ .Values.services.billingService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+    app: {{ .Values.services.billingService.name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.billingService.service.port }}
+      targetPort: {{ .Values.services.billingService.service.targetPort }}
+      name: http
+  selector:
+    app: {{ .Values.services.billingService.name }}
+---
+# =============================================================================
+# BILLING SERVICE - SERVICE ACCOUNT
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.services.billingService.name }}
+  namespace: {{ .Values.services.billingService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+---
+# =============================================================================
+# BILLING SERVICE - HPA
+# =============================================================================
+{{- if .Values.services.billingService.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.services.billingService.name }}
+  namespace: {{ .Values.services.billingService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.services.billingService.name }}
+  minReplicas: {{ .Values.services.billingService.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.services.billingService.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.billingService.autoscaling.targetCPUUtilization }}
+{{- end }}
+{{- end }}

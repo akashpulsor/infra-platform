@@ -1,0 +1,85 @@
+# Kafka Configuration
+enabled: true
+
+image:
+  repository: apache/kafka
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+mode: standalone  # standalone | cluster
+
+# KRaft mode (no Zookeeper)
+kraft:
+  enabled: true
+  clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
+
+service:
+  type: ClusterIP
+  port: 9092
+  controllerPort: 9093
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# Topics to create on startup
+topics:
+  - name: tenant.state.changed
+    partitions: 3
+    replicationFactor: 1
+  - name: tenant.created
+    partitions: 3
+    replicationFactor: 1
+  - name: product.plan.assigned
+    partitions: 3
+    replicationFactor: 1
+  - name: product.did.purchased
+    partitions: 3
+    replicationFactor: 1
+  - name: product.did.provisioned
+    partitions: 3
+    replicationFactor: 1
+  - name: billing.wallet.funded
+    partitions: 3
+    replicationFactor: 1
+  - name: billing.state.changed
+    partitions: 3
+    replicationFactor: 1
+  - name: cdr.completed
+    partitions: 10
+    replicationFactor: 1
+  - name: provisioning.step.completed
+    partitions: 3
+    replicationFactor: 1
+  - name: provisioning.failed
+    partitions: 3
+    replicationFactor: 1
+
+# Cluster Configuration (for prod)
+cluster:
+  enabled: false
+  replicaCount: 3
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+  persistence:
+    size: 50Gi
+
+  # Topic settings for prod
+  defaultReplicationFactor: 3
+  minInsyncReplicas: 2

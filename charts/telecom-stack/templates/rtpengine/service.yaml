@@ -1,0 +1,22 @@
+# templates/rtpengine/service.yaml
+
+# No changes — original is correct
+{{- if .Values.rtpengine.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: rtpengine
+  namespace: {{ include "telecom.namespace" . }}
+  labels:
+    app: rtpengine
+    {{- include "telecom.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.rtpengine.service.type }}
+  selector:
+    app: rtpengine
+  ports:
+    - name: ng-control
+      port: {{ .Values.rtpengine.service.ngPort }}
+      targetPort: {{ .Values.rtpengine.service.ngPort }}
+      protocol: UDP
+{{- end }}

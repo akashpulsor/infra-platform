@@ -1,0 +1,153 @@
+# =============================================================================
+# PRODUCTION VALUES - HA mode
+# =============================================================================
+
+global:
+  domain: dalaillama.in
+  productionDomain: dalaillama.in
+  devDomain: dalaillama-dev.local
+  namespace: apps
+
+# Infrastructure - HA mode
+postgres:
+  enabled: true
+  mode: ha
+  auth:
+    postgresPassword: ""  # Set via external secret
+  ha:
+    enabled: true
+    replicaCount: 3
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+    persistence:
+      size: 100Gi
+
+redis:
+  enabled: true
+  mode: cluster
+  auth:
+    password: ""  # Set via external secret
+  cluster:
+    enabled: true
+    replicaCount: 6
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    persistence:
+      size: 20Gi
+
+kafka:
+  enabled: true
+  mode: cluster
+  cluster:
+    enabled: true
+    replicaCount: 3
+    defaultReplicationFactor: 3
+    minInsyncReplicas: 2
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+    persistence:
+      size: 100Gi
+
+keycloak:
+  issuerUrl: "https://auth.dalaillama.in/realms/dalai-llama"
+  jwksUri: "https://auth.dalaillama.in/realms/dalai-llama/protocol/openid-connect/certs"
+
+services:
+  tenantService:
+    replicaCount: 3
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+      targetCPUUtilization: 70
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+
+  productService:
+    replicaCount: 3
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+      targetCPUUtilization: 70
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+
+  billingService:
+    replicaCount: 3
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+      targetCPUUtilization: 70
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+      limits:
+        cpu: 4000m
+        memory: 8Gi
+```
+
+---
+
+## Directory Structure
+```
+dalai-llama-backend/
+├── Chart.yaml
+├── values.yaml
+├── values-dev.yaml
+├── values-prod.yaml
+├── charts/
+│   ├── postgres/
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml
+│   │   └── templates/
+│   │       ├── standalone.yaml
+│   │       └── ha.yaml
+│   ├── redis/
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml
+│   │   └── templates/
+│   │       ├── standalone.yaml
+│   │       └── cluster.yaml
+│   └── kafka/
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       └── templates/
+│           ├── standalone.yaml
+│           └── cluster.yaml
+└── templates/
+    ├── _helpers.tpl
+    ├── tenant-service.yaml
+    ├── product-service.yaml
+    ├── billing-service.yaml
+    ├── istio-virtualservice.yaml
+    ├── istio-security.yaml
+    ├── istio-destinationrule.yaml
+    └── istio-serviceentry.yaml

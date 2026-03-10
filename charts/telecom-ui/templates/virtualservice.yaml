@@ -1,0 +1,32 @@
+{{- range $name, $app := .Values.apps }}
+{{- if $app.enabled }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ $name }}-vs
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: {{ $name }}
+    managed-by: telecom-ui
+  annotations:
+    dalaillama.in/app-subdomain: {{ $app.subdomain | quote }}
+spec:
+  hosts:
+    {{- if $.Values.tenants }}
+    {{- range $.Values.tenants }}
+    - "{{ $app.subdomain }}-{{ .slug }}.{{ $.Values.global.domain }}"
+    {{- end }}
+    {{- else }}
+    - "{{ $app.subdomain }}-placeholder.{{ $.Values.global.domain }}"
+    {{- end }}
+  gateways:
+    - {{ $.Values.global.namespace }}/tenant-ui-gateway
+  http:
+    - route:
+        - destination:
+            host: {{ $name }}.{{ $.Values.global.namespace }}.svc.cluster.local
+            port:
+              number: 80
+{{- end }}
+{{- end }}

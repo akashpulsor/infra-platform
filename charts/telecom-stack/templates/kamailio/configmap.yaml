@@ -1,0 +1,332 @@
+# templates/kamailio/configmap.yaml
+
+{{- if .Values.kamailio.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kamailio-config
+  namespace: {{ include "telecom.namespace" . }}
+  labels:
+    app: kamailio
+    {{- include "telecom.labels" . | nindent 4 }}
+data:
+  kamailio.cfg: |
+    #!KAMAILIO
+    #!define WITH_PGSQL
+    #!define WITH_AUTH
+    #!define WITH_USRLOCDB
+    #!define WITH_MULTIDOMAIN
+    #!define WITH_WEBSOCKETS
+    #!define WITH_RTPENGINE
+    
+    ####### Global Parameters #########
+    debug=2
+    log_stderror=yes
+    memdbg=5
+    memlog=5
+    fork=yes
+    children=4
+    auto_aliases=no
+
+    listen=udp:0.0.0.0:5060
+    listen=tcp:0.0.0.0:5060
+    {{- if .Values.kamailio.tls.enabled }}
+    listen=tls:0.0.0.0:5061
+    {{- end }}
+    listen=tcp:0.0.0.0:{{ .Values.kamailio.service.sipWssPort }}
+
+    ####### Modules ########
+    loadmodule "tm.so"
+    loadmodule "tmx.so"
+    loadmodule "sl.so"
+    loadmodule "rr.so"
+    loadmodule "pv.so"
+    loadmodule "maxfwd.so"
+    loadmodule "usrloc.so"
+    loadmodule "registrar.so"
+    loadmodule "textops.so"
+    loadmodule "siputils.so"
+    loadmodule "xlog.so"
+    loadmodule "sanity.so"
+    loadmodule "ctl.so"
+    loadmodule "cfg_rpc.so"
+    loadmodule "nathelper.so"
+    loadmodule "auth.so"
+    loadmodule "auth_db.so"
+    loadmodule "db_postgres.so"
+    loadmodule "dispatcher.so"
+    loadmodule "rtpengine.so"
+    loadmodule "websocket.so"
+    loadmodule "xhttp.so"
+    loadmodule "htable.so"
+    loadmodule "domain.so"
+    # ── PBX-Core integration ──
+    loadmodule "http_client.so"
+    loadmodule "jansson.so"
+    # ── Outbound trunk auth ──
+    loadmodule "uac.so"
+    # ── DID routing table ──
+    loadmodule "dialplan.so"
+
+    ####### Module Parameters ########
+
+    #!define DBURL "DBURL_PLACEHOLDER"
+    
+    # Auth — pre-computed HA1 from PBX-Core (NOT plaintext password)
+    modparam("auth_db", "db_url", DBURL)
+    modparam("auth_db", "calculate_ha1", 0)
+    modparam("auth_db", "password_column", "ha1")
+    modparam("auth_db", "password_column_2", "ha1b")
+    modparam("auth_db", "use_domain", 1)
+
+    # User Location
+    modparam("usrloc", "db_url", DBURL)
+    modparam("usrloc", "db_mode", 1)
+    modparam("usrloc", "use_domain", 1)
+
+    # Domain — multi-tenant
+    modparam("domain", "db_url", DBURL)
+    modparam("domain", "register_myself", 1)
+
+    # Dispatcher — FreeSWITCH pool
+    modparam("dispatcher", "db_url", DBURL)
+    modparam("dispatcher", "ds_ping_interval", 10)
+    modparam("dispatcher", "ds_probing_mode", 1)
+
+    # Dialplan — DID routing
+    modparam("dialplan", "db_url", DBURL)
+
+    # RTPEngine
+    modparam("rtpengine", "rtpengine_sock", "udp:rtpengine.{{ include "telecom.namespace" . }}.svc.cluster.local:{{ .Values.rtpengine.service.ngPort }}")
+
+    # WebSocket
+    modparam("websocket", "keepalive_mechanism", 1)
+    modparam("websocket", "keepalive_timeout", 30)
+
+    # NAT
+    modparam("nathelper", "received_avp", "$avp(RECEIVED)")
+    modparam("nathelper", "natping_interval", 30)
+
+    # ── PBX-Core HTTP connection ──
+    modparam("http_client", "httpcon", "pbxcore=>{{ .Values.kamailio.pbxCore.url | default "http://pbx-core.telecom.svc.cluster.local:8080" }}")
+    modparam("http_client", "connection_timeout", 3000)
+
+    # UAC — outbound trunk registration
+    modparam("uac", "reg_db_url", DBURL)
+    modparam("uac", "reg_contact_addr", "{{ .Values.global.externalIp | default "127.0.0.1" }}:5060")
+
+    ####### Routing Logic ########
+
+    request_route {
+        route(REQINIT);
+        route(NATDETECT);
+
+        if (is_method("CANCEL")) {
+            if (t_check_trans()) { route(RELAY); }
+            exit;
+        }
+
+        route(WITHINDLG);
+
+        if (is_method("INVITE|SUBSCRIBE")) { record_route(); }
+
+        if (is_method("REGISTER")) {
+            route(REGISTRAR);
+            exit;
+        }
+
+        if (is_method("INVITE")) {
+            # Trunk inbound (from non-local domain) → skip auth
+            # Agent outbound (from local domain) → require auth
+            if (is_domain_local("$fd")) {
+                route(AUTH);
+            }
+            route(TENANT_ROUTE);
+            exit;
+        }
+
+        route(RELAY);
+    }
+
+    route[REQINIT] {
+        if (!mf_process_maxfwd_header("10")) {
+            sl_send_reply("483", "Too Many Hops");
+            exit;
+        }
+        if (!sanity_check("17895", "7")) {
+            xlog("L_WARN", "Malformed SIP from $si:$sp\n");
+            exit;
+        }
+    }
+
+    route[NATDETECT] {
+        force_rport();
+        if (nat_uac_test("19")) {
+            if (is_method("REGISTER")) { fix_nated_register(); }
+            else { fix_nated_contact(); }
+            setflag(5);
+        }
+    }
+
+    route[WITHINDLG] {
+        if (!has_totag()) return;
+        if (loose_route()) {
+            if (is_method("BYE")) {
+                rtpengine_delete();
+                # Notify PBX-Core: decrement channel count, close CDR
+                $var(bye_body) = '{"callId":"' + $ci + '","method":"BYE"}';
+                http_connect("pbxcore", "/internal/kamailio/events/call-end",
+                    "application/json", "$var(bye_body)", "$var(bye_result)");
+            }
+            route(RELAY);
+            exit;
+        }
+        if (is_method("ACK")) {
+            if (t_check_trans()) { route(RELAY); exit; }
+            exit;
+        }
+        sl_send_reply("404", "Not Here");
+        exit;
+    }
+
+    route[REGISTRAR] {
+        if (!auth_check("$fd", "subscriber", "1")) {
+            auth_challenge("$fd", "1");
+            exit;
+        }
+        if (!is_domain_local("$fd")) {
+            sl_send_reply("403", "Forbidden - Unknown Domain");
+            exit;
+        }
+        if (!save("location")) { sl_reply_error(); }
+        exit;
+    }
+
+    route[AUTH] {
+        if (!auth_check("$fd", "subscriber", "1")) {
+            auth_challenge("$fd", "1");
+            exit;
+        }
+        consume_credentials();
+    }
+
+    # ── MULTI-TENANT ROUTING via PBX-Core ──
+    route[TENANT_ROUTE] {
+        # Ask PBX-Core: is this call allowed? who is the tenant? where to route?
+        $var(auth_body) = '{"didNumber":"' + $rU + '","callerNumber":"'
+            + $fU + '","callId":"' + $ci + '","domain":"' + $fd + '"}';
+
+        $var(rc) = http_connect("pbxcore",
+            "/internal/kamailio/authorize/inbound",
+            "application/json", "$var(auth_body)", "$var(result)");
+
+        if ($var(rc) != 200) {
+            xlog("L_WARN", "Call DENIED by PBX-Core: $fU -> $rU rc=$var(rc)\n");
+            sl_send_reply("403", "Call Not Authorized");
+            exit;
+        }
+
+        # PBX-Core returns: tenantId, routingTarget, dispatcherSet
+        jansson_get("tenantId", $var(result), "$avp(tenant_id)");
+        jansson_get("routingTarget", $var(result), "$avp(routing_target)");
+        jansson_get("dispatcherSet", $var(result), "$avp(ds_set)");
+
+        xlog("L_INFO", "AUTHORIZED: $fU -> $rU tenant=$avp(tenant_id) ds=$avp(ds_set)\n");
+
+        # RTPEngine SDP rewrite
+        if (has_body("application/sdp")) {
+            if ($proto == "ws" || $proto == "wss") {
+                rtpengine_manage("replace-origin replace-session-connection ICE=remove RTP/AVP");
+            } else {
+                rtpengine_manage("replace-origin replace-session-connection");
+            }
+        }
+
+        # Tag for FreeSWITCH
+        append_hf("X-Tenant-ID: $avp(tenant_id)\r\n");
+        append_hf("X-Routing-Target: $avp(routing_target)\r\n");
+        append_hf("X-Call-Authorized: true\r\n");
+
+        # Notify PBX-Core: call started (increment channel count, open CDR)
+        $var(start_body) = '{"callId":"' + $ci + '","tenantId":"'
+            + $avp(tenant_id) + '","caller":"' + $fU + '","callee":"' + $rU + '"}';
+        http_connect("pbxcore", "/internal/kamailio/events/call-start",
+            "application/json", "$var(start_body)", "$var(start_result)");
+
+        # Dispatch to FreeSWITCH using PBX-Core's dispatcher set
+        $var(ds) = (int)$avp(ds_set);
+        if (!ds_select_dst("$var(ds)", "4")) {
+            sl_send_reply("503", "No Media Server Available");
+            exit;
+        }
+
+        route(RELAY);
+    }
+
+    # ── OUTBOUND via trunk (FreeSWITCH → Kamailio → Trunk Provider) ──
+    route[OUTBOUND] {
+        # FreeSWITCH sets X-Trunk-ID header for outbound calls
+        $var(trunk_id) = $hdr(X-Trunk-ID);
+        xlog("L_INFO", "OUTBOUND: $fU -> $rU trunk=$var(trunk_id)\n");
+
+        if (has_body("application/sdp")) {
+            rtpengine_manage("replace-origin replace-session-connection");
+        }
+
+        # UAC adds digest auth when trunk provider challenges with 401
+        uac_auth();
+        route(RELAY);
+    }
+
+    route[RELAY] {
+        if (is_method("INVITE|BYE|SUBSCRIBE|UPDATE")) {
+            if (!t_is_set("branch_route")) { t_on_branch("MANAGE_BRANCH"); }
+        }
+        if (is_method("INVITE|SUBSCRIBE|UPDATE")) {
+            if (!t_is_set("onreply_route")) { t_on_reply("MANAGE_REPLY"); }
+        }
+        if (is_method("INVITE")) { t_on_failure("MANAGE_FAILURE"); }
+        if (!t_relay()) { sl_reply_error(); }
+        exit;
+    }
+
+    branch_route[MANAGE_BRANCH] {
+        xdbg("new branch [$T_branch_idx] to $ru\n");
+    }
+
+    onreply_route[MANAGE_REPLY] {
+        if (has_body("application/sdp")) {
+            if ($proto == "ws" || $proto == "wss") {
+                rtpengine_manage("replace-origin replace-session-connection ICE=force DTLS=passive SDES-off RTP/SAVPF");
+            } else {
+                rtpengine_manage("replace-origin replace-session-connection");
+            }
+        }
+    }
+
+    failure_route[MANAGE_FAILURE] {
+        if (t_is_canceled()) exit;
+        # Handle trunk 401 challenge — retry with credentials
+        if (t_check_status("401|407")) {
+            if (uac_auth()) {
+                t_relay();
+                exit;
+            }
+        }
+        if (t_check_status("500|503")) {
+            if (ds_next_dst()) {
+                t_on_failure("MANAGE_FAILURE");
+                route(RELAY);
+                exit;
+            }
+        }
+    }
+
+    # WebSocket handshake
+    event_route[xhttp:request] {
+        if ($hdr(Upgrade) =~ "websocket" && $hdr(Connection) =~ "Upgrade") {
+            if (ws_handle_handshake()) { exit; }
+        }
+        xhttp_reply("404", "Not Found", "", "");
+    }
+{{- end }}

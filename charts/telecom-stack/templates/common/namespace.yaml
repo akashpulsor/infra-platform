@@ -1,0 +1,9 @@
+# templates/common/namespace.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "telecom.namespace" . }}
+  labels:
+    {{- include "telecom.labels" . | nindent 4 }}
+    istio-injection: enabled

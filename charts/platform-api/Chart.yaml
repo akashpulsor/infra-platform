@@ -1,0 +1,5 @@
+apiVersion: v2
+name: api-gateway
+version: 0.1.0
+appVersion: "1.0.0"
+description: Spring Boot API Gateway for Dalai Llama

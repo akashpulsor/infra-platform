@@ -1,0 +1,143 @@
+{{- if and .Values.enabled (eq .Values.mode "standalone") }}
+# =============================================================================
+# REDIS STANDALONE MODE (Dev)
+# =============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secret
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: redis
+type: Opaque
+stringData:
+  redis-password: {{ .Values.auth.password | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: redis
+data:
+  redis.conf: |
+    # Basic settings
+    bind 0.0.0.0
+    port 6379
+    
+    # Authentication
+    {{- if .Values.auth.enabled }}
+    requirepass {{ .Values.auth.password }}
+    {{- end }}
+    
+    # Persistence
+    appendonly yes
+    appendfsync everysec
+    
+    # Memory management
+    maxmemory 200mb
+    maxmemory-policy allkeys-lru
+    
+    # Logging
+    loglevel notice
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - redis-server
+            - /etc/redis/redis.conf
+          ports:
+            - containerPort: 6379
+              name: redis
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/redis
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                {{- if .Values.auth.enabled }}
+                - -a
+                - {{ .Values.auth.password }}
+                {{- end }}
+                - ping
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                {{- if .Values.auth.enabled }}
+                - -a
+                - {{ .Values.auth.password }}
+                {{- end }}
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data
+        - name: config
+          configMap:
+            name: redis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: redis
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: redis
+      name: redis
+  selector:
+    app: redis
+{{- end }}

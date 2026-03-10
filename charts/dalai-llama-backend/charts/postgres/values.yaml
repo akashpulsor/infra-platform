@@ -1,0 +1,60 @@
+# PostgreSQL Configuration
+enabled: true
+
+image:
+  repository: postgres
+  tag: "16.1-alpine"
+  pullPolicy: IfNotPresent
+
+# Single instance (dev) or HA (prod)
+mode: standalone  # standalone | ha
+
+replicaCount: 1
+
+# Database initialization
+auth:
+  postgresPassword: "postgres123"
+  database: dalaillama
+
+# Create multiple databases on init
+databases:
+  - tenant_db
+  - product_db
+  - billing_db
+
+service:
+  type: ClusterIP
+  port: 5432
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""  # Use default
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# HA Configuration (for prod)
+ha:
+  enabled: false
+  replicaCount: 3
+  
+  # Patroni settings for HA
+  patroni:
+    enabled: true
+    
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+  persistence:
+    size: 50Gi

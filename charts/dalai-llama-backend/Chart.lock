@@ -1,0 +1,12 @@
+dependencies:
+- name: postgres
+  repository: file://charts/postgres
+  version: 1.0.0
+- name: redis
+  repository: file://charts/redis
+  version: 1.0.0
+- name: kafka
+  repository: file://charts/kafka
+  version: 1.0.0
+digest: sha256:89686cd25018cbe4396f06bc9ddf551e07c4c43159f8135eb6b164b366ef95ce
+generated: "2026-01-07T12:06:33.3210831+05:30"

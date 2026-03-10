@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-ui
+  labels:
+    app: dashboard-ui
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: dashboard-ui
+  template:
+    metadata:
+      labels:
+        app: dashboard-ui
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: dashboard-ui
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 80
+          env:
+            - name: KEYCLOAK_URL
+              value: {{ .Values.env.KEYCLOAK_URL | quote }}
+            - name: KEYCLOAK_REALM
+              value: {{ .Values.env.KEYCLOAK_REALM | quote }}
+            - name: KEYCLOAK_CLIENT_ID
+              value: {{ .Values.env.KEYCLOAK_CLIENT_ID | quote }}
+            - name: PLATFORM_URL
+              value: {{ .Values.env.PLATFORM_URL | quote }}
+            - name: DASHBOARD_APP_URL
+              value: {{ .Values.env.DASHBOARD_APP_URL | quote }}
+            - name: API_BASE_URL
+              value: {{ .Values.env.API_BASE_URL | quote }}
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

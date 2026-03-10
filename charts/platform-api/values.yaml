@@ -1,0 +1,39 @@
+image:
+  repository: akashtripathi/api-gateway
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  port: 80
+  targetPort: 8080
+
+env:
+  SPRING_PROFILES_ACTIVE: "k8s"
+  KEYCLOAK_URL: "http://keycloak.auth.svc.cluster.local"
+  KEYCLOAK_REALM: "dalai-llama"
+  DB_HOST: "postgres.database.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "dalaillama"
+
+istio:
+  enabled: true
+  host: api.localhost
+  gatewayName: istio-system/central-gateway
+  jwt:
+    enabled: true
+    issuerUrl: "http://auth.localhost:8081/realms/dalai-llama"
+    jwksUri: "http://keycloak.auth.svc.cluster.local/realms/dalai-llama/protocol/openid-connect/certs"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+health:
+  path: /actuator/health
+  port: 8080

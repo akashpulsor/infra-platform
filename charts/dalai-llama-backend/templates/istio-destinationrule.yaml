@@ -1,0 +1,123 @@
+# =============================================================================
+# INFRASTRUCTURE DESTINATION RULES - Disable mTLS for TCP protocols
+# =============================================================================
+
+# PostgreSQL - Disable mTLS
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: postgres-disable-mtls
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  host: postgres.{{ .Values.global.namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
+# Redis - Disable mTLS
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: redis-disable-mtls
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  host: redis.{{ .Values.global.namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
+# Kafka - Disable mTLS
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: kafka-disable-mtls
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  host: kafka.{{ .Values.global.namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
+# =============================================================================
+# SERVICE DESTINATION RULES - Standard HTTP with connection pooling
+# =============================================================================
+{{- if .Values.services.tenantService.enabled }}
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: {{ .Values.services.tenantService.name }}
+  namespace: {{ .Values.services.tenantService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  host: {{ .Values.services.tenantService.name }}.{{ .Values.services.tenantService.namespace }}.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+    tls:
+      mode: ISTIO_MUTUAL
+{{- end }}
+---
+{{- if .Values.services.productService.enabled }}
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: {{ .Values.services.productService.name }}
+  namespace: {{ .Values.services.productService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  host: {{ .Values.services.productService.name }}.{{ .Values.services.productService.namespace }}.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+    tls:
+      mode: ISTIO_MUTUAL
+{{- end }}
+---
+{{- if .Values.services.billingService.enabled }}
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: {{ .Values.services.billingService.name }}
+  namespace: {{ .Values.services.billingService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  host: {{ .Values.services.billingService.name }}.{{ .Values.services.billingService.namespace }}.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+    tls:
+      mode: ISTIO_MUTUAL
+{{- end }}

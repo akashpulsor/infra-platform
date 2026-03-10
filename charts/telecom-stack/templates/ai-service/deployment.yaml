@@ -1,0 +1,78 @@
+# templates/ai-service/deployment.yaml
+
+{{- if .Values.aiService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+  namespace: {{ include "telecom.namespace" . }}
+  labels:
+    app: ai-service
+    {{- include "telecom.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.aiService.replicaCount }}
+  selector:
+    matchLabels:
+      app: ai-service
+  template:
+    metadata:
+      labels:
+        app: ai-service
+        {{- include "telecom.labels" . | nindent 8 }}
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      {{- include "telecom.imagePullSecrets" . | nindent 6 }}
+      initContainers:
+        - name: install-deps
+          image: "{{ .Values.aiService.image.repository }}:{{ .Values.aiService.image.tag }}"
+          command: ["pip", "install", "--target=/deps", "-r", "/code/requirements.txt"]
+          volumeMounts:
+            - name: ai-code
+              mountPath: /code
+            - name: deps
+              mountPath: /deps
+      containers:
+        - name: ai-service
+          image: "{{ .Values.aiService.image.repository }}:{{ .Values.aiService.image.tag }}"
+          command: ["python", "/code/server.py"]
+          env:
+            - name: PYTHONPATH
+              value: "/deps"
+            - name: WS_PORT
+              value: "{{ .Values.aiService.service.wsPort }}"
+            - name: HTTP_PORT
+              value: "{{ .Values.aiService.service.httpPort }}"
+          ports:
+            - name: websocket
+              containerPort: {{ .Values.aiService.service.wsPort }}
+              protocol: TCP
+            - name: http
+              containerPort: {{ .Values.aiService.service.httpPort }}
+              protocol: TCP
+          volumeMounts:
+            - name: ai-code
+              mountPath: /code
+            - name: deps
+              mountPath: /deps
+          resources:
+            {{- toYaml .Values.aiService.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.aiService.service.httpPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.aiService.service.httpPort }}
+            initialDelaySeconds: 20
+            periodSeconds: 15
+      volumes:
+        - name: ai-code
+          configMap:
+            name: ai-service-code
+        - name: deps
+          emptyDir: {}
+{{- end }}

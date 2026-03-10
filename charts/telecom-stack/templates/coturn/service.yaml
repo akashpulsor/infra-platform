@@ -1,0 +1,35 @@
+{{- if and .Values.coturn.enabled (not .Values.coturn.hostNetwork) }}
+# Only create Service when NOT using hostNetwork
+# With hostNetwork=true, CoTURN binds directly on host ports (3478, 5349, 49152-65535)
+apiVersion: v1
+kind: Service
+metadata:
+  name: coturn
+  namespace: {{ include "telecom.namespace" . }}
+  labels:
+    app: coturn
+    {{- include "telecom.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.coturn.service.type }}
+  selector:
+    app: coturn
+  ports:
+    - name: turn-udp
+      port: {{ .Values.coturn.service.turnPort }}
+      targetPort: {{ .Values.coturn.service.turnPort }}
+      protocol: UDP
+      {{- if eq .Values.coturn.service.type "NodePort" }}
+      nodePort: {{ .Values.coturn.service.nodePortTurn }}
+      {{- end }}
+    - name: turn-tcp
+      port: {{ .Values.coturn.service.turnPort }}
+      targetPort: {{ .Values.coturn.service.turnPort }}
+      protocol: TCP
+    - name: turn-tls
+      port: {{ .Values.coturn.service.turnTlsPort }}
+      targetPort: {{ .Values.coturn.service.turnTlsPort }}
+      protocol: TCP
+      {{- if eq .Values.coturn.service.type "NodePort" }}
+      nodePort: {{ .Values.coturn.service.nodePortTurnTls }}
+      {{- end }}
+{{- end }}

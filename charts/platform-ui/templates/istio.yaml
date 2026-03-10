@@ -1,0 +1,34 @@
+{{- if .Values.istio.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: platform-ui
+spec:
+  hosts:
+    - {{ .Values.istio.host | quote }}
+  gateways:
+    - {{ .Values.istio.gatewayName }}
+  http:
+    - match:
+        - uri:
+            prefix: {{ .Values.istio.pathPrefix }}
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: platform-ui
+            port:
+              number: {{ .Values.service.port }}
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: platform-ui-public
+spec:
+  selector:
+    matchLabels:
+      app: platform-ui
+  action: ALLOW
+  rules:
+    - {}
+{{- end }}

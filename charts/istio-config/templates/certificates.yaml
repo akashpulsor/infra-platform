@@ -1,0 +1,116 @@
+{{- if .Values.tls.enabled }}
+# Self-signed ClusterIssuer for local development
+{{- if eq .Values.tls.issuer.type "selfsigned" }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.tls.issuer.name }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+# Root CA Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dalaillama-root-ca
+  namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  isCA: true
+  commonName: "DalaiLlama Root CA"
+  secretName: dalaillama-root-ca-secret
+  duration: 87600h # 10 years
+  renewBefore: 720h # 30 days
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: {{ .Values.tls.issuer.name }}
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# CA Issuer (uses the root CA to sign other certs)
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: dalaillama-ca-issuer
+  namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  ca:
+    secretName: dalaillama-root-ca-secret
+---
+{{- end }}
+
+# Wildcard Certificate for development domain
+{{- if .Values.tls.certificates.dev.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.tls.certificates.dev.name }}
+  namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.tls.certificates.dev.secretName }}
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+    - "{{ .Values.global.devDomain }}"
+    - "*.{{ .Values.global.devDomain }}"
+    - "{{ .Values.global.domain }}"
+    - "*.{{ .Values.global.domain }}"
+  issuerRef:
+    {{- if eq .Values.tls.issuer.type "selfsigned" }}
+    name: dalaillama-ca-issuer
+    kind: Issuer
+    {{- else }}
+    name: {{ .Values.tls.issuer.name }}
+    kind: {{ .Values.tls.issuer.kind | default "ClusterIssuer" }}
+    {{- end }}
+    group: cert-manager.io
+---
+{{- end }}
+
+# Production Certificate (Let's Encrypt or other ACME)
+{{- if .Values.tls.certificates.prod.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.tls.certificates.prod.name }}
+  namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "istio-config.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.tls.certificates.prod.secretName }}
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+    - "{{ .Values.global.productionDomain }}"
+    - "*.{{ .Values.global.productionDomain }}"
+  issuerRef:
+    name: {{ .Values.tls.certificates.prod.issuer | default .Values.tls.issuer.name }}
+    kind: {{ .Values.tls.certificates.prod.issuerKind | default "ClusterIssuer" }}
+    group: cert-manager.io
+{{- end }}
+{{- end }}

@@ -1,0 +1,93 @@
+# =============================================================================
+# DEVELOPMENT VALUES - For local k3d/minikube
+# =============================================================================
+
+global:
+  domain: localhost
+  productionDomain: dalaillama.in
+  devDomain: dalaillama-dev.local
+  namespace: apps
+
+# Infrastructure - Standalone mode
+postgres:
+  enabled: true
+  mode: standalone
+  auth:
+    postgresPassword: "postgres123"
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+redis:
+  enabled: true
+  mode: standalone
+  auth:
+    password: "redis123"
+  persistence:
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+kafka:
+  enabled: true
+  mode: standalone
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+keycloak:
+  issuerUrl: "http://auth.localhost:8081/realms/dalai-llama"
+
+services:
+  tenantService:
+    replicaCount: 1
+    autoscaling:
+      enabled: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  productService:
+    replicaCount: 1
+    autoscaling:
+      enabled: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  billingService:
+    replicaCount: 1
+    autoscaling:
+      enabled: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi

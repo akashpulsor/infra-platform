@@ -1,0 +1,38 @@
+{{- if .Values.pbxCore.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pbx-core-config
+  namespace: {{ include "telecom.namespace" . }}
+  labels:
+    app: pbx-core
+    {{- include "telecom.labels" . | nindent 4 }}
+data:
+  # PBX-Core is configured primarily via env vars in deployment.yaml
+  # This configmap provides Spring application.yaml overrides
+  application-k8s.yaml: |
+    server:
+      port: {{ .Values.pbxCore.service.httpPort }}
+
+    management:
+      server:
+        port: {{ .Values.pbxCore.service.httpPort }}
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+
+    spring:
+      jackson:
+        serialization:
+          write-dates-as-timestamps: false
+
+    # WebSocket STOMP for Agent/Supervisor UIs
+    websocket:
+      port: {{ .Values.pbxCore.service.wsPort }}
+      allowed-origins: "*"
+
+    # Kamailio reload — PBX-Core execs kamcmd in Kamailio pod
+    kamailio:
+      pod-label-selector: "app=kamailio"
+{{- end }}

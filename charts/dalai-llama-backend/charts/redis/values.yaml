@@ -1,0 +1,46 @@
+# Redis Configuration
+enabled: true
+
+image:
+  repository: redis
+  tag: "7.2-alpine"
+  pullPolicy: IfNotPresent
+
+mode: standalone  # standalone | cluster
+
+auth:
+  enabled: true
+  password: "redis123"
+
+service:
+  type: ClusterIP
+  port: 6379
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# HA/Cluster Configuration (for prod)
+cluster:
+  enabled: false
+  replicaCount: 6  # 3 masters + 3 replicas
+  
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  persistence:
+    size: 10Gi

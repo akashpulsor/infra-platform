@@ -117,7 +117,7 @@ istio:
   enabled: true
   host: auth.localhost
   gatewayName: istio-system/central-gateway
-
+  productionHost: ""  # e.g., auth.dalaillama.in
 # =============================================================================
 # Resource Configuration
 # =============================================================================

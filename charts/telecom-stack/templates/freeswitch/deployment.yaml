@@ -1,0 +1,96 @@
+# templates/freeswitch/deployment.yaml
+
+{{- if .Values.freeswitch.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: freeswitch
+  namespace: {{ include "telecom.namespace" . }}
+  labels:
+    app: freeswitch
+    {{- include "telecom.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.freeswitch.replicaCount }}
+  selector:
+    matchLabels:
+      app: freeswitch
+  template:
+    metadata:
+      labels:
+        app: freeswitch
+        {{- include "telecom.labels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/freeswitch/configmap.yaml") . | sha256sum }}
+        sidecar.istio.io/inject: "false"
+    spec:
+      {{- include "telecom.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.freeswitch.hostNetwork }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      containers:
+        - name: freeswitch
+          image: "{{ .Values.freeswitch.image.repository }}:{{ .Values.freeswitch.image.tag }}"
+          imagePullPolicy: {{ .Values.freeswitch.image.pullPolicy }}
+          env:
+            # ESL password from Secret — referenced in vars.xml as $${env_ESL_PASSWORD}
+            - name: ESL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.freeswitch.esl.secretName }}
+                  key: {{ .Values.freeswitch.esl.secretKey }}
+          ports:
+            - name: esl
+              containerPort: {{ .Values.freeswitch.service.eslPort }}
+              protocol: TCP
+            - name: sip-udp
+              containerPort: {{ .Values.freeswitch.service.sipPort }}
+              protocol: UDP
+            - name: sip-tcp
+              containerPort: {{ .Values.freeswitch.service.sipPort }}
+              protocol: TCP
+            - name: sip-tls
+              containerPort: {{ .Values.freeswitch.service.sipTlsPort }}
+              protocol: TCP
+          volumeMounts:
+            - name: fs-config
+              mountPath: /etc/freeswitch/vars.xml
+              subPath: vars.xml
+            - name: fs-config
+              mountPath: /etc/freeswitch/autoload_configs/event_socket.conf.xml
+              subPath: event_socket.conf.xml
+            {{- if .Values.freeswitch.xmlCurl.enabled }}
+            - name: fs-config
+              mountPath: /etc/freeswitch/autoload_configs/xml_curl.conf.xml
+              subPath: xml_curl.conf.xml
+            {{- end }}
+            - name: fs-config
+              mountPath: /etc/freeswitch/sip_profiles/internal.xml
+              subPath: internal.xml
+            - name: fs-config
+              mountPath: /etc/freeswitch/dialplan/multitenant.xml
+              subPath: multitenant_dialplan.xml
+            - name: fs-config
+              mountPath: /etc/freeswitch/autoload_configs/modules.conf.xml
+              subPath: modules.conf.xml
+            - name: recordings
+              mountPath: /var/lib/freeswitch/recordings
+          resources:
+            {{- toYaml .Values.freeswitch.resources | nindent 12 }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.freeswitch.service.eslPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.freeswitch.service.eslPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: fs-config
+          configMap:
+            name: freeswitch-config
+        - name: recordings
+          emptyDir: {}    # TODO: Replace with PVC for production
+{{- end }}

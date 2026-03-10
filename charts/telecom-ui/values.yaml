@@ -1,0 +1,51 @@
+global:
+  domain: dalaillama-dev.local
+  namespace: telecom
+  gateway: istio-system/central-gateway
+  keycloak:
+    baseUrl: "http://auth.localhost:8081"
+    internalUrl: "http://keycloak.auth.svc.cluster.local"
+  apiBaseUrl: "https://dalaillama-dev.local:8443/api/v1"
+
+apps:
+  agent-ui:
+    enabled: true
+    image:
+      repository: akashtripathi/agent-ui
+      tag: "1.0.0"
+    replicaCount: 1
+    subdomain: agent
+    keycloakClientId: agent-ui
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 200m, memory: 128Mi }
+
+  supervisor-ui:
+    enabled: true
+    image:
+      repository: akashtripathi/supervisor-ui
+      tag: "1.0.0"
+    replicaCount: 1
+    subdomain: supervisor
+    keycloakClientId: supervisor-ui
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 200m, memory: 128Mi }
+
+  admin-ui:
+    enabled: true
+    image:
+      repository: akashtripathi/admin-ui
+      tag: "1.0.0"
+    replicaCount: 1
+    subdomain: admin
+    keycloakClientId: admin-ui
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 200m, memory: 128Mi }
+
+# Managed by reconciler from DB at runtime.
+# Seed here for dev/testing only.
+tenants: []
+  # - slug: acme
+  #   tenantId: "550e8400-e29b-41d4-a716-446655440000"

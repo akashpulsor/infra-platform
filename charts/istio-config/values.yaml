@@ -1,17 +1,39 @@
 global:
   domain: localhost
   productionDomain: dalaillama.in
+  devDomain: dalaillama-dev.local
 
 gateway:
   name: central-gateway
   namespace: istio-system
   port: 80
 
+# TLS Configuration (NEW)
+tls:
+  enabled: true
+  httpsRedirect: false
+  
+  issuer:
+    type: selfsigned
+    name: selfsigned-issuer
+  
+  certificates:
+    dev:
+      enabled: true
+      name: dalaillama-dev-cert
+      secretName: dalaillama-dev-tls
+    prod:
+      enabled: false
+      name: dalaillama-prod-cert
+      secretName: dalaillama-prod-tls
+      issuer: letsencrypt-prod
+      issuerKind: ClusterIssuer
+
 keycloak:
   namespace: auth
   host: keycloak.auth.svc.cluster.local
   realm: dalai-llama
-  issuerUrl: "http://auth.localhost:8080/realms/dalai-llama"
+  issuerUrl: "http://auth.localhost:8081/realms/dalai-llama"
   jwksPath: "/realms/dalai-llama/protocol/openid-connect/certs"
 
 namespaces:

@@ -1,0 +1,180 @@
+# =============================================================================
+# TENANT SERVICE - VirtualService
+# =============================================================================
+{{- if .Values.services.tenantService.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.services.tenantService.name }}
+  namespace: {{ .Values.services.tenantService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - "{{ .Values.services.tenantService.subdomain }}.{{ .Values.global.domain }}"
+    - "{{ .Values.services.tenantService.subdomain }}.{{ .Values.global.productionDomain }}"
+  gateways:
+    - {{ include "dalai-backend.gatewayRef" . }}
+  http:
+    # Health endpoints (no auth)
+    - match:
+        - uri:
+            prefix: /health
+        - uri:
+            prefix: /ready
+        - uri:
+            prefix: /live
+        - uri:
+            prefix: /actuator/health
+      route:
+        - destination:
+            host: {{ .Values.services.tenantService.host }}
+            port:
+              number: {{ .Values.services.tenantService.service.port }}
+    # Tenant API routes
+    - match:
+        - uri:
+            prefix: {{ .Values.services.tenantService.pathPrefix }}
+      route:
+        - destination:
+            host: {{ .Values.services.tenantService.host }}
+            port:
+              number: {{ .Values.services.tenantService.service.port }}
+      timeout: {{ .Values.services.tenantService.timeout }}
+      retries:
+        attempts: {{ .Values.services.tenantService.retries.attempts }}
+        perTryTimeout: {{ .Values.services.tenantService.retries.perTryTimeout }}
+    # Internal tenant routes
+    {{- if .Values.internalServices.enabled }}
+    - match:
+        - uri:
+            prefix: {{ .Values.internalServices.pathPrefixes.tenant }}
+      route:
+        - destination:
+            host: {{ .Values.services.tenantService.host }}
+            port:
+              number: {{ .Values.services.tenantService.service.port }}
+    {{- end }}
+---
+{{- end }}
+
+# =============================================================================
+# PRODUCT SERVICE - VirtualService
+# =============================================================================
+{{- if .Values.services.productService.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.services.productService.name }}
+  namespace: {{ .Values.services.productService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - "{{ .Values.services.productService.subdomain }}.{{ .Values.global.devDomain }}"
+    - "{{ .Values.services.productService.subdomain }}.{{ .Values.global.domain }}"
+    - "{{ .Values.services.productService.subdomain }}.{{ .Values.global.productionDomain }}"
+  gateways:
+    - {{ include "dalai-backend.gatewayRef" . }}
+  http:
+    # 1. NEW: Swagger/Tools route with Rewrite
+    # Access via: https://api.dalaillama-dev.local:8443/product-tools/swagger-ui/index.html
+    - match:
+        - uri:
+            prefix: /product-tools
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: {{ .Values.services.productService.host }}
+            port:
+              number: {{ .Values.services.productService.service.port }}
+
+    # 2. Existing Product API routes (No Rewrite)
+    {{- range .Values.services.productService.pathPrefixes }}
+    - match:
+        - uri:
+            prefix: {{ . }}
+      route:
+        - destination:
+            host: {{ $.Values.services.productService.host }}
+            port:
+              number: {{ $.Values.services.productService.service.port }}
+      timeout: {{ $.Values.services.productService.timeout }}
+      retries:
+        attempts: {{ $.Values.services.productService.retries.attempts }}
+        perTryTimeout: {{ $.Values.services.productService.retries.perTryTimeout }}
+    {{- end }}
+
+    # 3. Internal product routes
+    {{- if .Values.internalServices.enabled }}
+    - match:
+        - uri:
+            prefix: {{ .Values.internalServices.pathPrefixes.product }}    
+      route:
+        - destination:
+            host: {{ .Values.services.productService.host }}
+            port:
+              number: {{ .Values.services.productService.service.port }}
+    {{- end }}
+---
+{{- end }}
+# =============================================================================
+# BILLING SERVICE - VirtualService
+# =============================================================================
+{{- if .Values.services.billingService.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.services.billingService.name }}
+  namespace: {{ .Values.services.billingService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - "{{ .Values.services.billingService.subdomain }}.{{ .Values.global.domain }}"
+    - "{{ .Values.services.billingService.subdomain }}.{{ .Values.global.devDomain }}"
+    - "{{ .Values.services.billingService.subdomain }}.{{ .Values.global.productionDomain }}"
+  gateways:
+    - {{ include "dalai-backend.gatewayRef" . }}
+  http:
+    # 1. NEW: Swagger/Tools route with Rewrite
+    # Access via: https://api.dalaillama-dev.local:8443/billing-tools/swagger-ui/index.html
+    - match:
+        - uri:
+            prefix: /billing-tools
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: {{ .Values.services.productService.host }}
+            port:
+              number: {{ .Values.services.productService.service.port }}
+
+    # 2. Existing Billing API routes (No Rewrite)  
+    {{- range .Values.services.billingService.pathPrefixes }}
+    - match:
+        - uri:
+            prefix: {{ . }}
+      route:
+        - destination:
+            host: {{ $.Values.services.billingService.host }}
+            port:
+              number: {{ $.Values.services.billingService.service.port }}
+      timeout: {{ $.Values.services.billingService.timeout }}
+      retries:
+        attempts: {{ $.Values.services.billingService.retries.attempts }}
+        perTryTimeout: {{ $.Values.services.billingService.retries.perTryTimeout }}
+    {{- end }}
+    # Internal billing routes
+    {{- if .Values.internalServices.enabled }}
+    - match:
+        - uri:
+            prefix: {{ .Values.internalServices.pathPrefixes.billing }}
+      route:
+        - destination:
+            host: {{ .Values.services.billingService.host }}
+            port:
+              number: {{ .Values.services.billingService.service.port }}
+    {{- end }}
+{{- end }}
