@@ -15,15 +15,15 @@ maintainers:
 dependencies:
   - name: postgres
     version: 1.0.0
-    repository: file://charts/postgres
+    repository: file://charts/infra/postgres
     condition: postgres.enabled
 
   - name: redis
     version: 1.0.0
-    repository: file://charts/redis
+    repository: file://charts/infra/redis
     condition: redis.enabled
 
   - name: kafka
     version: 1.0.0
-    repository: file://charts/kafka
+    repository: file://charts/infra/kafka
     condition: kafka.enabled
