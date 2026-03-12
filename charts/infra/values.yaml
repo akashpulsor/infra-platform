@@ -1,0 +1,144 @@
+# =============================================================================
+# INFRASTRUCTURE - LOCAL SUBCHARTS
+# =============================================================================
+postgres:
+  enabled: true
+  mode: standalone
+  auth:
+    postgresPassword: "postgres123"
+    database: dalaillama
+  databases:
+    - tenant_db
+    - product_db
+    - billing_db
+    - pbx-core_db
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+redis:
+  enabled: true
+  mode: standalone
+  auth:
+    enabled: true
+    password: "redis123"
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+kafka:
+  enabled: true
+  mode: standalone
+  kraft:
+    clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  topics:
+    - name: tenant.state.changed
+      partitions: 3
+      replicationFactor: 1
+    - name: tenant.created
+      partitions: 3
+      replicationFactor: 1
+    - name: tenant.deleted
+      partitions: 3
+      replicationFactor: 1
+    - name: tenant.activated
+      partitions: 3
+      replicationFactor: 1
+    - name: tenant.suspended
+      partitions: 3
+      replicationFactor: 1
+    - name: product.plan.assigned
+      partitions: 3
+      replicationFactor: 1
+    - name: product.plan.changed
+      partitions: 3
+      replicationFactor: 1
+    - name: product.did.purchased
+      partitions: 3
+      replicationFactor: 1
+    - name: product.did.provisioned
+      partitions: 3
+      replicationFactor: 1
+    - name: product.did.released
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.wallet.created
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.wallet.funded
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.wallet.low
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.state.changed
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.payment.received
+      partitions: 3
+      replicationFactor: 1
+    - name: billing.cdr.rated
+      partitions: 3
+      replicationFactor: 1
+    - name: cdr.completed
+      partitions: 10
+      replicationFactor: 1
+    - name: provisioning.step.completed
+      partitions: 3
+      replicationFactor: 1
+    - name: provisioning.failed
+      partitions: 3
+      replicationFactor: 1
+
+
+
+# =============================================================================
+# SECRETS REFERENCES
+# =============================================================================
+secrets:
+  postgres:
+    name: postgres-secret
+    passwordKey: postgres-password
+  redis:
+    name: redis-secret
+    passwordKey: redis-password
+  keycloak:
+    name: dalai-backend-keycloak
+    clientSecretKey: client-secret
+    adminPasswordKey: admin-password
+  didww:
+    name: dalai-backend-didww
+    apiKeyKey: api-key
+    webhookSecretKey: webhook-secret
+  razorpay:
+    name: dalai-backend-razorpay
+    keyIdKey: key-id
+    keySecretKey: key-secret
+    webhookSecretKey: webhook-secret
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true

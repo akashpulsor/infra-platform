@@ -1,4 +1,0 @@
-apiVersion: v2
-name: telecom-ui
-description: Multi-tenant Agent, Supervisor & Admin UI for Dalai LLAMA
-version: 1.0.0
