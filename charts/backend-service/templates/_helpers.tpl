@@ -123,6 +123,15 @@ app.kubernetes.io/part-of: dalai-llama-backend
   value: {{ .Values.services.tenantService.provisioning.ipWaitTimeoutMinutes | quote }}  
 {{- end -}}
 
+{{/* Kafka Environment Variables */}}
+{{- define "dalai-backend.kafka-envs" -}}
+- name: KAFKA_BOOTSTRAP_SERVERS
+  value: "kafka.{{ .Values.global.namespace }}.svc.cluster.local:9092"
+- name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+  value: "kafka.{{ .Values.global.namespace }}.svc.cluster.local:9092"
+- name: KAFKA_CONSUMER_GROUP_ID
+  value: "dalai-llama-backend"
+{{- end -}}
 
 {{/* Billing Service Specific Integrations (Razorpay & Thresholds) */}}
 {{- define "dalai-backend.billing-integrations" -}}
