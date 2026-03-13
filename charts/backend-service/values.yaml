@@ -61,6 +61,11 @@ services:
       requests:
         cpu: 200m
         memory: 512Mi
+    autoscaling:
+      enabled: true  # Ensure this block exists!
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50    
     env:
       SPRING_PROFILES_ACTIVE: prod
       # JPA
@@ -111,6 +116,11 @@ services:
       requests:
         cpu: 100m
         memory: 256Mi
+    autoscaling:
+      enabled: true  # Ensure this block exists!
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50      
     env:
       SPRING_PROFILES_ACTIVE: prod
       SERVER_PORT: "8080"
@@ -155,6 +165,13 @@ services:
       requests:
         cpu: 100m
         memory: 256Mi
+
+    autoscaling:
+      enabled: true  # Ensure this block exists!
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50  
+      
     env:
       SPRING_PROFILES_ACTIVE: prod
       # JPA
