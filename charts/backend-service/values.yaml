@@ -33,6 +33,7 @@ services:
     expose: true
     name: tenant-service
     namespace: apps
+    health: {} # This prevents the nil pointer error
     apiPath: /api/v1/tenants
     replicaCount: 2
     image:
@@ -92,6 +93,7 @@ services:
     namespace: apps
     apiPath: /api/v1/products
     replicaCount: 2
+    health: {} # This prevents the nil pointer error
     image:
       repository: product-service
       tag: "1.0.3"
@@ -149,6 +151,7 @@ services:
     namespace: apps
     apiPath: /api/v1/billing
     replicaCount: 2
+    health: {} # This prevents the nil pointer error
     image:
       repository: billing-service
       tag: latest
@@ -171,7 +174,7 @@ services:
       minReplicas: 1
       maxReplicas: 5
       targetCPUUtilization: 50  
-      
+
     env:
       SPRING_PROFILES_ACTIVE: prod
       # JPA
