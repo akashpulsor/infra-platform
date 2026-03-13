@@ -45,7 +45,7 @@ jobs:
   realmImport:
     enabled: true
     # ConfigMap containing realm JSON files
-    configMapName: keycloak-realm-config
+    configMapName: keycloak-bootstrap-config
     # Wait for Keycloak to be ready before importing
     waitForKeycloak: true
     backoffLimit: 3
