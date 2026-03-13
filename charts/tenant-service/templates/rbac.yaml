@@ -1,0 +1,48 @@
+{{- range $serviceName, $serviceConfig := .Values.services }}
+{{- if and $serviceConfig.enabled (eq $serviceName "tenantService") }}
+---
+# =============================================================================
+# {{ $serviceConfig.name | upper }} - CLUSTER ROLE (Provisioner)
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $serviceConfig.name }}-provisioner
+  labels:
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "configmaps", "secrets", "services", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["networking.istio.io"]
+    resources: ["virtualservices", "destinationrules", "gateways", "serviceentries", "envoyfilters"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["security.istio.io"]
+    resources: ["authorizationpolicies", "peerauthentications", "requestauthentications"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $serviceConfig.name }}-provisioner
+  labels:
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $serviceConfig.name }}-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: {{ $serviceConfig.name }}
+    namespace: {{ $serviceConfig.namespace }}
+{{- end }}
+{{- end }}

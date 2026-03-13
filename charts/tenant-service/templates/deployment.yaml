@@ -1,0 +1,108 @@
+{{- range $serviceName, $serviceConfig := .Values.services }}
+{{- if $serviceConfig.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $serviceConfig.name }}
+  namespace: {{ $serviceConfig.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
+    app: {{ $serviceConfig.name }}
+spec:
+  replicas: {{ $serviceConfig.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ $serviceConfig.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $serviceConfig.name }}
+        app.kubernetes.io/part-of: dalai-llama-backend
+        sidecar.istio.io/inject: "true"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ $serviceConfig.service.targetPort }}"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: {{ $serviceConfig.name }}
+      {{- if $serviceConfig.securityContext }}
+      securityContext:
+        {{- toYaml $serviceConfig.securityContext | nindent 8 }}
+      {{- end }}      
+      containers:
+        - name: {{ $serviceConfig.name }}
+          image: "{{ $.Values.global.image.registry }}/{{ $serviceConfig.image.repository }}:{{ $serviceConfig.image.tag }}"
+          imagePullPolicy: {{ $serviceConfig.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $serviceConfig.service.targetPort }}
+              name: http
+          env:
+            # 1. Base DB Config
+            - name: DB_NAME
+              value: {{ $serviceConfig.database.name }}
+            - name: DB_USERNAME
+              value: {{ $serviceConfig.database.username }}
+
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres.{{ $.Values.global.namespace }}.svc.cluster.local:5432/{{ $serviceConfig.database.name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ $serviceConfig.database.username | quote }}
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka.{{ $.Values.global.namespace }}.svc.cluster.local:9092"
+
+            # 2. Shared Infrastructure (DB, Redis, Kafka, JWT Auth)
+            {{- include "dalai-backend.db-envs" $ | nindent 12 }}
+            {{- include "dalai-backend.redis-envs" $ | nindent 12 }}
+            {{- include "dalai-backend.auth-envs" $ | nindent 12 }}
+            {{- include "dalai-backend.kafka-envs" $ | nindent 12 }}
+
+            # 3. Internal Service URLs
+# 3. Internal Service URLs (Cluster DNS Discovery)
+            - name: TENANT_SERVICE_URL
+              value: "http://{{ $.Values.services.tenantService.name }}.{{ $.Values.services.tenantService.namespace }}.svc.cluster.local:8080"
+            - name: PRODUCT_SERVICE_URL
+              value: "http://{{ $.Values.services.productService.name }}.{{ $.Values.services.productService.namespace }}.svc.cluster.local:8080"
+            - name: BILLING_SERVICE_URL
+              value: "http://{{ $.Values.services.billingService.name }}.{{ $.Values.services.billingService.namespace }}.svc.cluster.local:8080"
+
+            # 4. Conditional: Provisioning & Admin (Only for Tenant Service)
+            {{- if eq $serviceName "tenantService" }}
+            {{- include "dalai-backend.keycloak-admin-envs" $ | nindent 12 }}
+            {{- include "dalai-backend.provisioning-envs" $ | nindent 12 }}
+            {{- end }}
+
+            # 5. Conditional: Product Service Special Envs
+            {{- if eq $serviceName "productService" }}
+            {{- include "dalai-backend.product-integrations" $ | nindent 12 }}
+            {{- end }}
+
+            {{- if eq $serviceName "billingService" }}
+            {{- include "dalai-backend.billing-integrations" $ | nindent 12 }}
+            {{- end }}
+            # 4. Global Production Domain
+            - name: PUBLIC_DOMAIN
+              value: "api.{{ $.Values.global.domain }}"
+
+            # 5. Service-Specific Custom Overrides from values.yaml
+            {{- range $key, $value := $serviceConfig.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            
+          livenessProbe:
+            httpGet:
+              path: {{ $serviceConfig.health.path | default "/actuator/health" }}
+              port: {{ $serviceConfig.health.port | default $serviceConfig.service.targetPort }}
+            initialDelaySeconds: 90
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: {{ $serviceConfig.health.path | default "/actuator/health" }}
+              port: {{ $serviceConfig.health.port | default $serviceConfig.service.targetPort }}
+            initialDelaySeconds: 60
+            periodSeconds: 5
+          resources:
+            {{- toYaml $serviceConfig.resources | nindent 12 }}
+{{- end }}
+{{- end }}

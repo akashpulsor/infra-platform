@@ -1,0 +1,199 @@
+# =============================================================================
+# GLOBAL CONFIGURATION
+# =============================================================================
+global:
+  namespace: infra
+  domain: dalaillama.in
+  image:
+    registry: akashtripathi
+    pullPolicy: IfNotPresent
+  gateway:
+    enabled: true
+    namespace: istio-system
+    name: central-gateway
+
+# =============================================================================
+# INFRASTRUCTURE SETTINGS (Keycloak, etc.)
+# =============================================================================
+keycloak:
+  issuerUrl: https://auth.dalaillama.in/realms/dalai-llama
+  jwksUri: https://auth.dalaillama.in/realms/dalai-llama/protocol/openid-connect/certs
+  adminUrl: https://auth.dalaillama.in
+  adminRealm: master
+  adminClientId: admin-cli
+  adminUsername: admin
+
+# =============================================================================
+# MICROSERVICES CONFIGURATION
+# =============================================================================
+services:
+  # --- TENANT SERVICE ---
+  tenantService:
+    enabled: true
+    expose: true
+    name: tenant-service
+    namespace: apps
+    apiPath: /api/v1/tenants
+    replicaCount: 2
+    image:
+      repository: tenant-service
+      tag: "2.0.4"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: tenant_db
+      username: tenant_user
+    # Provisioning & K8s Orchestration
+    kubernetes:
+      namespace: dalai-llama
+      trustCerts: "true"
+    provisioning:
+      maxRetries: 3
+      retryDelaySeconds: 10
+      ipWaitTimeoutMinutes: 5
+      ipPollIntervalSeconds: 30
+      minWalletBalance: 500
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      # JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SPRING_JPA_SHOW_SQL: "false"
+      # Flyway
+      SPRING_FLYWAY_ENABLED: "true"
+      # Logging
+      LOG_LEVEL: "INFO"
+      # Health check scheduler
+      HEALTH_CHECK_ENABLED: "true"
+      HEALTH_CHECK_INTERVAL_SECONDS: "60"
+      HEALTH_CHECK_FAILURE_THRESHOLD: "3"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
+
+  # --- PRODUCT SERVICE ---
+  productService:
+    enabled: true
+    expose: true
+    name: product-service
+    namespace: apps
+    apiPath: /api/v1/products
+    replicaCount: 2
+    image:
+      repository: product-service
+      tag: "1.0.3"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: product_db
+      username: product_user
+    # SIP & DIDWW Integrations
+    sip:
+      domain: "sip.dalaillama.in"
+      realm: "dalaillama.in"
+    didww:
+      apiUrl: "https://api.didww.com/v3"
+      syncEnabled: "true"
+      syncIntervalMinutes: "60"
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: "8080"
+      # JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SPRING_JPA_SHOW_SQL: "false"
+      # Flyway
+      SPRING_FLYWAY_ENABLED: "true"
+      # Logging
+      LOG_LEVEL: "INFO"
+      # Health check scheduler
+      HEALTH_CHECK_ENABLED: "true"
+      HEALTH_CHECK_INTERVAL_SECONDS: "60"
+      HEALTH_CHECK_FAILURE_THRESHOLD: "3"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
+
+
+  # --- BILLING SERVICE ---
+  billingService:
+    enabled: true
+    expose: false
+    name: billing-service
+    namespace: apps
+    apiPath: /api/v1/billing
+    replicaCount: 2
+    image:
+      repository: billing-service
+      tag: latest
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: billing_db
+      username: billing_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      # JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SQL_LOG_LEVEL: "WARN"
+      # Flyway
+      SPRING_FLYWAY_ENABLED: "true"
+      # Logging
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
+    # Billing settings
+    billing:
+      gracePeriodDays: 7
+      lowBalanceThreshold: 500
+      defaultCurrency: INR
+    
+    # Razorpay
+    razorpay:
+      enabled: false
+
+
+# =============================================================================
+# SECRETS MAPPING
+# =============================================================================
+secrets:
+  postgres:
+    name: postgres-secret
+    passwordKey: postgres-password
+  redis:
+    name: redis-secret
+    passwordKey: redis-password
+  keycloak:
+    name: dalai-backend-keycloak
+    adminPasswordKey: admin-password
+  didww:
+    name: dalai-backend-didww
+    apiKeyKey: api-key
+    webhookSecretKey: webhook-secret

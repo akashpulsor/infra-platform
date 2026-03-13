@@ -1,0 +1,78 @@
+ingress:
+  enabled: true
+  className: traefik
+
+  services:
+
+    keycloak:
+      enabled: true
+      namespace: auth
+      host: auth.dalaillama.in
+      serviceName: keycloak
+      servicePort: 80
+
+      paths:
+        - path: /
+          pathType: Prefix
+
+    tenant:
+      enabled: true
+      namespace: apps
+      host: api.dalaillama.in
+      serviceName: tenant-service
+      servicePort: 80
+
+      paths:
+        - path: /tenant
+          pathType: Prefix
+
+    billing:
+      enabled: true
+      namespace: apps
+      host: api.dalaillama.in
+      serviceName: billing-service
+      servicePort: 80
+
+      paths:
+        - path: /billing
+          pathType: Prefix
+
+    product:
+      enabled: true
+      namespace: apps
+      host: api.dalaillama.in
+      serviceName: product-service
+      servicePort: 80
+
+      paths:
+        - path: /product
+          pathType: Prefix
+
+    pbx:
+      enabled: true
+      namespace: apps
+      host: api.dalaillama.in
+      serviceName: pbx-core
+      servicePort: 80
+
+      paths:
+        - path: /pbx
+          pathType: Prefix
+
+    ai:
+      enabled: true
+      namespace: apps
+      host: api.dalaillama.in
+      serviceName: ai-service
+      servicePort: 80
+
+      paths:
+        - path: /ai
+          pathType: Prefix
+istio:
+  enabled: false
+  gatewayName: platform-gateway
+  hosts:
+    - auth.dalaillama.in
+    - api.dalaillama.in
+    - dashboard.dalaillama.in

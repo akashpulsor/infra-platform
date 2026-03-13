@@ -1,0 +1,69 @@
+{{- range $serviceName, $serviceConfig := .Values.services }}
+{{- if $serviceConfig.enabled }}
+---
+# =============================================================================
+# {{ $serviceConfig.name | upper }} - VIRTUAL SERVICE & AUTH
+# =============================================================================
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ $serviceConfig.name }}
+  namespace: {{ $serviceConfig.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
+spec:
+  gateways:
+    - {{ $.Values.global.gateway.ref }}
+  hosts:
+    - api.{{ $.Values.global.domain }}
+    - api.{{ $.Values.global.devDomain }}
+    {{- if $.Values.global.production }}
+    - api.{{ $.Values.global.productionDomain }}
+    {{- end }}
+
+  http:
+      - match:
+          - uri:
+              prefix: /actuator
+        route:
+          - destination:
+              host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
+              port:
+                number: {{ $serviceConfig.service.port }}
+      - match:
+          - uri:
+              prefix: {{ $serviceConfig.apiPath }}
+        route:
+          - destination:
+              host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
+              port:
+                number: {{ $serviceConfig.service.port }}
+      # 2. Main API Path (JWT Protected)
+      - match:
+          - uri:
+              prefix: {{ $serviceConfig.apiPath }}
+        retries:
+          attempts: 3
+          perTryTimeout: 10s
+        route:
+          - destination:
+              host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
+              port:
+                number: {{ $serviceConfig.service.port }}
+        timeout: 30s
+---
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: {{ $serviceConfig.name }}-jwt
+  namespace: {{ $serviceConfig.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $serviceConfig.name }}
+  jwtRules:
+    - issuer: {{ $.Values.keycloak.issuerUrl | quote }}
+      jwksUri: {{ $.Values.keycloak.jwksUri | quote }}
+      forwardOriginalToken: true
+{{- end }}
+{{- end }}

@@ -1,0 +1,25 @@
+{{- range $serviceName, $serviceConfig := .Values.services }}
+{{- if $serviceConfig.enabled }}
+---
+# =============================================================================
+# {{ $serviceConfig.name | upper }} - SERVICE
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $serviceConfig.name }}
+  namespace: {{ $serviceConfig.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
+    app: {{ $serviceConfig.name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ $serviceConfig.service.port }}
+      targetPort: {{ $serviceConfig.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ $serviceConfig.name }}
+{{- end }}
+{{- end }}
