@@ -3,7 +3,7 @@
 {{- if $serviceConfig.enabled }}
 ---
 # =============================================================================
-# {{ $serviceConfig.name | upper }} - VIRTUAL SERVICE & AUTH
+# {{ $serviceConfig.name | upper }} - VIRTUAL SERVICE
 # =============================================================================
 apiVersion: networking.istio.io/v1
 kind: VirtualService
@@ -21,39 +21,31 @@ spec:
     {{- if $.Values.global.production }}
     - api.{{ $.Values.global.productionDomain }}
     {{- end }}
-
   http:
-      - match:
-          - uri:
-              prefix: /actuator
-        route:
-          - destination:
-              host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
-              port:
-                number: {{ $serviceConfig.service.port }}
-      - match:
-          - uri:
-              prefix: {{ $serviceConfig.apiPath }}
-        route:
-          - destination:
-              host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
-              port:
-                number: {{ $serviceConfig.service.port }}
-      # 2. Main API Path (JWT Protected)
-      - match:
-          - uri:
-              prefix: {{ $serviceConfig.apiPath }}
-        retries:
-          attempts: 3
-          perTryTimeout: 10s
-        route:
-          - destination:
-              host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
-              port:
-                number: {{ $serviceConfig.service.port }}
-        timeout: 30s
+    - match:
+        - uri:
+            prefix: /actuator
+      route:
+        - destination:
+            host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
+            port:
+              number: {{ $serviceConfig.service.port }}
+    - match:
+        - uri:
+            prefix: {{ $serviceConfig.apiPath }}
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+      route:
+        - destination:
+            host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
+            port:
+              number: {{ $serviceConfig.service.port }}
+      timeout: 30s
 ---
-{{- if .Values.istio.enabled }}
+# =============================================================================
+# {{ $serviceConfig.name | upper }} - AUTH
+# =============================================================================
 apiVersion: security.istio.io/v1
 kind: RequestAuthentication
 metadata:
@@ -67,5 +59,7 @@ spec:
     - issuer: {{ $.Values.keycloak.issuerUrl | quote }}
       jwksUri: {{ $.Values.keycloak.jwksUri | quote }}
       forwardOriginalToken: true
-{{- end }}
-{{- end }}
+
+{{- end }} {{/* Closes: if $serviceConfig.enabled */}}
+{{- end }} {{/* Closes: range .Values.services */}}
+{{- end }} {{/* Closes: if .Values.istio.enabled */}}
