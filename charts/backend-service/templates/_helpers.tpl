@@ -67,19 +67,6 @@ app.kubernetes.io/part-of: dalai-llama-backend
       key: {{ .Values.secrets.keycloak.adminPasswordKey }}
 {{- end -}}
 
-{{/* K8s Provisioning Logic (Specifically for Tenant Service) */}}
-{{- define "dalai-backend.provisioning-envs" -}}
-- name: KUBERNETES_NAMESPACE
-  value: {{ .Values.services.tenantService.kubernetes.namespace | default "dalai-llama" | quote }}
-- name: KUBERNETES_TRUST_CERTS
-  value: {{ .Values.services.tenantService.kubernetes.trustCerts | default "true" | quote }}
-- name: PROVISIONING_MAX_RETRIES
-  value: {{ .Values.services.tenantService.provisioning.maxRetries | quote }}
-- name: PROVISIONING_RETRY_DELAY_SECONDS
-  value: {{ .Values.services.tenantService.provisioning.retryDelaySeconds | quote }}
-- name: PROVISIONING_IP_WAIT_TIMEOUT_MINUTES
-  value: {{ .Values.services.tenantService.provisioning.ipWaitTimeoutMinutes | quote }}
-{{- end -}}
 
 {{/* Product Service Specific Integrations (SIP & DIDWW) */}}
 {{- define "dalai-backend.product-integrations" -}}
@@ -108,6 +95,7 @@ app.kubernetes.io/part-of: dalai-llama-backend
 {{- end -}}
 
 {{/* K8s Provisioning Logic (Specifically for Tenant Service) */}}
+
 {{- define "dalai-backend.provisioning-envs" -}}
 - name: KUBERNETES_NAMESPACE
   value: {{ .Values.services.tenantService.kubernetes.namespace | default "dalai-llama" | quote }}
@@ -123,6 +111,16 @@ app.kubernetes.io/part-of: dalai-llama-backend
   value: {{ .Values.services.tenantService.provisioning.ipPollIntervalSeconds | quote }}
 - name: PROVISIONING_MIN_WALLET_BALANCE
   value: {{ .Values.services.tenantService.provisioning.minWalletBalance | quote }}
+- name: KUBERNETES_NAMESPACE
+  value: {{ .Values.services.tenantService.kubernetes.namespace | default "dalai-llama" | quote }}
+- name: KUBERNETES_TRUST_CERTS
+  value: {{ .Values.services.tenantService.kubernetes.trustCerts | default "true" | quote }}
+- name: PROVISIONING_MAX_RETRIES
+  value: {{ .Values.services.tenantService.provisioning.maxRetries | quote }}
+- name: PROVISIONING_RETRY_DELAY_SECONDS
+  value: {{ .Values.services.tenantService.provisioning.retryDelaySeconds | quote }}
+- name: PROVISIONING_IP_WAIT_TIMEOUT_MINUTES
+  value: {{ .Values.services.tenantService.provisioning.ipWaitTimeoutMinutes | quote }}  
 {{- end -}}
 
 
