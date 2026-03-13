@@ -12,6 +12,7 @@ postgres:
     - product_db
     - billing_db
     - pbx-core_db
+    - kamalio_db
   persistence:
     size: 10Gi
   resources:

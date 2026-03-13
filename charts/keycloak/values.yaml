@@ -8,12 +8,11 @@ replicaCount: 1
 keycloak:
   hostname: ""
 
-auth:
-  adminUser: admin
-  adminPassword: admin123
+
 
 
 database:
+  enabled: true
   vendor: postgres
   host: postgres
   port: 5432
@@ -54,7 +53,7 @@ jobs:
 
   # User sync job - syncs users from external sources
   userSync:
-    enabled: true
+    enabled: false
     schedule: "0 */6 * * *"  # Every 6 hours
     image: curlimages/curl:latest
     # Custom script ConfigMap
@@ -68,3 +67,17 @@ jobs:
     schedule: "0 2 * * *"  # Daily at 2 AM
     backoffLimit: 1
     ttlSecondsAfterFinished: 300
+
+    # Custom batch job template
+  custom:
+    enabled: false
+    name: keycloak-custom-job
+    schedule: ""  # Leave empty for one-time job, set cron for recurring
+    image: curlimages/curl:latest
+    command: []
+    args: []
+    env: []
+    configMapName: ""
+    backoffLimit: 3
+    ttlSecondsAfterFinished: 600
+  
