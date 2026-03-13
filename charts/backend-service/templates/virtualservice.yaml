@@ -1,3 +1,4 @@
+{{- if .Values.istio.enabled }}
 {{- range $serviceName, $serviceConfig := .Values.services }}
 {{- if $serviceConfig.enabled }}
 ---
@@ -52,6 +53,7 @@ spec:
                 number: {{ $serviceConfig.service.port }}
         timeout: 30s
 ---
+{{- if .Values.istio.enabled }}
 apiVersion: security.istio.io/v1
 kind: RequestAuthentication
 metadata:
