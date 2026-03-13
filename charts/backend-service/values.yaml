@@ -11,7 +11,9 @@ global:
     enabled: true
     namespace: istio-system
     name: central-gateway
-
+    
+istio:
+  enabled: false
 # =============================================================================
 # INFRASTRUCTURE SETTINGS (Keycloak, etc.)
 # =============================================================================
