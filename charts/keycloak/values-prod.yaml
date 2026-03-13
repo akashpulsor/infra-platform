@@ -1,0 +1,25 @@
+keycloak:
+  hostname: https://auth.dalaillama.in
+
+database:
+  host: postgres.infra.svc.cluster.local
+
+replicaCount: 3
+theme:
+  enabled: false
+
+jobs:
+  custom:
+    enabled: false
+resources:
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+istio:
+  enabled: false
+  host: auth.dalaillama.in
+  gatewayName: istio-system/central-gateway

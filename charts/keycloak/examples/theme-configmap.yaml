@@ -1,0 +1,163 @@
+# =============================================================================
+# EXAMPLE: Custom Theme ConfigMap
+# This shows how to create a custom theme via ConfigMap
+# =============================================================================
+# For simple themes, you can use a ConfigMap
+# For complex themes with many files, consider:
+# 1. Building themes into a Docker image (use theme.useInitContainer)
+# 2. Using a PVC with pre-built themes (use theme.usePvc)
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-theme
+  labels:
+    app: keycloak
+data:
+  # Theme properties - required
+  theme.properties: |
+    parent=keycloak
+    import=common/keycloak
+
+  # Login theme properties
+  login-theme.properties: |
+    parent=keycloak
+    styles=css/login.css css/dalaillama.css
+    locales=en
+
+  # Custom CSS for login page
+  dalaillama.css: |
+    /* DalaiLLAMA Custom Theme */
+    
+    /* Background */
+    .login-pf body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Login card */
+    .card-pf {
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      border: none;
+    }
+    
+    /* Header */
+    #kc-header-wrapper {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Logo area */
+    .kc-logo-text {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #fff;
+    }
+    
+    /* Form inputs */
+    .login-pf .form-control {
+      border-radius: 8px;
+      border: 2px solid #e0e0e0;
+      padding: 12px 16px;
+      font-size: 14px;
+      transition: border-color 0.3s ease;
+    }
+    
+    .login-pf .form-control:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    }
+    
+    /* Submit button */
+    .login-pf .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .login-pf .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Links */
+    .login-pf a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    
+    .login-pf a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+    
+    /* Footer */
+    #kc-info-wrapper {
+      margin-top: 20px;
+    }
+
+  # Custom messages/translations
+  messages_en.properties: |
+    loginTitle=DalaiLLAMA
+    loginTitleHtml=<strong>DalaiLLAMA</strong> Contact Center
+    doLogIn=Sign In
+    noAccount=Need an account?
+    doRegister=Register here
+    usernameOrEmail=Email or Username
+    password=Password
+    rememberMe=Keep me signed in
+    forgotPassword=Forgot your password?
+    backToLogin=Back to sign in
+
+---
+# =============================================================================
+# Alternative: Using a Docker image for themes
+# =============================================================================
+# If you have complex themes with many files, build them into a Docker image:
+#
+# Dockerfile:
+# FROM busybox
+# COPY themes/ /themes/
+#
+# Then in values.yaml:
+# theme:
+#   enabled: true
+#   name: dalaillama
+#   useInitContainer: true
+#   initImage: your-registry/keycloak-themes:latest
+
+---
+# =============================================================================
+# Theme directory structure reference
+# =============================================================================
+# themes/
+# └── dalaillama/
+#     ├── theme.properties          # Main theme config
+#     ├── login/
+#     │   ├── theme.properties      # Login theme config
+#     │   ├── resources/
+#     │   │   ├── css/
+#     │   │   │   └── dalaillama.css
+#     │   │   └── img/
+#     │   │       └── logo.png
+#     │   ├── messages/
+#     │   │   └── messages_en.properties
+#     │   └── templates/            # Optional FreeMarker templates
+#     │       └── login.ftl
+#     ├── account/
+#     │   ├── theme.properties
+#     │   └── ...
+#     ├── admin/
+#     │   ├── theme.properties
+#     │   └── ...
+#     └── email/
+#         ├── theme.properties
+#         └── messages/
+#             └── messages_en.properties

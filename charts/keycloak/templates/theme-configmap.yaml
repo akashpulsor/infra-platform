@@ -1,0 +1,15 @@
+{{- if .Values.theme.enabled }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-theme-config
+  labels:
+    app: keycloak
+
+data:
+  theme.properties: |
+    parent=keycloak
+    import=common/keycloak
+
+{{- end }}

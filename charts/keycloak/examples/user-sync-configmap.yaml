@@ -1,0 +1,77 @@
+# =============================================================================
+# EXAMPLE: User Sync Script ConfigMap
+# Create this ConfigMap before enabling jobs.userSync
+# =============================================================================
+# kubectl apply -f examples/user-sync-configmap.yaml -n auth
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-user-sync-script
+  labels:
+    app: keycloak
+data:
+  sync-users.sh: |
+    #!/bin/sh
+    set -e
+
+    echo "Starting user sync job at $(date)"
+    echo "Keycloak URL: $KEYCLOAK_URL"
+
+    # Get admin token
+    echo "Obtaining admin token..."
+    TOKEN=$(curl -s -X POST \
+      "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -d "username=${KEYCLOAK_ADMIN}" \
+      -d "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+      -d "grant_type=password" \
+      -d "client_id=admin-cli" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+
+    if [ -z "$TOKEN" ]; then
+      echo "ERROR: Failed to get admin token"
+      exit 1
+    fi
+
+    echo "Successfully obtained admin token"
+
+    # Example: Sync users from an external API
+    # Replace this with your actual user sync logic
+    
+    # EXTERNAL_API_URL="https://your-hr-system.com/api/users"
+    # USERS=$(curl -s -H "Authorization: Bearer $EXTERNAL_API_TOKEN" $EXTERNAL_API_URL)
+    
+    # For each user from external system:
+    # - Check if user exists in Keycloak
+    # - Create user if not exists
+    # - Update user attributes if exists
+    # - Assign appropriate roles
+
+    # Example: Get current users in realm
+    REALM="dalaillama"
+    echo "Fetching users from realm: $REALM"
+    
+    USERS=$(curl -s -X GET \
+      "${KEYCLOAK_URL}/admin/realms/${REALM}/users" \
+      -H "Authorization: Bearer $TOKEN" \
+      -H "Content-Type: application/json")
+
+    USER_COUNT=$(echo $USERS | grep -o '"id"' | wc -l)
+    echo "Found $USER_COUNT users in realm $REALM"
+
+    # Example: Create a test user (replace with actual sync logic)
+    # curl -s -X POST \
+    #   "${KEYCLOAK_URL}/admin/realms/${REALM}/users" \
+    #   -H "Authorization: Bearer $TOKEN" \
+    #   -H "Content-Type: application/json" \
+    #   -d '{
+    #     "username": "synced-user",
+    #     "enabled": true,
+    #     "email": "synced@example.com",
+    #     "firstName": "Synced",
+    #     "lastName": "User",
+    #     "credentials": [{"type": "password", "value": "temppass", "temporary": true}]
+    #   }'
+
+    echo "User sync completed at $(date)"

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: keycloak
+description: Keycloak Identity Provider for DalaiLLAMA platform
+type: application
+version: 1.0.0
+appVersion: "26.0"
+
+maintainers:
+  - name: Akash
+    email: akash@dalaillama.in

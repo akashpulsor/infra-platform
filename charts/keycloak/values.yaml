@@ -1,0 +1,70 @@
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "26.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+keycloak:
+  hostname: ""
+
+auth:
+  adminUser: admin
+  adminPassword: admin123
+
+
+database:
+  vendor: postgres
+  host: postgres
+  port: 5432
+  name: keycloak_db
+
+service:
+  type: ClusterIP
+  port: 8080
+  managementPort: 9000
+  servicePort: 80
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+istio:
+  enabled: false
+  host: ""
+  gatewayName: ""
+
+# =============================================================================
+# Batch Jobs Configuration
+# =============================================================================
+jobs:
+  # Realm import job - imports realm configuration on first install
+  realmImport:
+    enabled: true
+    # ConfigMap containing realm JSON files
+    configMapName: keycloak-realm-config
+    # Wait for Keycloak to be ready before importing
+    waitForKeycloak: true
+    backoffLimit: 3
+    ttlSecondsAfterFinished: 600
+
+  # User sync job - syncs users from external sources
+  userSync:
+    enabled: true
+    schedule: "0 */6 * * *"  # Every 6 hours
+    image: curlimages/curl:latest
+    # Custom script ConfigMap
+    scriptConfigMap: keycloak-user-sync-script
+    backoffLimit: 2
+    ttlSecondsAfterFinished: 300
+
+  # Cleanup job - removes expired sessions, tokens
+  cleanup:
+    enabled: false
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    backoffLimit: 1
+    ttlSecondsAfterFinished: 300

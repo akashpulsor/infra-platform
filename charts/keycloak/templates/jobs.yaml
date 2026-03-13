@@ -1,0 +1,326 @@
+# =============================================================================
+# REALM IMPORT JOB
+# Imports realm configuration from ConfigMap on first install
+# =============================================================================
+{{- if .Values.jobs.realmImport.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-realm-import
+  labels:
+    app: keycloak
+    job: realm-import
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  ttlSecondsAfterFinished: {{ .Values.jobs.realmImport.ttlSecondsAfterFinished }}
+  backoffLimit: {{ .Values.jobs.realmImport.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        app: keycloak
+        job: realm-import
+    spec:
+      restartPolicy: OnFailure
+      {{- if .Values.jobs.realmImport.waitForKeycloak }}
+      initContainers:
+        - name: wait-for-keycloak
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Keycloak to be ready..."
+              until curl -sf http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.managementPort }}/health/ready; do
+                echo "Keycloak not ready yet, waiting..."
+                sleep 10
+              done
+              echo "Keycloak is ready!"
+      {{- end }}
+      containers:
+        - name: realm-import
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - /opt/keycloak/bin/kc.sh
+          args:
+            - import
+            - --file=/realm-config/realm.json
+            - --override=false
+          env:
+            - name: KC_DB
+              value: {{ .Values.database.vendor | quote }}
+            - name: KC_DB_URL_HOST
+              value: {{ .Values.database.host | quote }}
+            - name: KC_DB_URL_PORT
+              value: {{ .Values.database.port | quote }}
+            - name: KC_DB_URL_DATABASE
+              value: {{ .Values.database.name | quote }}
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: username
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: password
+          volumeMounts:
+            - name: realm-config
+              mountPath: /realm-config
+      volumes:
+        - name: realm-config
+          configMap:
+            name: {{ .Values.jobs.realmImport.configMapName }}
+{{- end }}
+
+---
+# =============================================================================
+# USER SYNC CRONJOB
+# Syncs users from external sources on a schedule
+# =============================================================================
+{{- if .Values.jobs.userSync.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: keycloak-user-sync
+  labels:
+    app: keycloak
+    job: user-sync
+spec:
+  schedule: {{ .Values.jobs.userSync.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: {{ .Values.jobs.userSync.ttlSecondsAfterFinished }}
+      backoffLimit: {{ .Values.jobs.userSync.backoffLimit }}
+      template:
+        metadata:
+          labels:
+            app: keycloak
+            job: user-sync
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: user-sync
+              image: {{ .Values.jobs.userSync.image }}
+              command:
+                - sh
+                - /scripts/sync-users.sh
+              env:
+                - name: KEYCLOAK_URL
+                  value: "http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.servicePort }}"
+                - name: KEYCLOAK_ADMIN
+                  value: {{ .Values.auth.adminUser | quote }}
+                - name: KEYCLOAK_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-admin-secret
+                      key: password
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+          volumes:
+            - name: scripts
+              configMap:
+                name: {{ .Values.jobs.userSync.scriptConfigMap }}
+                defaultMode: 0755
+{{- end }}
+
+---
+# =============================================================================
+# CLEANUP CRONJOB
+# Cleans up expired sessions and tokens
+# =============================================================================
+{{- if .Values.jobs.cleanup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: keycloak-cleanup
+  labels:
+    app: keycloak
+    job: cleanup
+spec:
+  schedule: {{ .Values.jobs.cleanup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: {{ .Values.jobs.cleanup.ttlSecondsAfterFinished }}
+      backoffLimit: {{ .Values.jobs.cleanup.backoffLimit }}
+      template:
+        metadata:
+          labels:
+            app: keycloak
+            job: cleanup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cleanup
+              image: curlimages/curl:latest
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  echo "Starting Keycloak cleanup job..."
+                  
+                  # Get admin token
+                  TOKEN=$(curl -s -X POST \
+                    "http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.servicePort }}/realms/master/protocol/openid-connect/token" \
+                    -H "Content-Type: application/x-www-form-urlencoded" \
+                    -d "username=${KEYCLOAK_ADMIN}" \
+                    -d "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+                    -d "grant_type=password" \
+                    -d "client_id=admin-cli" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+                  
+                  if [ -z "$TOKEN" ]; then
+                    echo "Failed to get admin token"
+                    exit 1
+                  fi
+                  
+                  echo "Successfully obtained admin token"
+                  
+                  # Clear user sessions (optional - adjust realm as needed)
+                  # curl -s -X POST \
+                  #   "http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.servicePort }}/admin/realms/master/logout-all" \
+                  #   -H "Authorization: Bearer $TOKEN"
+                  
+                  echo "Cleanup completed successfully"
+              env:
+                - name: KEYCLOAK_ADMIN
+                  value: {{ .Values.auth.adminUser | quote }}
+                - name: KEYCLOAK_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-admin-secret
+                      key: password
+{{- end }}
+
+---
+# =============================================================================
+# CUSTOM JOB/CRONJOB
+# User-defined batch job template
+# =============================================================================
+{{- if .Values.jobs.custom.enabled }}
+{{- if .Values.jobs.custom.schedule }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.jobs.custom.name }}
+  labels:
+    app: keycloak
+    job: custom
+spec:
+  schedule: {{ .Values.jobs.custom.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: {{ .Values.jobs.custom.ttlSecondsAfterFinished }}
+      backoffLimit: {{ .Values.jobs.custom.backoffLimit }}
+      template:
+        metadata:
+          labels:
+            app: keycloak
+            job: custom
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: custom-job
+              image: {{ .Values.jobs.custom.image }}
+              {{- if .Values.jobs.custom.command }}
+              command:
+                {{- toYaml .Values.jobs.custom.command | nindent 16 }}
+              {{- end }}
+              {{- if .Values.jobs.custom.args }}
+              args:
+                {{- toYaml .Values.jobs.custom.args | nindent 16 }}
+              {{- end }}
+              env:
+                - name: KEYCLOAK_URL
+                  value: "http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.servicePort }}"
+                - name: KEYCLOAK_ADMIN
+                  value: {{ .Values.auth.adminUser | quote }}
+                - name: KEYCLOAK_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-admin-secret
+                      key: password
+                {{- with .Values.jobs.custom.env }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+              {{- if .Values.jobs.custom.configMapName }}
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+              {{- end }}
+          {{- if .Values.jobs.custom.configMapName }}
+          volumes:
+            - name: scripts
+              configMap:
+                name: {{ .Values.jobs.custom.configMapName }}
+                defaultMode: 0755
+          {{- end }}
+{{- else }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.jobs.custom.name }}
+  labels:
+    app: keycloak
+    job: custom
+spec:
+  ttlSecondsAfterFinished: {{ .Values.jobs.custom.ttlSecondsAfterFinished }}
+  backoffLimit: {{ .Values.jobs.custom.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        app: keycloak
+        job: custom
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: custom-job
+          image: {{ .Values.jobs.custom.image }}
+          {{- if .Values.jobs.custom.command }}
+          command:
+            {{- toYaml .Values.jobs.custom.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.jobs.custom.args }}
+          args:
+            {{- toYaml .Values.jobs.custom.args | nindent 12 }}
+          {{- end }}
+          env:
+            - name: KEYCLOAK_URL
+              value: "http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.servicePort }}"
+            - name: KEYCLOAK_ADMIN
+              value: {{ .Values.auth.adminUser | quote }}
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: password
+            {{- with .Values.jobs.custom.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.jobs.custom.configMapName }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+          {{- end }}
+      {{- if .Values.jobs.custom.configMapName }}
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ .Values.jobs.custom.configMapName }}
+            defaultMode: 0755
+      {{- end }}
+{{- end }}
+{{- end }}

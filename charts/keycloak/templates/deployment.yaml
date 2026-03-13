@@ -1,0 +1,170 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  replicas: {{ .Values.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: keycloak
+
+  template:
+    metadata:
+      labels:
+        app: keycloak
+        sidecar.istio.io/inject: "{{ .Values.istio.enabled | default "false" }}"
+
+    spec:
+
+      {{- if .Values.theme.enabled }}
+      initContainers:
+        - name: theme-loader
+          image: {{ .Values.theme.initImage }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              echo "Loading Keycloak theme..."
+              cp -r /themes/* /opt/keycloak/themes/
+          volumeMounts:
+            - name: themes
+              mountPath: /opt/keycloak/themes
+      {{- end }}
+
+      containers:
+        - name: keycloak
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          args:
+            - start
+
+          env:
+
+            # ==========================
+            # HTTP / Proxy
+            # ==========================
+            - name: KC_HTTP_ENABLED
+              value: "true"
+
+            - name: KC_PROXY_HEADERS
+              value: "xforwarded"
+
+            - name: KC_HOSTNAME
+              value: {{ .Values.keycloak.hostname | quote }}
+
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+
+            # ==========================
+            # Health / Metrics
+            # ==========================
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+
+            - name: KC_METRICS_ENABLED
+              value: "true"
+
+            - name: KC_HTTP_MANAGEMENT_ENABLED
+              value: "true"
+
+            # ==========================
+            # Bootstrap Admin
+            # ==========================
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              value: {{ .Values.auth.adminUser | quote }}
+
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: password
+
+            # ==========================
+            # Database
+            # ==========================
+            - name: KC_DB
+              value: {{ .Values.database.vendor }}
+
+            - name: KC_DB_URL_HOST
+              value: {{ .Values.database.host }}
+
+            - name: KC_DB_URL_PORT
+              value: "{{ .Values.database.port }}"
+
+            - name: KC_DB_URL_DATABASE
+              value: {{ .Values.database.name }}
+
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: username
+
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: password
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+
+            - name: management
+              containerPort: {{ .Values.service.managementPort }}
+              protocol: TCP
+
+          # ==========================
+          # Startup Probe
+          # ==========================
+          startupProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.service.managementPort }}
+            failureThreshold: 30
+            periodSeconds: 10
+
+          # ==========================
+          # Readiness Probe
+          # ==========================
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.service.managementPort }}
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+
+          # ==========================
+          # Liveness Probe
+          # ==========================
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.service.managementPort }}
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+          {{- if .Values.theme.enabled }}
+          volumeMounts:
+            - name: themes
+              mountPath: /opt/keycloak/themes
+          {{- end }}
+
+      {{- if .Values.theme.enabled }}
+      volumes:
+        - name: themes
+          emptyDir: {}
+      {{- end }}

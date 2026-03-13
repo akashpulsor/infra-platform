@@ -1,0 +1,14 @@
+# secrets
+values-secret.yaml
+values-prod-secret.yaml
+values-dev-secret.yaml
+
+# local helm overrides
+*.local.yaml
+
+# kube config
+.kube/
+
+# env files
+.env
+.env.local
