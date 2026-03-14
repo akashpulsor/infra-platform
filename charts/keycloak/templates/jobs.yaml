@@ -67,6 +67,11 @@ spec:
                 secretKeyRef:
                   name: keycloak-db-secret
                   key: password
+            - name: PLATFORM_API_SECRET
+                          valueFrom:
+                            secretKeyRef:
+                              name: keycloak-client-secret
+                              key: client-secret                  
           volumeMounts:
             - name: realm-config
               mountPath: /realm-config

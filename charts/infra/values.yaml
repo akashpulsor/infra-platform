@@ -11,8 +11,10 @@ postgres:
     - tenant_db
     - product_db
     - billing_db
-    - pbx-core_db
+    - pbx_db
+    - ai_db
     - kamalio_db
+    
   persistence:
     size: 10Gi
   resources:
@@ -128,15 +130,7 @@ secrets:
     name: dalai-backend-keycloak
     clientSecretKey: client-secret
     adminPasswordKey: admin-password
-  didww:
-    name: dalai-backend-didww
-    apiKeyKey: api-key
-    webhookSecretKey: webhook-secret
-  razorpay:
-    name: dalai-backend-razorpay
-    keyIdKey: key-id
-    keySecretKey: key-secret
-    webhookSecretKey: webhook-secret
+
 
 rbac:
   create: true

@@ -13,7 +13,7 @@ replicaCount: 1
 
 # Database initialization
 auth:
-  postgresPassword: "postgres123"
+  enabled: true
   database: dalaillama
 
 # Create multiple databases on init
@@ -21,6 +21,8 @@ databases:
   - tenant_db
   - product_db
   - billing_db
+  - pbx-core_db
+  - kamalio_db
 
 service:
   type: ClusterIP

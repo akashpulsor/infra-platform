@@ -11,7 +11,7 @@ global:
     enabled: true
     namespace: istio-system
     name: central-gateway
-    
+
 istio:
   enabled: false
 # =============================================================================
@@ -24,6 +24,24 @@ keycloak:
   adminRealm: master
   adminClientId: admin-cli
   adminUsername: admin
+
+# The actual passwords live in the 'postgres-secret' created by infra.
+infra_secrets:
+  postgres:
+    name: postgres-secret
+    passwordKey: postgres-password
+  redis:
+    name: redis-secret
+    passwordKey: redis-password
+
+keycloak:
+    # This points to the secret created in your Keycloak Chart
+    name: keycloak-admin-secret
+    adminPasswordKey: password
+    # Add the Client Secret reference here
+    clientSecretName: keycloak-client-secret
+    clientSecretKey: client-secret
+
 
 # =============================================================================
 # MICROSERVICES CONFIGURATION
@@ -148,7 +166,7 @@ services:
   # --- BILLING SERVICE ---
   billingService:
     enabled: true
-    expose: false
+    expose: true
     name: billing-service
     namespace: apps
     apiPath: /api/v1/billing
@@ -156,7 +174,7 @@ services:
     health: {} # This prevents the nil pointer error
     image:
       repository: billing-service
-      tag: latest
+      tag: "1.0.6"
     service:
       port: 8080
       targetPort: 8080
@@ -201,21 +219,113 @@ services:
     razorpay:
       enabled: false
 
+  # --- pbxCore SERVICE ---
+  pbxCoreService:
+    enabled: false
+    expose: false
+    name: pbx-core
+    namespace: shared
+    apiPath: /api/v1/pbx
+    replicaCount: 2
+    health: {} # This prevents the nil pointer error
+    image:
+      repository: pbx-core
+      tag: "1.0.6"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: pbx_db
+      username: pbx_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+    autoscaling:
+      enabled: true  # Ensure this block exists!
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50  
+
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      # JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SQL_LOG_LEVEL: "WARN"
+      # Flyway
+      SPRING_FLYWAY_ENABLED: "true"
+      # Logging
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
+
+  # --- pbxCore SERVICE ---
+  aiService:
+    enabled: false
+    expose: false
+    name: ai-service
+    namespace: apps
+    apiPath: /api/v1/ai
+    replicaCount: 2
+    health: {} # This prevents the nil pointer error
+    image:
+      repository: ai-service
+      tag: "1.0.6"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: ai_db
+      username: ai_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+    autoscaling:
+      enabled: true  # Ensure this block exists!
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50  
+
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      # JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SQL_LOG_LEVEL: "WARN"
+      # Flyway
+      SPRING_FLYWAY_ENABLED: "true"
+      # Logging
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
 
 # =============================================================================
-# SECRETS MAPPING
+# SECRETS MAPPING & VALUES
 # =============================================================================
 secrets:
-  postgres:
-    name: postgres-secret
-    passwordKey: postgres-password
-  redis:
-    name: redis-secret
-    passwordKey: redis-password
-  keycloak:
-    name: dalai-backend-keycloak
-    adminPasswordKey: admin-password
+
   didww:
     name: dalai-backend-didww
     apiKeyKey: api-key
+    webhookSecretKey: webhook-secret
+
+
+  razorpay:
+    name: dalai-backend-razorpay
+    keyIdKey: key-id
+    keySecretKey: key-secret
     webhookSecretKey: webhook-secret

@@ -56,7 +56,7 @@ spec:
             {{- include "dalai-backend.redis-envs" $ | nindent 12 }}
             {{- include "dalai-backend.auth-envs" $ | nindent 12 }}
             {{- include "dalai-backend.kafka-envs" $ | nindent 12 }}
-
+            {{- include "dalai-backend.keycloak-client-envs" $ | nindent 12 }}
             # 3. Internal Service URLs
 # 3. Internal Service URLs (Cluster DNS Discovery)
             - name: TENANT_SERVICE_URL
@@ -69,6 +69,7 @@ spec:
             # 4. Conditional: Provisioning & Admin (Only for Tenant Service)
             {{- if eq $serviceName "tenantService" }}
             {{- include "dalai-backend.keycloak-admin-envs" $ | nindent 12 }}
+            
             {{- include "dalai-backend.provisioning-envs" $ | nindent 12 }}
             {{- end }}
 

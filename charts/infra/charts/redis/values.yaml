@@ -10,7 +10,7 @@ mode: standalone  # standalone | cluster
 
 auth:
   enabled: true
-  password: "redis123"
+
 
 service:
   type: ClusterIP

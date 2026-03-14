@@ -47,7 +47,7 @@ data:
       "standardFlowEnabled": false,
 
       "clientAuthenticatorType": "client-secret",
-      "secret": "CHANGE_ME_PLATFORM_API_SECRET",
+      "secret": "${env.PLATFORM_API_SECRET}",
 
       "redirectUris": [
         "http://localhost/*"

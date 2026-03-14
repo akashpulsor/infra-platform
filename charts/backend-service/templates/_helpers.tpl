@@ -14,8 +14,8 @@ app.kubernetes.io/part-of: dalai-llama-backend
 - name: DB_PASSWORD
   valueFrom:
     secretKeyRef:
-      name: {{ .Values.secrets.postgres.name }}
-      key: {{ .Values.secrets.postgres.passwordKey }}
+      name: {{ .Values.infra_secrets.postgres.name }}
+      key: {{ .Values.infra_secrets.postgres.passwordKey }}
 {{- end -}}
 
 {{/* Redis Environment Variables */}}
@@ -31,8 +31,8 @@ app.kubernetes.io/part-of: dalai-llama-backend
 - name: REDIS_PASSWORD
   valueFrom:
     secretKeyRef:
-      name: {{ .Values.secrets.redis.name }}
-      key: {{ .Values.secrets.redis.passwordKey }}
+      name: {{ .Values.infra_secrets.redis.name }}
+      key: {{ .Values.infra_secrets.redis.passwordKey }}
 - name: SPRING_DATA_REDIS_PASSWORD
   valueFrom:
     secretKeyRef:
@@ -50,23 +50,34 @@ app.kubernetes.io/part-of: dalai-llama-backend
   value: {{ .Values.keycloak.jwksUri | quote }}
 {{- end -}}
 
-{{/* Keycloak Admin Client (Specifically for Tenant Service) */}}
+
+{{/* Keycloak Admin (For managing Keycloak via API) */}}
 {{- define "dalai-backend.keycloak-admin-envs" -}}
 - name: KEYCLOAK_ADMIN_URL
   value: {{ .Values.keycloak.adminUrl | quote }}
+
 - name: KEYCLOAK_ADMIN_REALM
   value: {{ .Values.keycloak.adminRealm | quote }}
-- name: KEYCLOAK_ADMIN_CLIENT_ID
-  value: {{ .Values.keycloak.adminClientId | quote }}
+
 - name: KEYCLOAK_ADMIN_USERNAME
   value: {{ .Values.keycloak.adminUsername | quote }}
 - name: KEYCLOAK_ADMIN_PASSWORD
   valueFrom:
     secretKeyRef:
-      name: {{ .Values.secrets.keycloak.name }}
-      key: {{ .Values.secrets.keycloak.adminPasswordKey }}
+      name: keycloak-admin-secret  # Matches the Secret metadata.name in your Keycloak chart
+      key: password                # Matches the key in stringData
 {{- end -}}
 
+{{/* Keycloak Client Secret (For Backend Services to Authenticate) */}}
+{{- define "dalai-backend.keycloak-client-envs" -}}
+- name: KEYCLOAK_CLIENT_ID
+  value: "platform-api"
+- name: KEYCLOAK_CLIENT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: keycloak-client-secret # Matches the Secret metadata.name in your Keycloak chart
+      key: client-secret           # Matches the key in stringData
+{{- end -}}
 
 {{/* Product Service Specific Integrations (SIP & DIDWW) */}}
 {{- define "dalai-backend.product-integrations" -}}
