@@ -68,10 +68,10 @@ spec:
                   name: keycloak-db-secret
                   key: password
             - name: PLATFORM_API_SECRET
-                          valueFrom:
-                            secretKeyRef:
-                              name: keycloak-client-secret
-                              key: client-secret                  
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secret
+                  key: client-secret
           volumeMounts:
             - name: realm-config
               mountPath: /realm-config
@@ -242,11 +242,11 @@ spec:
               image: {{ .Values.jobs.custom.image }}
               {{- if .Values.jobs.custom.command }}
               command:
-                {{- toYaml .Values.jobs.custom.command | nindent 16 }}
+                {{- toYaml .Values.jobs.custom.command | nindent 20 }}
               {{- end }}
               {{- if .Values.jobs.custom.args }}
               args:
-                {{- toYaml .Values.jobs.custom.args | nindent 16 }}
+                {{- toYaml .Values.jobs.custom.args | nindent 20 }}
               {{- end }}
               env:
                 - name: KEYCLOAK_URL
@@ -259,7 +259,7 @@ spec:
                       name: keycloak-admin-secret
                       key: password
                 {{- with .Values.jobs.custom.env }}
-                {{- toYaml . | nindent 16 }}
+                {{- toYaml . | nindent 20 }}
                 {{- end }}
               {{- if .Values.jobs.custom.configMapName }}
               volumeMounts:
@@ -296,11 +296,11 @@ spec:
           image: {{ .Values.jobs.custom.image }}
           {{- if .Values.jobs.custom.command }}
           command:
-            {{- toYaml .Values.jobs.custom.command | nindent 12 }}
+            {{- toYaml .Values.jobs.custom.command | nindent 16 }}
           {{- end }}
           {{- if .Values.jobs.custom.args }}
           args:
-            {{- toYaml .Values.jobs.custom.args | nindent 12 }}
+            {{- toYaml .Values.jobs.custom.args | nindent 16 }}
           {{- end }}
           env:
             - name: KEYCLOAK_URL
@@ -313,7 +313,7 @@ spec:
                   name: keycloak-admin-secret
                   key: password
             {{- with .Values.jobs.custom.env }}
-            {{- toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 16 }}
             {{- end }}
           {{- if .Values.jobs.custom.configMapName }}
           volumeMounts:
