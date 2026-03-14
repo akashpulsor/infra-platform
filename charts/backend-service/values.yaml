@@ -224,7 +224,7 @@ services:
     enabled: false
     expose: false
     name: pbx-core
-    namespace: shared
+    namespace: apps
     apiPath: /api/v1/pbx
     replicaCount: 2
     health: {} # This prevents the nil pointer error
