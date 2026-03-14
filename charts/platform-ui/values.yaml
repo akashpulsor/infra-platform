@@ -9,7 +9,7 @@ service:
   port: 80
 
 istio:
-  enabled: true
+  enabled: false
   host: dalaillama-dev.local
   gatewayName: istio-system/central-gateway
   pathPrefix: /platform
