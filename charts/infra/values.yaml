@@ -16,7 +16,7 @@ postgres:
     - billing_db
     - pbx_db
     - ai_db
-    - kamalio_db
+    - keycloak_db
 
   persistence:
     size: 10Gi
