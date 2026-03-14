@@ -1,3 +1,6 @@
+global:
+  namespace: infra
+
 # =============================================================================
 # INFRASTRUCTURE - LOCAL SUBCHARTS
 # =============================================================================
@@ -14,7 +17,7 @@ postgres:
     - pbx_db
     - ai_db
     - kamalio_db
-    
+
   persistence:
     size: 10Gi
   resources:
