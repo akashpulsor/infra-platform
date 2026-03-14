@@ -36,8 +36,8 @@ app.kubernetes.io/part-of: dalai-llama-backend
 - name: SPRING_DATA_REDIS_PASSWORD
   valueFrom:
     secretKeyRef:
-      name: {{ .Values.secrets.redis.name }}
-      key: {{ .Values.secrets.redis.passwordKey }}
+      name: {{ .Values.infra_secrets.redis.name }}
+      key: {{ .Values.infra_secrets.redis.passwordKey }}
 {{- end -}}
 
 {{/* JWT Auth Environment Variables (Standard for all) */}}
