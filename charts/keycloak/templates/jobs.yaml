@@ -10,10 +10,12 @@ metadata:
   labels:
     app: keycloak
     job: realm-import
+  {{- if .Values.jobs.realmImport.useHelmHook }}
   annotations:
-    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook": post-install{{- if .Values.jobs.realmImport.runOnUpgrade }},post-upgrade{{- end }}
     "helm.sh/hook-weight": "10"
     "helm.sh/hook-delete-policy": before-hook-creation
+  {{- end }}
 spec:
   ttlSecondsAfterFinished: {{ .Values.jobs.realmImport.ttlSecondsAfterFinished }}
   backoffLimit: {{ .Values.jobs.realmImport.backoffLimit }}

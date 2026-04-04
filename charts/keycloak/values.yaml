@@ -24,6 +24,22 @@ service:
   managementPort: 9000
   servicePort: 80
 
+probes:
+  startup:
+    failureThreshold: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+  readiness:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 5
+
 resources:
   requests:
     cpu: 500m
@@ -44,6 +60,10 @@ jobs:
   # Realm import job - imports realm configuration on first install
   realmImport:
     enabled: true
+    # When false, create a normal Job so Helm does not wait on it during install/upgrade.
+    useHelmHook: false
+    # Run the import hook on upgrades too. Usually not needed because import uses --override=false.
+    runOnUpgrade: false
     # ConfigMap containing realm JSON files
     configMapName: keycloak-bootstrap-config
     # Wait for Keycloak to be ready before importing
