@@ -6,7 +6,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
+  {{- if .Values.jobs.realmImport.useHelmHook }}
   name: keycloak-realm-import
+  {{- else }}
+  name: keycloak-realm-import-managed
+  {{- end }}
   labels:
     app: keycloak
     job: realm-import
