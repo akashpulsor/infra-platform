@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_REPO_PATH="$SCRIPT_DIR"
 WORKSPACE_ROOT="${WORKSPACE_ROOT:-$HOME/deploy/dalai-llama}"
 INFRA_REPO_URL="${INFRA_REPO_URL:-https://github.com/your-org/infra-platform.git}"
 INFRA_REPO_BRANCH="${INFRA_REPO_BRANCH:-main}"
@@ -8,7 +10,7 @@ CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-}"
 ACME_EMAIL="${ACME_EMAIL:-admin@dalaillama.in}"
 INSTALL_DOCKER="${INSTALL_DOCKER:-false}"
 SKIP_TOOL_INSTALL="${SKIP_TOOL_INSTALL:-false}"
-SKIP_CLONE="${SKIP_CLONE:-false}"
+SKIP_CLONE="${SKIP_CLONE:-true}"
 SKIP_NAMESPACE_SETUP="${SKIP_NAMESPACE_SETUP:-false}"
 SKIP_CERT_MANAGER="${SKIP_CERT_MANAGER:-false}"
 SKIP_ISTIO="${SKIP_ISTIO:-false}"
@@ -251,13 +253,14 @@ run_deploy() {
 echo "Dalai LLAMA Ubuntu bootstrap + deploy script"
 echo "This assumes your values-secret.yaml files are already filled locally."
 echo "It also assumes Cloudflare DNS is already set up for dalaillama.in."
+echo "Default repo path: $DEFAULT_REPO_PATH"
 
 if [[ "$SKIP_TOOL_INSTALL" != "true" ]]; then
   install_tools
 fi
 
 if [[ "$SKIP_CLONE" == "true" ]]; then
-  REPO_PATH="$(pwd)"
+  REPO_PATH="$DEFAULT_REPO_PATH"
 else
   REPO_PATH="$(clone_repo)"
 fi
