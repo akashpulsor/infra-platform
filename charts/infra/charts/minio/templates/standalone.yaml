@@ -1,0 +1,156 @@
+{{- if and .Values.enabled (eq .Values.mode "standalone") }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: minio
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: minio
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: minio
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - server
+            - /data
+            - --console-address
+            - :{{ .Values.service.ports.console | quote }}
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecretName }}
+                  key: minio-root-user
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecretName }}
+                  key: minio-root-password
+          ports:
+            - name: api
+              containerPort: {{ .Values.service.ports.api }}
+            - name: console
+              containerPort: {{ .Values.service.ports.console }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: api
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: api
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: minio-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: minio
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: api
+      port: {{ .Values.service.ports.api }}
+      targetPort: api
+    - name: console
+      port: {{ .Values.service.ports.console }}
+      targetPort: console
+  selector:
+    app: minio
+{{- if .Values.defaultBuckets }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-buckets-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: minio
+    job: bucket-init
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: minio
+        job: bucket-init
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
+          imagePullPolicy: {{ .Values.mcImage.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              until /usr/bin/mc alias set local http://minio.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.ports.api }} "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
+                echo "Waiting for MinIO..."
+                sleep 5
+              done
+              for bucket in $(echo {{ .Values.defaultBuckets | quote }} | tr ',' ' '); do
+                /usr/bin/mc mb --ignore-existing "local/${bucket}"
+              done
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecretName }}
+                  key: minio-root-user
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecretName }}
+                  key: minio-root-password
+{{- end }}
+{{- end }}

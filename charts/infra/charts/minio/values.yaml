@@ -1,0 +1,38 @@
+enabled: true
+mode: standalone
+
+image:
+  repository: quay.io/minio/minio
+  tag: "RELEASE.2025-06-13T11-33-47Z"
+  pullPolicy: IfNotPresent
+
+mcImage:
+  repository: quay.io/minio/mc
+  tag: "RELEASE.2025-08-13T08-35-41Z"
+  pullPolicy: IfNotPresent
+
+auth:
+  existingSecretName: minio-secret
+
+persistence:
+  size: 50Gi
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+defaultBuckets: ""
+
+service:
+  type: ClusterIP
+  ports:
+    api: 9000
+    console: 9001
+
+ingress:
+  enabled: false

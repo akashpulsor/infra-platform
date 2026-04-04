@@ -29,6 +29,6 @@ dependencies:
     condition: kafka.enabled
 
   - name: minio
-    version: "14.8.5"
-    repository: https://charts.bitnami.com/bitnami
+    version: 1.0.0
+    repository: file://charts/minio
     condition: minio.enabled

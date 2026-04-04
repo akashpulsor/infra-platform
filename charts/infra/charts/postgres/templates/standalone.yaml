@@ -91,6 +91,7 @@ spec:
       labels:
         app: postgres
       annotations:
+        sidecar.istio.io/inject: "false"
         # Exclude PostgreSQL port from Istio mTLS - TCP protocols don't work well with mTLS
         traffic.sidecar.istio.io/excludeInboundPorts: "5432"
     spec:

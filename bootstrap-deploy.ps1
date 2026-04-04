@@ -163,6 +163,12 @@ function Configure-OptionalServices {
     Set-Content -Path $valuesPath -Value $content -Encoding ascii
 }
 
+function Cleanup-KeycloakJobs {
+    Write-Host "[INFO] Cleaning up stale Keycloak jobs"
+    kubectl delete job -n apps keycloak-realm-import --ignore-not-found=true | Out-Null
+    kubectl delete job -n apps keycloak-realm-import-managed --ignore-not-found=true | Out-Null
+}
+
 function Run-Deployment {
     param([string]$RepoPath)
 
@@ -170,8 +176,7 @@ function Run-Deployment {
     try {
         if (-not $SkipNamespaceSetup) {
             Write-Step "Creating namespaces"
-            kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
-            kubectl create namespace apps --dry-run=client -o yaml | kubectl apply -f -
+            kubectl apply -f istio-namespaces.yaml
             kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
             kubectl create namespace istio-system --dry-run=client -o yaml | kubectl apply -f -
         }
@@ -190,6 +195,8 @@ function Run-Deployment {
             istioctl install -y --set profile=default
 
             kubectl apply -f istio-namespaces.yaml
+            kubectl label namespace infra istio-injection=disabled --overwrite
+            kubectl label namespace apps istio-injection=enabled --overwrite
             kubectl rollout restart deployment --all -n apps
             kubectl rollout restart deployment --all -n infra
             kubectl rollout restart statefulset --all -n infra
@@ -217,6 +224,7 @@ function Run-Deployment {
             helm upgrade --install infra charts/infra -n infra -f charts/infra/values.yaml -f charts/infra/values-secret.yaml
 
             Write-Step "Deploying Keycloak"
+            Cleanup-KeycloakJobs
             helm upgrade --install keycloak charts/keycloak -n apps -f charts/keycloak/values.yaml -f charts/keycloak/values-prod.yaml -f charts/keycloak/values-secret.yaml
 
             Write-Step "Deploying backend"

@@ -10,4 +10,4 @@ kind: Namespace
 metadata:
   name: infra
   labels:
-    istio-injection: enabled
+    istio-injection: disabled

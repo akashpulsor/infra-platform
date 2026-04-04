@@ -61,6 +61,7 @@ spec:
       labels:
         app: kafka
       annotations:
+        sidecar.istio.io/inject: "false"
         # Exclude Kafka ports from Istio mTLS - TCP protocols don't work well with mTLS
         traffic.sidecar.istio.io/excludeInboundPorts: "9092,9093"
     spec:

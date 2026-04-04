@@ -55,6 +55,12 @@ restart_workloads_in_namespace() {
   done <<< "$names"
 }
 
+cleanup_keycloak_jobs() {
+  info "Cleaning up stale Keycloak jobs"
+  kubectl delete job -n apps keycloak-realm-import --ignore-not-found=true || true
+  kubectl delete job -n apps keycloak-realm-import-managed --ignore-not-found=true || true
+}
+
 install_tools() {
   step "Installing required tools"
   sudo apt-get update
@@ -204,8 +210,7 @@ run_deploy() {
 
   if [[ "$SKIP_NAMESPACE_SETUP" != "true" ]]; then
     step "Creating namespaces"
-    kubectl create namespace infra --dry-run=client -o yaml | kubectl apply -f -
-    kubectl create namespace apps --dry-run=client -o yaml | kubectl apply -f -
+    kubectl apply -f istio-namespaces.yaml
     kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
     kubectl create namespace istio-system --dry-run=client -o yaml | kubectl apply -f -
   fi
@@ -224,6 +229,8 @@ run_deploy() {
     istioctl install -y --set profile=default
 
     kubectl apply -f istio-namespaces.yaml
+    kubectl label namespace infra istio-injection=disabled --overwrite
+    kubectl label namespace apps istio-injection=enabled --overwrite
     restart_workloads_in_namespace apps deployment || true
     restart_workloads_in_namespace infra deployment || true
     restart_workloads_in_namespace infra statefulset || true
@@ -251,6 +258,7 @@ run_deploy() {
     helm upgrade --install infra charts/infra -n infra -f charts/infra/values.yaml -f charts/infra/values-secret.yaml
 
     step "Deploying Keycloak"
+    cleanup_keycloak_jobs
     helm upgrade --install keycloak charts/keycloak -n apps -f charts/keycloak/values.yaml -f charts/keycloak/values-prod.yaml -f charts/keycloak/values-secret.yaml
 
     step "Deploying backend"
