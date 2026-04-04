@@ -38,6 +38,23 @@ require_cmd() {
   }
 }
 
+restart_workloads_in_namespace() {
+  local namespace="$1"
+  local resource="$2"
+  local names
+
+  names="$(kubectl get "$resource" -n "$namespace" -o name 2>/dev/null || true)"
+  if [[ -z "$names" ]]; then
+    info "No $resource found in namespace $namespace to restart"
+    return
+  fi
+
+  while IFS= read -r name; do
+    [[ -z "$name" ]] && continue
+    kubectl rollout restart -n "$namespace" "$name"
+  done <<< "$names"
+}
+
 install_tools() {
   step "Installing required tools"
   sudo apt-get update
@@ -207,9 +224,9 @@ run_deploy() {
     istioctl install -y --set profile=default
 
     kubectl apply -f istio-namespaces.yaml
-    kubectl rollout restart deployment --all -n apps || true
-    kubectl rollout restart deployment --all -n infra || true
-    kubectl rollout restart statefulset --all -n infra || true
+    restart_workloads_in_namespace apps deployment || true
+    restart_workloads_in_namespace infra deployment || true
+    restart_workloads_in_namespace infra statefulset || true
   fi
 
   if [[ "$SKIP_OBSERVABILITY" != "true" ]]; then

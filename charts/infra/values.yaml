@@ -152,17 +152,7 @@ minio:
     limits:
       cpu: 500m
       memory: 512Mi
-  defaultBuckets:
-    - name: call-recordings
-      policy: none
-    - name: voicemail
-      policy: none
-    - name: campaign-exports
-      policy: none
-    - name: bot-knowledge
-      policy: none
-    - name: cdr-archives
-      policy: none
+  defaultBuckets: "call-recordings,voicemail,campaign-exports,bot-knowledge,cdr-archives"
   service:
     type: ClusterIP
     ports:
