@@ -17,6 +17,8 @@ database:
   host: postgres.infra.svc.cluster.local
   port: 5432
   name: keycloak_db
+  # Internal cluster Postgres is not configured for TLS.
+  urlProperties: "?sslmode=disable"
 
 service:
   type: ClusterIP

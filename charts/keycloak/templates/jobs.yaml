@@ -63,6 +63,8 @@ spec:
               value: {{ .Values.database.port | quote }}
             - name: KC_DB_URL_DATABASE
               value: {{ .Values.database.name | quote }}
+            - name: KC_DB_URL_PROPERTIES
+              value: {{ .Values.database.urlProperties | quote }}
             - name: KC_DB_USERNAME
               valueFrom:
                 secretKeyRef:
