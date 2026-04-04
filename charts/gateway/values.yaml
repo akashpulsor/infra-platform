@@ -95,10 +95,10 @@ ingress:
     minio-console:
       enabled: true
       namespace: infra
-      host: minio-console.dalaillama.in
+      host: console.dalaillama.in
       serviceName: minio
       servicePort: 9001
-      tlsSecretName: minio-console-dalaillama-in-tls
+      tlsSecretName: console-dalaillama-in-tls
 
       paths:
         - path: /
@@ -114,7 +114,7 @@ istio:
     - platform.dalaillama.in
     - dashboard.dalaillama.in
     - media.dalaillama.in
-    - minio-console.dalaillama.in
+    - console.dalaillama.in
   tls:
     enabled: true
     httpsRedirect: true
@@ -135,6 +135,6 @@ istio:
       - secretName: media-dalaillama-in-tls
         hosts:
           - media.dalaillama.in
-      - secretName: minio-console-dalaillama-in-tls
+      - secretName: console-dalaillama-in-tls
         hosts:
-          - minio-console.dalaillama.in
+          - console.dalaillama.in
