@@ -54,6 +54,7 @@ istio:
   enabled: false
   host: ""
   gatewayName: ""
+  excludeOutboundPorts: "5432"
 
 # =============================================================================
 # Batch Jobs Configuration

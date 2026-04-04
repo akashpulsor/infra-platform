@@ -13,6 +13,10 @@ spec:
 
   template:
     metadata:
+      annotations:
+        {{- if and .Values.istio.enabled .Values.istio.excludeOutboundPorts }}
+        traffic.sidecar.istio.io/excludeOutboundPorts: {{ .Values.istio.excludeOutboundPorts | quote }}
+        {{- end }}
       labels:
         app: keycloak
         sidecar.istio.io/inject: "{{ .Values.istio.enabled | default "false" }}"
