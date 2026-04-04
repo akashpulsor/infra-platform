@@ -10,6 +10,25 @@ postgres:
   auth:
     postgresPassword: "postgres123"
     database: dalaillama
+  users:
+    - username: tenant_user
+      password: ""
+      database: tenant_db
+    - username: product_user
+      password: ""
+      database: product_db
+    - username: billing_user
+      password: ""
+      database: billing_db
+    - username: pbx_user
+      password: ""
+      database: pbx_db
+    - username: ai_user
+      password: ""
+      database: ai_db
+    - username: keycloak
+      password: ""
+      database: keycloak_db
   databases:
     - tenant_db
     - product_db
@@ -117,7 +136,42 @@ kafka:
       partitions: 3
       replicationFactor: 1
 
+# =============================================================================
+# MINIO - Object Storage (call recordings, voicemail, exports)
+# =============================================================================
+minio:
+  enabled: true
+  mode: standalone
 
+  persistence:
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  defaultBuckets:
+    - name: call-recordings
+      policy: none
+    - name: voicemail
+      policy: none
+    - name: campaign-exports
+      policy: none
+    - name: bot-knowledge
+      policy: none
+    - name: cdr-archives
+      policy: none
+  service:
+    type: ClusterIP
+    ports:
+      api: 9000
+      console: 9001
+  ingress:
+    enabled: false
+  # PBX-Core connects via: http://minio.infra.svc.cluster.local:9000
+  # Console accessible via: kubectl port-forward svc/minio 9001:9001 -n infra
 
 # =============================================================================
 # SECRETS REFERENCES
@@ -134,6 +188,15 @@ secrets:
     clientSecretKey: client-secret
     adminPasswordKey: admin-password
 
+  minio:
+    name: minio-secret
+    rootUserKey: minio-root-user
+    rootPasswordKey: minio-root-password
+# =============================================================================
+# RBAC
+# =============================================================================
+clusterRole:
+  create: true
 
 rbac:
   create: true

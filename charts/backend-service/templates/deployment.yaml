@@ -38,6 +38,7 @@ spec:
             - containerPort: {{ $serviceConfig.service.targetPort }}
               name: http
           env:
+            {{- if ne $serviceName "aiService" }}
             # 1. Base DB Config
             - name: DB_NAME
               value: {{ $serviceConfig.database.name }}
@@ -45,26 +46,21 @@ spec:
               value: {{ $serviceConfig.database.username }}
 
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://postgres.{{ $.Values.global.namespace }}.svc.cluster.local:5432/{{ $serviceConfig.database.name }}"
+              value: "jdbc:postgresql://postgres.{{ $.Values.global.infraNamespace }}.svc.cluster.local:5432/{{ $serviceConfig.database.name }}"
             - name: SPRING_DATASOURCE_USERNAME
               value: {{ $serviceConfig.database.username | quote }}
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-              value: "kafka.{{ $.Values.global.namespace }}.svc.cluster.local:9092"
+              value: "kafka.{{ $.Values.global.infraNamespace }}.svc.cluster.local:9092"
 
             # 2. Shared Infrastructure (DB, Redis, Kafka, JWT Auth)
-            {{- include "dalai-backend.db-envs" $ | nindent 12 }}
+            {{- include "dalai-backend.db-envs" (dict "root" $ "serviceConfig" $serviceConfig) | nindent 12 }}
             {{- include "dalai-backend.redis-envs" $ | nindent 12 }}
             {{- include "dalai-backend.auth-envs" $ | nindent 12 }}
             {{- include "dalai-backend.kafka-envs" $ | nindent 12 }}
             {{- include "dalai-backend.keycloak-client-envs" $ | nindent 12 }}
+            {{- include "dalai-backend.minio-envs" $ | nindent 12 }}
             # 3. Internal Service URLs
-# 3. Internal Service URLs (Cluster DNS Discovery)
-            - name: TENANT_SERVICE_URL
-              value: "http://{{ $.Values.services.tenantService.name }}.{{ $.Values.services.tenantService.namespace }}.svc.cluster.local:8080"
-            - name: PRODUCT_SERVICE_URL
-              value: "http://{{ $.Values.services.productService.name }}.{{ $.Values.services.productService.namespace }}.svc.cluster.local:8080"
-            - name: BILLING_SERVICE_URL
-              value: "http://{{ $.Values.services.billingService.name }}.{{ $.Values.services.billingService.namespace }}.svc.cluster.local:8080"
+            {{- include "dalai-backend.service-urls" $ | nindent 12 }}
 
             # 4. Conditional: Provisioning & Admin (Only for Tenant Service)
             {{- if eq $serviceName "tenantService" }}
@@ -81,9 +77,17 @@ spec:
             {{- if eq $serviceName "billingService" }}
             {{- include "dalai-backend.billing-integrations" $ | nindent 12 }}
             {{- end }}
+            {{- if eq $serviceName "pbxCoreService" }}
+            {{- include "dalai-backend.pbx-core-integrations" $ | nindent 12 }}
+            {{- end }}
             # 4. Global Production Domain
             - name: PUBLIC_DOMAIN
               value: "api.{{ $.Values.global.domain }}"
+            {{- end }}
+
+            {{- if eq $serviceName "aiService" }}
+            {{- include "dalai-backend.ai-service-integrations" $ | nindent 12 }}
+            {{- end }}
 
             # 5. Service-Specific Custom Overrides from values.yaml
             {{- range $key, $value := $serviceConfig.env }}
@@ -93,13 +97,13 @@ spec:
             
           livenessProbe:
             httpGet:
-              path: {{ $serviceConfig.health.path | default "/actuator/health" }}
+              path: {{ $serviceConfig.health.livenessPath | default $serviceConfig.health.path | default "/actuator/health" }}
               port: {{ $serviceConfig.health.port | default $serviceConfig.service.targetPort }}
             initialDelaySeconds: 90
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: {{ $serviceConfig.health.path | default "/actuator/health" }}
+              path: {{ $serviceConfig.health.readinessPath | default $serviceConfig.health.path | default "/actuator/health" }}
               port: {{ $serviceConfig.health.port | default $serviceConfig.service.targetPort }}
             initialDelaySeconds: 60
             periodSeconds: 5

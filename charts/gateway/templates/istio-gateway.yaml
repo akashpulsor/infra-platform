@@ -4,7 +4,7 @@ apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
   name: {{ .Values.istio.gatewayName }}
-  namespace: istio-system
+  namespace: {{ .Values.istio.namespace }}
 
 spec:
   selector:
@@ -15,9 +15,28 @@ spec:
       number: 80
       name: http
       protocol: HTTP
+    {{- if .Values.istio.tls.httpsRedirect }}
+    tls:
+      httpsRedirect: true
+    {{- end }}
     hosts:
 {{- range .Values.istio.hosts }}
       - {{ . }}
 {{- end }}
+  {{- if .Values.istio.tls.enabled }}
+  {{- range $cert := .Values.istio.tls.certificates }}
+  - port:
+      number: 443
+      name: https-{{ $cert.secretName }}
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: {{ $cert.secretName }}
+    hosts:
+    {{- range $host := $cert.hosts }}
+      - {{ $host }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
 
 {{- end }}

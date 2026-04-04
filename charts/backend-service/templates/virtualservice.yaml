@@ -14,13 +14,9 @@ metadata:
     {{- include "dalai-backend.labels" $ | nindent 4 }}
 spec:
   gateways:
-    - {{ $.Values.global.gateway.ref }}
+    - {{ printf "%s/%s" $.Values.global.gateway.namespace $.Values.global.gateway.name }}
   hosts:
     - api.{{ $.Values.global.domain }}
-    - api.{{ $.Values.global.devDomain }}
-    {{- if $.Values.global.production }}
-    - api.{{ $.Values.global.productionDomain }}
-    {{- end }}
   http:
     - match:
         - uri:

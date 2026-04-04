@@ -11,8 +11,22 @@ metadata:
   namespace: {{ $svc.namespace }}
   annotations:
     kubernetes.io/ingress.class: {{ $.Values.ingress.className }}
+    {{- if $.Values.ingress.tls.enabled }}
+    cert-manager.io/cluster-issuer: {{ $.Values.ingress.tls.clusterIssuer | quote }}
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    {{- end }}
+    {{- with $.Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 
 spec:
+  ingressClassName: {{ $.Values.ingress.className }}
+  {{- if $.Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ $svc.host }}
+      secretName: {{ $svc.tlsSecretName | default (printf "%s-tls" ($svc.host | replace "." "-")) }}
+  {{- end }}
   rules:
   - host: {{ $svc.host }}
     http:

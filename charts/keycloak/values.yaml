@@ -14,7 +14,7 @@ keycloak:
 database:
   enabled: true
   vendor: postgres
-  host: postgres
+  host: postgres.infra.svc.cluster.local
   port: 5432
   name: keycloak_db
 

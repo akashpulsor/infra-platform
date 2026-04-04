@@ -5,7 +5,7 @@ values-dev-secret.yaml
 
 # local helm overrides
 *.local.yaml
-
+*.md
 # kube config
 .kube/
 

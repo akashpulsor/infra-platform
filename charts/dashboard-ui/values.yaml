@@ -10,22 +10,22 @@ service:
 
 istio:
   enabled: true
-  host: dalaillama-dev.local
+  host: dashboard.dalaillama.in
   gatewayName: istio-system/central-gateway
-  pathPrefix: /dashboard
+  pathPrefix: /
 
 keycloak:
-  issuerUrl: "http://auth.localhost:8081/realms/dalai-llama"
-  jwksUri: "http://keycloak.auth.svc.cluster.local/realms/dalai-llama/protocol/openid-connect/certs"
+  issuerUrl: "https://auth.dalaillama.in/realms/dalai-llama"
+  jwksUri: "https://auth.dalaillama.in/realms/dalai-llama/protocol/openid-connect/certs"
 
 
 env:
-  KEYCLOAK_URL: "http://auth.localhost:8081"
+  KEYCLOAK_URL: "https://auth.dalaillama.in"
   KEYCLOAK_REALM: "dalai-llama"
   KEYCLOAK_CLIENT_ID: "platform-ui"
-  PLATFORM_URL: "https://dalaillama-dev.local:8443/platform"
-  DASHBOARD_APP_URL: "https://dalaillama-dev.local:8443/dashboard"
-  API_BASE_URL: "https://api.dalaillama-dev.local:8443/api/v1"
+  PLATFORM_URL: "https://platform.dalaillama.in"
+  DASHBOARD_APP_URL: "https://dashboard.dalaillama.in"
+  API_BASE_URL: "https://api.dalaillama.in/api/v1"
   
 resources:
   requests:

@@ -1,0 +1,18 @@
+keycloak:
+  hostname: http://auth.dev.local
+
+database:
+  host: postgres.infra.svc.cluster.local
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+istio:
+  enabled: false

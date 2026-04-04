@@ -20,6 +20,6 @@ resources:
     memory: 2Gi
 
 istio:
-  enabled: false
+  enabled: true
   host: auth.dalaillama.in
   gatewayName: istio-system/central-gateway

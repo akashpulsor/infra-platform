@@ -11,9 +11,7 @@ spec:
   http:
     - match:
         - uri:
-            prefix: {{ .Values.istio.pathPrefix }}/
-        - uri:
-            exact: {{ .Values.istio.pathPrefix }}
+            prefix: {{ .Values.istio.pathPrefix }}
       rewrite:
         uri: /
       route:
@@ -21,7 +19,7 @@ spec:
             host: dashboard-ui
             port:
               number: {{ .Values.service.port }}
----
+---            
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:

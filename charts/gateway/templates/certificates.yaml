@@ -1,0 +1,19 @@
+{{- if and .Values.istio.enabled .Values.istio.tls.enabled }}
+{{- range $cert := .Values.istio.tls.certificates }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $cert.secretName }}
+  namespace: {{ $.Values.istio.namespace }}
+spec:
+  secretName: {{ $cert.secretName }}
+  issuerRef:
+    name: {{ $.Values.istio.tls.clusterIssuer }}
+    kind: ClusterIssuer
+  dnsNames:
+    {{- range $host := $cert.hosts }}
+    - {{ $host }}
+    {{- end }}
+{{- end }}
+{{- end }}

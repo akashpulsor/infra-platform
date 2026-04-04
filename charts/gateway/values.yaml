@@ -1,15 +1,20 @@
 ingress:
-  enabled: true
+  enabled: false
   className: traefik
+  annotations: {}
+  tls:
+    enabled: true
+    clusterIssuer: letsencrypt-prod
 
   services:
 
     keycloak:
       enabled: true
-      namespace: auth
+      namespace: apps
       host: auth.dalaillama.in
       serviceName: keycloak
       servicePort: 80
+      tlsSecretName: auth-dalaillama-in-tls
 
       paths:
         - path: /
@@ -20,10 +25,11 @@ ingress:
       namespace: apps
       host: api.dalaillama.in
       serviceName: tenant-service
-      servicePort: 80
+      servicePort: 8080
+      tlsSecretName: api-dalaillama-in-tls
 
       paths:
-        - path: /tenant
+        - path: /api/v1/tenants
           pathType: Prefix
 
     billing:
@@ -31,10 +37,11 @@ ingress:
       namespace: apps
       host: api.dalaillama.in
       serviceName: billing-service
-      servicePort: 80
+      servicePort: 8080
+      tlsSecretName: api-dalaillama-in-tls
 
       paths:
-        - path: /billing
+        - path: /api/v1/billing
           pathType: Prefix
 
     product:
@@ -42,37 +49,92 @@ ingress:
       namespace: apps
       host: api.dalaillama.in
       serviceName: product-service
-      servicePort: 80
+      servicePort: 8080
+      tlsSecretName: api-dalaillama-in-tls
 
       paths:
-        - path: /product
+        - path: /api/v1/products
           pathType: Prefix
 
     pbx:
-      enabled: true
+      enabled: false
       namespace: apps
       host: api.dalaillama.in
       serviceName: pbx-core
-      servicePort: 80
+      servicePort: 8080
+      tlsSecretName: api-dalaillama-in-tls
 
       paths:
-        - path: /pbx
+        - path: /api/v1/pbx
           pathType: Prefix
 
     ai:
-      enabled: true
+      enabled: false
       namespace: apps
       host: api.dalaillama.in
       serviceName: ai-service
-      servicePort: 80
+      servicePort: 8601
+      tlsSecretName: api-dalaillama-in-tls
 
       paths:
-        - path: /ai
+        - path: /api/v1/ai
           pathType: Prefix
+
+    minio-api:
+      enabled: true
+      namespace: infra
+      host: media.dalaillama.in
+      serviceName: minio
+      servicePort: 9000
+      tlsSecretName: media-dalaillama-in-tls
+
+      paths:
+        - path: /
+          pathType: Prefix
+
+    minio-console:
+      enabled: true
+      namespace: infra
+      host: minio-console.dalaillama.in
+      serviceName: minio
+      servicePort: 9001
+      tlsSecretName: minio-console-dalaillama-in-tls
+
+      paths:
+        - path: /
+          pathType: Prefix      
 istio:
-  enabled: false
-  gatewayName: platform-gateway
+  enabled: true
+  namespace: istio-system
+  gatewayName: central-gateway
+  gatewayRef: istio-system/central-gateway
   hosts:
     - auth.dalaillama.in
     - api.dalaillama.in
+    - platform.dalaillama.in
     - dashboard.dalaillama.in
+    - media.dalaillama.in
+    - minio-console.dalaillama.in
+  tls:
+    enabled: true
+    httpsRedirect: true
+    clusterIssuer: letsencrypt-prod
+    certificates:
+      - secretName: auth-dalaillama-in-tls
+        hosts:
+          - auth.dalaillama.in
+      - secretName: api-dalaillama-in-tls
+        hosts:
+          - api.dalaillama.in
+      - secretName: platform-dalaillama-in-tls
+        hosts:
+          - platform.dalaillama.in
+      - secretName: dashboard-dalaillama-in-tls
+        hosts:
+          - dashboard.dalaillama.in
+      - secretName: media-dalaillama-in-tls
+        hosts:
+          - media.dalaillama.in
+      - secretName: minio-console-dalaillama-in-tls
+        hosts:
+          - minio-console.dalaillama.in

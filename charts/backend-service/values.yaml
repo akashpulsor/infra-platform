@@ -2,7 +2,8 @@
 # GLOBAL CONFIGURATION
 # =============================================================================
 global:
-  namespace: infra
+  namespace: apps
+  infraNamespace: infra
   domain: dalaillama.in
   image:
     registry: akashtripathi
@@ -13,7 +14,7 @@ global:
     name: central-gateway
 
 istio:
-  enabled: false
+  enabled: true
 # =============================================================================
 # INFRASTRUCTURE SETTINGS (Keycloak, etc.)
 # =============================================================================
@@ -24,23 +25,31 @@ keycloak:
   adminRealm: master
   adminClientId: admin-cli
   adminUsername: admin
+  adminSecretName: keycloak-admin-secret
+  adminPasswordKey: password
+  clientSecretName: keycloak-client-secret
+  clientSecretKey: client-secret
 
-# The actual passwords live in the 'postgres-secret' created by infra.
 infra_secrets:
   postgres:
     name: postgres-secret
     passwordKey: postgres-password
   redis:
-    name: redis-secret
+    name: backend-redis-secret
     passwordKey: redis-password
 
-keycloak:
-    # This points to the secret created in your Keycloak Chart
-    name: keycloak-admin-secret
-    adminPasswordKey: password
-    # Add the Client Secret reference here
-    clientSecretName: keycloak-client-secret
-    clientSecretKey: client-secret
+  minio:
+    name: backend-minio-secret
+    rootUserKey: minio-root-user
+    rootPasswordKey: minio-root-password
+
+minio:
+  buckets:
+    recordings: call-recordings
+    voicemail: voicemail
+    exports: campaign-exports
+    knowledge: bot-knowledge
+    cdr: cdr-archives
 
 
 # =============================================================================
@@ -250,6 +259,12 @@ services:
       minReplicas: 1
       maxReplicas: 5
       targetCPUUtilization: 50  
+    telecom:
+      publicIp: ""
+      sipDomain: "sip.dalaillama.in"
+      turnDomain: "turn.dalaillama.in"
+      freeswitchEslHost: ""
+      freeswitchEslPort: "8021"
 
     env:
       SPRING_PROFILES_ACTIVE: prod
@@ -274,13 +289,16 @@ services:
     namespace: apps
     apiPath: /api/v1/ai
     replicaCount: 2
-    health: {} # This prevents the nil pointer error
+    health:
+      port: 8601
+      readinessPath: /ready
+      livenessPath: /health
     image:
       repository: ai-service
       tag: "1.0.6"
     service:
-      port: 8080
-      targetPort: 8080
+      port: 8601
+      targetPort: 8601
     database:
       name: ai_db
       username: ai_user
@@ -298,20 +316,79 @@ services:
       maxReplicas: 5
       targetCPUUtilization: 50  
 
-    env:
-      SPRING_PROFILES_ACTIVE: prod
-      # JPA
-      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
-      SHOW_SQL: "false"
-      SQL_LOG_LEVEL: "WARN"
-      # Flyway
-      SPRING_FLYWAY_ENABLED: "true"
-      # Logging
-      LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://auth.localhost:8081"
-      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
-      CORS_MAX_AGE: "86400"
-      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
+    ai:
+      host: "0.0.0.0"
+      port: "8601"
+      logLevel: "INFO"
+      debug: "false"
+      serviceName: "voice-brain"
+      servicePublicUrl: "http://ai-service.apps.svc.cluster.local:8601"
+      pbxCoreUrl: "http://pbx-core.apps.svc.cluster.local:8080"
+      authEnabled: "true"
+      authAllowUnsafeDevTokens: "false"
+      dbEcho: "false"
+      dbPoolSize: "10"
+      dbMaxOverflow: "20"
+      keycloak:
+        serverUrl: "https://auth.dalaillama.in"
+        realm: "dalai-llama"
+        clientId: "platform-api"
+        jwksUrl: "https://auth.dalaillama.in/realms/dalai-llama/protocol/openid-connect/certs"
+        issuer: "https://auth.dalaillama.in/realms/dalai-llama"
+        audience: "platform-api"
+        algorithms: "RS256"
+        requiredScopes: ""
+      defaultSttProvider: "deepgram"
+      defaultTtsProvider: "deepgram"
+      defaultLlmProvider: "openai"
+      googleProjectId: ""
+      googleLocation: "global"
+      googleCredentialsPath: ""
+      openai:
+        sttModel: "whisper-1"
+        ttsModel: "tts-1"
+        ttsVoice: "alloy"
+        llmModel: "gpt-4o-mini"
+      ollamaBaseUrl: "http://ollama.apps.svc.cluster.local:11434/v1"
+      ollamaLlmModel: "gemma2:2b"
+      google:
+        llmModel: "gemini-2.5-flash-lite"
+        geminiLiveLlmModel: "models/gemini-2.5-flash-native-audio-preview-12-2025"
+        geminiLiveVoice: "Charon"
+        vertexLlmModel: "gemma3-4b-it"
+        ttsVoice: "hi-IN-Chirp3-HD-Pulcherrima"
+        ttsVoiceMale: "hi-IN-Chirp3-HD-Puck"
+        ttsVoiceFemale: "hi-IN-Chirp3-HD-Pulcherrima"
+        ttsMode: "chirp"
+        geminiTtsModel: "gemini-2.5-flash-tts"
+      deepgram:
+        sttModel: "nova-2"
+        ttsModel: "aura-asteria-en"
+      kokoroBaseUrl: "http://kokoro-tts.apps.svc.cluster.local:5006/synthesize"
+      kokoro:
+        timeoutSeconds: "45"
+        sampleRate: "16000"
+        voiceMale: "hm_omega"
+        voiceFemale: "hf_alpha"
+        speed: "1.0"
+      indicTtsBaseUrl: "http://indic-tts.apps.svc.cluster.local:5005/synthesize"
+      indicTts:
+        sampleRate: "16000"
+        voice: "female"
+        voiceMale: "male"
+        voiceFemale: "female"
+        emotion: "neutral"
+      rvc:
+        enabled: "false"
+        serverUrl: "http://rvc.apps.svc.cluster.local:8700"
+        timeoutMs: "100"
+      audio:
+        sampleRate: "16000"
+        normalize: "true"
+        targetLufs: "-16.0"
+        highpassHz: "80"
+        limiterThreshold: "0.95"
+    env: {}
 
 # =============================================================================
 # SECRETS MAPPING & VALUES
@@ -322,10 +399,50 @@ secrets:
     name: dalai-backend-didww
     apiKeyKey: api-key
     webhookSecretKey: webhook-secret
+    values:
+      apiKey: ""
+      webhookSecret: ""
 
+  redis:
+    name: backend-redis-secret
+    passwordKey: redis-password
+    values:
+      password: ""
+
+  minio:
+    name: backend-minio-secret
+    rootUserKey: minio-root-user
+    rootPasswordKey: minio-root-password
+    values:
+      rootUser: ""
+      rootPassword: ""
+
+  pbxCore:
+    name: pbx-core-telecom-secret
+    freeswitchEslPasswordKey: freeswitch-esl-password
+    coturnSecretKey: coturn-secret
+    values:
+      freeswitchEslPassword: ""
+      coturnSecret: ""
+
+  aiService:
+    name: ai-service-secrets
+    openaiApiKeyKey: openai-api-key
+    deepgramApiKeyKey: deepgram-api-key
+    googleApiKeyKey: google-api-key
+    googleCredentialsJsonKey: google-credentials-json
+    values:
+      openaiApiKey: ""
+      deepgramApiKey: ""
+      googleApiKey: ""
+      googleCredentialsJson: ""
 
   razorpay:
     name: dalai-backend-razorpay
     keyIdKey: key-id
     keySecretKey: key-secret
     webhookSecretKey: webhook-secret
+    values:
+      keyId: ""
+      keySecret: ""
+      webhookSecret: ""

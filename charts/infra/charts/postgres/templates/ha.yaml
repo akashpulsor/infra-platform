@@ -19,6 +19,21 @@ data:
       GRANT ALL PRIVILEGES ON DATABASE {{ . }} TO $POSTGRES_USER;
     EOSQL
     {{- end }}
+    {{- range .Values.users }}
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+      DO
+      \$do\$
+      BEGIN
+        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ .username }}') THEN
+          CREATE ROLE {{ .username }} LOGIN PASSWORD '{{ .password }}';
+        ELSE
+          ALTER ROLE {{ .username }} WITH LOGIN PASSWORD '{{ .password }}';
+        END IF;
+      END
+      \$do\$;
+      GRANT ALL PRIVILEGES ON DATABASE {{ .database }} TO {{ .username }};
+    EOSQL
+    {{- end }}
 ---
 apiVersion: v1
 kind: Secret
