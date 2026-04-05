@@ -721,6 +721,14 @@ sed -i 's/^#\?SHM_MEMORY=.*/SHM_MEMORY=256/' /etc/default/kamailio
 sed -i 's/^#\?PKG_MEMORY=.*/PKG_MEMORY=16/' /etc/default/kamailio
 sed -i 's/^#\?RUN_KAMAILIO=no/RUN_KAMAILIO=yes/' /etc/default/kamailio 2>/dev/null || true
 
+sed -n '360,370p' /etc/kamailio/kamailio.cfg
+echo "---"
+cat -An /etc/kamailio/kamailio.cfg | sed -n '364,368p'
+echo "---"
+wc -l /etc/kamailio/kamailio.cfg
+grep -c '{' /etc/kamailio/kamailio.cfg
+grep -c '}' /etc/kamailio/kamailio.cfg
+
 # Validate config before enabling
 echo "Validating Kamailio config..."
 if kamailio -f /etc/kamailio/kamailio.cfg -c 2>&1 | grep -q "config file ok"; then
