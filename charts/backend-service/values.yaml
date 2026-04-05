@@ -317,27 +317,8 @@ services:
       targetCPUUtilization: 50  
 
     ai:
-      host: "0.0.0.0"
-      port: "8601"
-      logLevel: "INFO"
-      debug: "false"
-      serviceName: "voice-brain"
-      servicePublicUrl: "http://ai-service.apps.svc.cluster.local:8601"
-      pbxCoreUrl: "http://pbx-core.apps.svc.cluster.local:8080"
       authEnabled: "true"
       authAllowUnsafeDevTokens: "false"
-      dbEcho: "false"
-      dbPoolSize: "10"
-      dbMaxOverflow: "20"
-      keycloak:
-        serverUrl: "https://auth.dalaillama.in"
-        realm: "dalai-llama"
-        clientId: "platform-api"
-        jwksUrl: "https://auth.dalaillama.in/realms/dalai-llama/protocol/openid-connect/certs"
-        issuer: "https://auth.dalaillama.in/realms/dalai-llama"
-        audience: "platform-api"
-        algorithms: "RS256"
-        requiredScopes: ""
       defaultSttProvider: "deepgram"
       defaultTtsProvider: "deepgram"
       defaultLlmProvider: "openai"

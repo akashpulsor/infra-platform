@@ -47,14 +47,23 @@ app.kubernetes.io/part-of: dalai-llama-backend
 
 {{/* JWT Auth Environment Variables (Standard for all) */}}
 {{- define "dalai-backend.auth-envs" -}}
+# Spring Services
 - name: KEYCLOAK_ISSUER_URI
   value: {{ .Values.keycloak.issuerUrl | quote }}
 - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
   value: {{ .Values.keycloak.issuerUrl | quote }}
 - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI
   value: {{ .Values.keycloak.jwksUri | quote }}
+# AI Service (Python) - extra vars are harmless for Spring services
+- name: KEYCLOAK_SERVER_URL
+  value: {{ .Values.keycloak.adminUrl | quote }}
+- name: KEYCLOAK_JWKS_URL
+  value: {{ .Values.keycloak.jwksUri | quote }}
+- name: KEYCLOAK_ISSUER
+  value: {{ .Values.keycloak.issuerUrl | quote }}
+- name: KEYCLOAK_REALM
+  value: "dalai-llama"  
 {{- end -}}
-
 
 {{/* Keycloak Admin (For managing Keycloak via API) */}}
 {{- define "dalai-backend.keycloak-admin-envs" -}}
@@ -149,48 +158,21 @@ app.kubernetes.io/part-of: dalai-llama-backend
     secretKeyRef:
       name: {{ .Values.services.aiService.name }}-db-secret
       key: password
-- name: DATABASE_URL
-  value: "postgresql+asyncpg://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)"
-- name: DB_ECHO
-  value: {{ .Values.services.aiService.ai.dbEcho | quote }}
-- name: DB_POOL_SIZE
-  value: {{ .Values.services.aiService.ai.dbPoolSize | quote }}
-- name: DB_MAX_OVERFLOW
-  value: {{ .Values.services.aiService.ai.dbMaxOverflow | quote }}
-- name: HOST
-  value: {{ .Values.services.aiService.ai.host | quote }}
-- name: PORT
-  value: {{ .Values.services.aiService.ai.port | quote }}
+
+
 - name: LOG_LEVEL
   value: {{ .Values.services.aiService.ai.logLevel | quote }}
 - name: DEBUG
   value: {{ .Values.services.aiService.ai.debug | quote }}
 - name: SERVICE_NAME
   value: {{ .Values.services.aiService.ai.serviceName | quote }}
-- name: SERVICE_PUBLIC_URL
-  value: {{ .Values.services.aiService.ai.servicePublicUrl | quote }}
-- name: PBX_CORE_URL
-  value: {{ .Values.services.aiService.ai.pbxCoreUrl | quote }}
+
+
 - name: AUTH_ENABLED
   value: {{ .Values.services.aiService.ai.authEnabled | quote }}
 - name: AUTH_ALLOW_UNSAFE_DEV_TOKENS
   value: {{ .Values.services.aiService.ai.authAllowUnsafeDevTokens | quote }}
-- name: KEYCLOAK_SERVER_URL
-  value: {{ .Values.services.aiService.ai.keycloak.serverUrl | quote }}
-- name: KEYCLOAK_REALM
-  value: {{ .Values.services.aiService.ai.keycloak.realm | quote }}
-- name: KEYCLOAK_CLIENT_ID
-  value: {{ .Values.services.aiService.ai.keycloak.clientId | quote }}
-- name: KEYCLOAK_JWKS_URL
-  value: {{ .Values.services.aiService.ai.keycloak.jwksUrl | quote }}
-- name: KEYCLOAK_ISSUER
-  value: {{ .Values.services.aiService.ai.keycloak.issuer | quote }}
-- name: KEYCLOAK_AUDIENCE
-  value: {{ .Values.services.aiService.ai.keycloak.audience | quote }}
-- name: KEYCLOAK_ALGORITHMS
-  value: {{ .Values.services.aiService.ai.keycloak.algorithms | quote }}
-- name: KEYCLOAK_REQUIRED_SCOPES
-  value: {{ .Values.services.aiService.ai.keycloak.requiredScopes | quote }}
+
 - name: DEFAULT_STT_PROVIDER
   value: {{ .Values.services.aiService.ai.defaultSttProvider | quote }}
 - name: DEFAULT_TTS_PROVIDER

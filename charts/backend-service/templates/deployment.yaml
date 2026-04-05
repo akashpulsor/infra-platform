@@ -62,6 +62,9 @@ spec:
             # 3. Internal Service URLs
             {{- include "dalai-backend.service-urls" $ | nindent 12 }}
 
+            {{- if eq $serviceName "aiService" }}
+            {{- include "dalai-backend.ai-service-integrations" $ | nindent 12 }}
+            {{- end }}
             # 4. Conditional: Provisioning & Admin (Only for Tenant Service)
             {{- if eq $serviceName "tenantService" }}
             {{- include "dalai-backend.keycloak-admin-envs" $ | nindent 12 }}
