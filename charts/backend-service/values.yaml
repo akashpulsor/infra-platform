@@ -280,6 +280,10 @@ services:
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
+      KAMAILIO_JSONRPC_URL: "http://sip.dalaillama.in:5060/jsonrpc"
+      SIP_WSS_URL: "wss://sip.dalaillama.in:7443"
+      MINIO_PUBLIC_URL: "https://media.dalaillama.in"
+      WEBSOCKET_BROKER: "redis"
 
   # --- pbxCore SERVICE ---
   aiService:
