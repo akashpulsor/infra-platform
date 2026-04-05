@@ -230,8 +230,8 @@ services:
 
   # --- pbxCore SERVICE ---
   pbxCoreService:
-    enabled: false
-    expose: false
+    enabled: true
+    expose: true
     name: pbx-core
     namespace: apps
     apiPath: /api/v1/pbx
@@ -283,8 +283,8 @@ services:
 
   # --- pbxCore SERVICE ---
   aiService:
-    enabled: false
-    expose: false
+    enabled: true
+    expose: true
     name: ai-service
     namespace: apps
     apiPath: /api/v1/ai
