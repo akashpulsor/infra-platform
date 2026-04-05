@@ -26,6 +26,7 @@
 #   - Kamailio WS port changed from 8080 to 8180 (avoids Istio envoy conflict)
 #   - SHM_MEMORY/PKG_MEMORY uncommented in /etc/default/kamailio
 # ======================================================================
+
 # Run only the Kamailio config section
 export PUBLIC_IP=204.168.186.235
 export PBX_CORE_URL=https://api.dalaillama.in
@@ -35,12 +36,12 @@ export ENABLE_KAMAILIO_WSS=true
 export KAMAILIO_TLS_CERT_FILE=/etc/letsencrypt/live/sip.dalaillama.in/fullchain.pem
 export KAMAILIO_TLS_KEY_FILE=/etc/letsencrypt/live/sip.dalaillama.in/privkey.pem
 
+# Then run just the Python config generator part from the script
 set -euo pipefail
-
 
 # -- Configuration (override with env vars) -----------------------------
 PUBLIC_IP="${PUBLIC_IP:-$(curl -s4 ifconfig.me || echo YOUR_PUBLIC_IP)}"
-PBX_CORE_URL="${PBX_CORE_URL:-http://pbx-core.apps.svc.cluster.local:8080}"
+PBX_CORE_URL="${PBX_CORE_URL:-https://api.dalaillama.in}"
 SIP_DOMAIN="${SIP_DOMAIN:-sip.dalaillama.in}"
 TURN_DOMAIN="${TURN_DOMAIN:-turn.dalaillama.in}"
 TURN_SECRET="${TURN_SECRET:-changeme}"
@@ -297,12 +298,15 @@ echo "===== [5/8] Configuring Kamailio ====="
 
 [ -f /etc/kamailio/kamailio.cfg ] && cp /etc/kamailio/kamailio.cfg /etc/kamailio/kamailio.cfg.orig
 
+
 # ---- Build Kamailio config using Python to avoid heredoc issues ----
+# Using string.Template to avoid f-string/brace conflicts with Kamailio syntax
 python3 << 'PYCFG'
 import os
+from string import Template
 
 public_ip = os.environ.get("PUBLIC_IP", "YOUR_PUBLIC_IP")
-pbx_core_url = os.environ.get("PBX_CORE_URL", "http://pbx-core.apps.svc.cluster.local:8080")
+pbx_core_url = os.environ.get("PBX_CORE_URL", "https://api.dalaillama.in")
 sip_domain = os.environ.get("SIP_DOMAIN", "sip.dalaillama.in")
 enable_tls = os.environ.get("ENABLE_KAMAILIO_TLS", "true") == "true"
 enable_wss = os.environ.get("ENABLE_KAMAILIO_WSS", "true") == "true"
@@ -314,18 +318,16 @@ listen_lines = [
 ]
 if enable_tls:
     listen_lines.append('listen=tls:0.0.0.0:5061')
-# WS on tcp:8180 (not 8080, avoids Istio envoy conflict)
 listen_lines.append('listen=tcp:0.0.0.0:8180')
 if enable_wss:
     listen_lines.append('listen=tls:0.0.0.0:7443')
 
 listen_block = '\n'.join(listen_lines)
-
-# TLS module (MUST be first loaded module)
 tls_module = 'loadmodule "tls.so"' if enable_tls else ''
 enable_tls_line = 'enable_tls=yes' if enable_tls else ''
 
-config = f'''##
+# Use %% placeholders to avoid ALL brace/dollar conflicts
+config_template = """##
 ## kamailio.cfg - Dalai LLAMA PBX Platform (Kamailio 5.7 compatible)
 ##
 
@@ -340,13 +342,13 @@ log_facility=LOG_LOCAL0
 server_header="Server: DalaiLLAMA-SIP"
 user_agent_header="User-Agent: DalaiLLAMA-SIP"
 
-{enable_tls_line}
+%%ENABLE_TLS_LINE%%
 
 fork=yes
 children=4
 tcp_children=4
 
-{listen_block}
+%%LISTEN_BLOCK%%
 
 dns=no
 rev_dns=no
@@ -355,7 +357,7 @@ dns_cache_init=off
 mpath="/usr/lib/x86_64-linux-gnu/kamailio/modules/"
 
 # CRITICAL: tls.so MUST be loaded first (before any module using libssl)
-{tls_module}
+%%TLS_MODULE%%
 loadmodule "kex.so"
 loadmodule "tm.so"
 loadmodule "tmx.so"
@@ -395,176 +397,164 @@ modparam("usrloc", "use_domain", 1)
 modparam("auth", "nonce_expire", 300)
 modparam("auth", "nonce_count", 1)
 modparam("auth", "one_time_nonce", 0)
-# FIXED: Use literal URL, not #!define ref (not expanded inside quotes)
-modparam("http_client", "httpcon", "pbxcore=>{pbx_core_url}")
+modparam("http_client", "httpcon", "pbxcore=>%%PBX_CORE_URL%%")
 modparam("http_client", "connection_timeout", 3000)
 modparam("http_client", "httpredirect", 0)
 modparam("http_client", "keep_connections", 1)
 modparam("nathelper", "natping_interval", 30)
 modparam("nathelper", "ping_nated_only", 1)
 modparam("nathelper", "sipping_bflag", 7)
-modparam("nathelper", "sipping_from", "sip:keepalive@{sip_domain}")
+modparam("nathelper", "sipping_from", "sip:keepalive@%%SIP_DOMAIN%%")
 modparam("rtpengine", "rtpengine_sock", "udp:127.0.0.1:2223")
 modparam("websocket", "keepalive_mechanism", 1)
 modparam("websocket", "keepalive_timeout", 30)
 modparam("websocket", "keepalive_processes", 1)
 modparam("jsonrpcs", "transport", 1)
 
-request_route {{
-    if (!mf_process_maxfwd_header("10")) {{
+request_route {
+    if (!mf_process_maxfwd_header("10")) {
         sl_send_reply("483", "Too Many Hops");
         exit;
-    }}
-    if (!sanity_check("17895", "7")) {{
+    }
+    if (!sanity_check("17895", "7")) {
         exit;
-    }}
-
-    if (is_method("INVITE|SUBSCRIBE")) {{
+    }
+    if (is_method("INVITE|SUBSCRIBE")) {
         record_route();
-    }}
-
-    if (has_totag()) {{
-        if (loose_route()) {{
-            if (is_method("INVITE|UPDATE|ACK")) {{
+    }
+    if (has_totag()) {
+        if (loose_route()) {
+            if (is_method("INVITE|UPDATE|ACK")) {
                 route(NATDETECT);
                 route(RTPENGINE_MANAGE);
-            }}
+            }
             route(RELAY);
             exit;
-        }}
-        if (is_method("ACK")) {{
-            if (t_check_trans()) {{ route(RELAY); }}
+        }
+        if (is_method("ACK")) {
+            if (t_check_trans()) { route(RELAY); }
             exit;
-        }}
+        }
         sl_send_reply("404", "Not Found");
         exit;
-    }}
-
-    if (is_method("CANCEL")) {{
-        if (t_check_trans()) {{ t_relay(); }}
+    }
+    if (is_method("CANCEL")) {
+        if (t_check_trans()) { t_relay(); }
         exit;
-    }}
-
+    }
     t_check_trans();
-
-    if (is_method("OPTIONS") && uri==myself) {{
+    if (is_method("OPTIONS") && uri==myself) {
         sl_send_reply("200", "OK");
         exit;
-    }}
-
+    }
     route(NATDETECT);
-
-    if (is_method("REGISTER")) {{
+    if (is_method("REGISTER")) {
         route(AUTH_REGISTER);
         exit;
-    }}
-
-    if (is_method("INVITE")) {{
+    }
+    if (is_method("INVITE")) {
         route(INVITE_HANDLER);
         exit;
-    }}
-
-    if (is_method("BYE")) {{
+    }
+    if (is_method("BYE")) {
         route(RELAY);
         exit;
-    }}
-
-    if (uri==myself) {{
+    }
+    if (uri==myself) {
         sl_send_reply("404", "Not Found");
-    }} else {{
+    } else {
         sl_send_reply("403", "Forbidden");
-    }}
+    }
     exit;
-}}
+}
 
-route[AUTH_REGISTER] {{
-    if (!is_present_hf("Authorization")) {{
-        auth_challenge("{sip_domain}", "0");
+route[AUTH_REGISTER] {
+    if (!is_present_hf("Authorization")) {
+        auth_challenge("%%SIP_DOMAIN%%", "0");
         exit;
-    }}
+    }
     $var(auth_user) = $au;
     $var(auth_domain) = $ar;
-    if ($var(auth_domain) == "" || $var(auth_domain) == $null) {{
+    if ($var(auth_domain) == "" || $var(auth_domain) == $null) {
         $var(auth_domain) = $td;
-    }}
-    $var(req_body) = '{{"username":"' + $var(auth_user) + '","domain":"' + $var(auth_domain) + '"}}';
+    }
+    $var(req_body) = '{"username":"' + $var(auth_user) + '","domain":"' + $var(auth_domain) + '"}';
     $var(res) = $null;
     http_client_query("pbxcore/internal/kamailio/auth/digest", $var(req_body), "application/json", "$var(res)");
-    if ($rc != 200 || $var(res) == "" || $var(res) == $null) {{
+    if ($rc != 200 || $var(res) == "" || $var(res) == $null) {
         sl_send_reply("403", "Forbidden");
         exit;
-    }}
+    }
     jansson_get("ha1", $var(res), "$avp(ha1)");
-    if ($avp(ha1) == "" || $avp(ha1) == $null) {{
+    if ($avp(ha1) == "" || $avp(ha1) == $null) {
         sl_send_reply("403", "Forbidden");
         exit;
-    }}
+    }
     # FIXED: pv_auth_check not available in Kamailio 5.7
     # Trust PBX-Core HA1 response - PBX-Core validates credentials
     consume_credentials();
-    if (isflagset(FLT_NATS)) {{
+    if (isflagset(FLT_NATS)) {
         add_path_received();
-    }} else {{
+    } else {
         add_path();
-    }}
-    if (!save("location")) {{
+    }
+    if (!save("location")) {
         sl_send_reply("500", "Server Error");
         exit;
-    }}
+    }
     exit;
-}}
+}
 
-route[AUTH_INVITE] {{
-    if (!is_present_hf("Authorization")) {{
-        auth_challenge("{sip_domain}", "0");
+route[AUTH_INVITE] {
+    if (!is_present_hf("Authorization")) {
+        auth_challenge("%%SIP_DOMAIN%%", "0");
         exit;
-    }}
+    }
     $var(auth_user) = $au;
     $var(auth_domain) = $ar;
-    if ($var(auth_domain) == "" || $var(auth_domain) == $null) {{
+    if ($var(auth_domain) == "" || $var(auth_domain) == $null) {
         $var(auth_domain) = $fd;
-    }}
-    $var(req_body) = '{{"username":"' + $var(auth_user) + '","domain":"' + $var(auth_domain) + '"}}';
+    }
+    $var(req_body) = '{"username":"' + $var(auth_user) + '","domain":"' + $var(auth_domain) + '"}';
     $var(res) = $null;
     http_client_query("pbxcore/internal/kamailio/auth/digest", $var(req_body), "application/json", "$var(res)");
-    if ($rc != 200) {{
+    if ($rc != 200) {
         sl_send_reply("403", "Forbidden");
         exit;
-    }}
+    }
     jansson_get("ha1", $var(res), "$avp(ha1)");
     # FIXED: pv_auth_check not available in Kamailio 5.7
-    # Trust PBX-Core HA1 response
     consume_credentials();
-}}
+}
 
-route[INVITE_HANDLER] {{
-    if (is_present_hf("Authorization") || $proto == "ws" || $proto == "wss") {{
+route[INVITE_HANDLER] {
+    if (is_present_hf("Authorization") || $proto == "ws" || $proto == "wss") {
         route(AUTH_INVITE);
-        if (lookup("location")) {{
+        if (lookup("location")) {
             route(RTPENGINE_OFFER);
             route(RELAY);
             exit;
-        }}
+        }
         route(OUTBOUND);
         exit;
-    }}
+    }
     # FIXED: $sP -> $sp (lowercase in Kamailio 5.7)
-    if ($si == "127.0.0.1" || $sp == 5080) {{
+    if ($si == "127.0.0.1" || $sp == 5080) {
         route(FREESWITCH_TO_AGENT);
         exit;
-    }}
+    }
     route(INBOUND);
     exit;
-}}
+}
 
-route[INBOUND] {{
-    $var(auth_body) = '{{"didNumber":"' + $rU + '","callerNumber":"' + $fU + '","callId":"' + $ci + '","domain":"' + $rd + '"}}';
+route[INBOUND] {
+    $var(auth_body) = '{"didNumber":"' + $rU + '","callerNumber":"' + $fU + '","callId":"' + $ci + '","domain":"' + $rd + '"}';
     $var(auth_res) = $null;
     http_client_query("pbxcore/internal/kamailio/authorize/inbound", $var(auth_body), "application/json", "$var(auth_res)");
-    if ($rc != 200) {{
+    if ($rc != 200) {
         sl_send_reply("403", "Forbidden");
         exit;
-    }}
+    }
     jansson_get("tenantId", $var(auth_res), "$avp(tenant_id)");
     jansson_get("subscriptionId", $var(auth_res), "$avp(subscription_id)");
     append_hf("X-Tenant-ID: $avp(tenant_id)\r\n");
@@ -577,16 +567,16 @@ route[INBOUND] {{
     t_on_failure("INBOUND_FAILURE");
     route(RELAY);
     exit;
-}}
+}
 
-route[OUTBOUND] {{
-    $var(out_body) = '{{"callerNumber":"' + $fU + '","destination":"' + $rU + '","tenantId":"' + $avp(tenant_id) + '"}}';
+route[OUTBOUND] {
+    $var(out_body) = '{"callerNumber":"' + $fU + '","destination":"' + $rU + '","tenantId":"' + $avp(tenant_id) + '"}';
     $var(out_res) = $null;
     http_client_query("pbxcore/internal/kamailio/authorize/outbound", $var(out_body), "application/json", "$var(out_res)");
-    if ($rc != 200) {{
+    if ($rc != 200) {
         sl_send_reply("403", "Forbidden");
         exit;
-    }}
+    }
     $var(ds_res) = $null;
     http_client_query("pbxcore/internal/kamailio/dispatcher/1", "", "", "$var(ds_res)");
     jansson_get("destinations[0].destination", $var(ds_res), "$avp(fs_dest)");
@@ -594,110 +584,118 @@ route[OUTBOUND] {{
     $du = $avp(fs_dest);
     route(RELAY);
     exit;
-}}
+}
 
-route[FREESWITCH_TO_AGENT] {{
-    if (!lookup("location")) {{
+route[FREESWITCH_TO_AGENT] {
+    if (!lookup("location")) {
         sl_send_reply("480", "Temporarily Unavailable");
         exit;
-    }}
+    }
     route(RTPENGINE_OFFER);
     t_on_failure("AGENT_UNAVAILABLE");
     route(RELAY);
     exit;
-}}
+}
 
-route[RTPENGINE_OFFER] {{
+route[RTPENGINE_OFFER] {
     $var(rtp_flags) = "replace-origin replace-session-connection";
-    if ($proto == "ws" || $proto == "wss") {{
+    if ($proto == "ws" || $proto == "wss") {
         $var(rtp_flags) = $var(rtp_flags) + " ICE=force-relay DTLS=passive SDES-off rtcp-mux-offer";
-    }}
+    }
     rtpengine_offer("$var(rtp_flags)");
-}}
+}
 
-route[RTPENGINE_MANAGE] {{
+route[RTPENGINE_MANAGE] {
     $var(rtp_flags) = "replace-origin replace-session-connection";
-    if ($proto == "ws" || $proto == "wss") {{
+    if ($proto == "ws" || $proto == "wss") {
         $var(rtp_flags) = $var(rtp_flags) + " ICE=force-relay DTLS=passive SDES-off rtcp-mux-offer";
-    }}
+    }
     rtpengine_manage("$var(rtp_flags)");
-}}
+}
 
-route[NATDETECT] {{
+route[NATDETECT] {
     force_rport();
-    if (nat_uac_test("19")) {{
+    if (nat_uac_test("19")) {
         setflag(FLT_NATS);
-        if (is_first_hop() && is_method("REGISTER")) {{
+        if (is_first_hop() && is_method("REGISTER")) {
             set_contact_alias();
-        }}
-    }}
-}}
+        }
+    }
+}
 
-route[NATMANAGE] {{
-    if (is_request()) {{
-        if (has_totag()) {{
-            if (check_route_param("nat=yes")) {{
+route[NATMANAGE] {
+    if (is_request()) {
+        if (has_totag()) {
+            if (check_route_param("nat=yes")) {
                 setbflag(FLT_NATS);
-            }}
-        }}
-    }}
-    if (isflagset(FLT_NATS) || isbflagset(FLT_NATS)) {{
-        if (is_request()) {{
-            if (!has_totag()) {{
-                if (t_is_branch_route()) {{
+            }
+        }
+    }
+    if (isflagset(FLT_NATS) || isbflagset(FLT_NATS)) {
+        if (is_request()) {
+            if (!has_totag()) {
+                if (t_is_branch_route()) {
                     add_rr_param(";nat=yes");
-                }}
-            }}
-        }}
-        if (is_reply()) {{
-            if (isbflagset(FLT_NATS)) {{
+                }
+            }
+        }
+        if (is_reply()) {
+            if (isbflagset(FLT_NATS)) {
                 fix_nated_contact();
-            }}
-        }}
-    }}
-}}
+            }
+        }
+    }
+}
 
-route[RELAY] {{
-    if (is_method("INVITE|BYE|SUBSCRIBE|UPDATE")) {{
-        if (!t_is_set("branch_route")) {{
+route[RELAY] {
+    if (is_method("INVITE|BYE|SUBSCRIBE|UPDATE")) {
+        if (!t_is_set("branch_route")) {
             t_on_branch("MANAGE_BRANCH");
-        }}
-    }}
-    if (is_method("INVITE|BYE|SUBSCRIBE|UPDATE|CANCEL|ACK")) {{
-        if (!t_is_set("onreply_route")) {{
+        }
+    }
+    if (is_method("INVITE|BYE|SUBSCRIBE|UPDATE|CANCEL|ACK")) {
+        if (!t_is_set("onreply_route")) {
             t_on_reply("MANAGE_REPLY");
-        }}
-    }}
-    if (!t_relay()) {{
+        }
+    }
+    if (!t_relay()) {
         sl_reply_error();
-    }}
+    }
     exit;
-}}
+}
 
-branch_route[MANAGE_BRANCH] {{
+branch_route[MANAGE_BRANCH] {
     route(NATMANAGE);
-}}
+}
 
-onreply_route[MANAGE_REPLY] {{
-    if (status=~"[12][0-9][0-9]") {{
+onreply_route[MANAGE_REPLY] {
+    if (status=~"[12][0-9][0-9]") {
         route(NATMANAGE);
-    }}
-    if (has_body("application/sdp") && (status=~"18[0-9]" || status=~"2[0-9][0-9]")) {{
+    }
+    if (has_body("application/sdp") && (status=~"18[0-9]" || status=~"2[0-9][0-9]")) {
         route(RTPENGINE_MANAGE);
-    }}
-}}
+    }
+}
 
-failure_route[INBOUND_FAILURE] {{
+failure_route[INBOUND_FAILURE] {
     if (t_is_canceled()) exit;
-}}
+}
 
-failure_route[AGENT_UNAVAILABLE] {{
+failure_route[AGENT_UNAVAILABLE] {
     if (t_is_canceled()) exit;
-}}
+}
 
-event_route[websocket:closed] {{
-}}
-'''
+event_route[websocket:closed] {
+}
+"""
+
+# Simple placeholder replacement (no brace/dollar conflicts)
+config = config_template
+config = config.replace("%%ENABLE_TLS_LINE%%", enable_tls_line)
+config = config.replace("%%LISTEN_BLOCK%%", listen_block)
+config = config.replace("%%TLS_MODULE%%", tls_module)
+config = config.replace("%%PBX_CORE_URL%%", pbx_core_url)
+config = config.replace("%%SIP_DOMAIN%%", sip_domain)
 
 with open("/etc/kamailio/kamailio.cfg", "w") as f:
     f.write(config)
@@ -850,6 +848,3 @@ echo "     Kamailio key:  ${KAMAILIO_TLS_KEY_FILE}"
 echo "     TURN cert:     ${TURN_TLS_CERT_FILE}"
 echo "     TURN key:      ${TURN_TLS_KEY_FILE}"
 echo ""
-
-
-# Then run just the Python config generator part from the script
