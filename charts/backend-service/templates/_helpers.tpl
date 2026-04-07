@@ -145,20 +145,6 @@ app.kubernetes.io/part-of: dalai-llama-backend
 
 {{/* AI Service Specific Integrations */}}
 {{- define "dalai-backend.ai-service-integrations" -}}
-- name: DB_HOST
-  value: "postgres.{{ .Values.global.infraNamespace }}.svc.cluster.local"
-- name: DB_PORT
-  value: "5432"
-- name: DB_NAME
-  value: {{ .Values.services.aiService.database.name | quote }}
-- name: DB_USERNAME
-  value: {{ .Values.services.aiService.database.username | quote }}
-- name: DB_PASSWORD
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.services.aiService.name }}-db-secret
-      key: password
-
 
 - name: LOG_LEVEL
   value: {{ .Values.services.aiService.ai.logLevel | quote }}
