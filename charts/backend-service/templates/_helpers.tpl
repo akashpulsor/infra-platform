@@ -202,7 +202,11 @@ app.kubernetes.io/part-of: dalai-llama-backend
 - name: GOOGLE_LOCATION
   value: {{ .Values.services.aiService.ai.googleLocation | quote }}
 - name: GOOGLE_CREDENTIALS_PATH
-  value: {{ .Values.services.aiService.ai.googleCredentialsPath | quote }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.googleCredentialsJsonPathKey }}
+      optional: true
 - name: GOOGLE_CREDENTIALS_JSON
   valueFrom:
     secretKeyRef:
