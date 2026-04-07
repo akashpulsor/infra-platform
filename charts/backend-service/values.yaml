@@ -299,7 +299,7 @@ services:
       livenessPath: /health
     image:
       repository: ai-service
-      tag: "1.0.7"
+      tag: "1.0.8"
     service:
       port: 8601
       targetPort: 8601
