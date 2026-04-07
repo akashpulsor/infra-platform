@@ -321,6 +321,7 @@ services:
       targetCPUUtilization: 50  
 
     ai:
+      debug: "true"
       authEnabled: "true"
       authAllowUnsafeDevTokens: "false"
       defaultSttProvider: "deepgram"
