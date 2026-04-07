@@ -416,6 +416,7 @@ secrets:
     deepgramApiKeyKey: deepgram-api-key
     googleApiKeyKey: google-api-key
     googleCredentialsJsonKey: google-credentials-json
+    googleCredentialsJsonPathKey: google-credentials-json-path
     values:
       openaiApiKey: ""
       deepgramApiKey: ""
