@@ -64,7 +64,7 @@ services:
     namespace: apps
     health: {} # This prevents the nil pointer error
     apiPath: /api/v1/tenants
-    replicaCount: 2
+    replicaCount: 1
     image:
       repository: tenant-service
       tag: "2.0.4"
@@ -92,7 +92,7 @@ services:
         cpu: 200m
         memory: 512Mi
     autoscaling:
-      enabled: true  # Ensure this block exists!
+      enabled: false  # Ensure this block exists!
       minReplicas: 1
       maxReplicas: 5
       targetCPUUtilization: 50    
@@ -121,7 +121,7 @@ services:
     name: product-service
     namespace: apps
     apiPath: /api/v1/products
-    replicaCount: 2
+    replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
       repository: product-service
@@ -148,7 +148,7 @@ services:
         cpu: 100m
         memory: 256Mi
     autoscaling:
-      enabled: true  # Ensure this block exists!
+      enabled: false  # Ensure this block exists!
       minReplicas: 1
       maxReplicas: 5
       targetCPUUtilization: 50      
@@ -179,7 +179,7 @@ services:
     name: billing-service
     namespace: apps
     apiPath: /api/v1/billing
-    replicaCount: 2
+    replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
       repository: billing-service
@@ -199,7 +199,7 @@ services:
         memory: 256Mi
 
     autoscaling:
-      enabled: true  # Ensure this block exists!
+      enabled: false  # Ensure this block exists!
       minReplicas: 1
       maxReplicas: 5
       targetCPUUtilization: 50  
@@ -235,7 +235,7 @@ services:
     name: pbx-core
     namespace: apps
     apiPath: /api/v1/pbx
-    replicaCount: 2
+    replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
       repository: pbx-core
@@ -255,7 +255,7 @@ services:
         memory: 512Mi
 
     autoscaling:
-      enabled: true  # Ensure this block exists!
+      enabled: false  # Ensure this block exists!
       minReplicas: 1
       maxReplicas: 5
       targetCPUUtilization: 50  
@@ -292,7 +292,7 @@ services:
     name: ai-service
     namespace: apps
     apiPath: /api/v1/ai
-    replicaCount: 2
+    replicaCount: 1
     health:
       port: 8601
       readinessPath: /ready
@@ -315,7 +315,7 @@ services:
         memory: 256Mi
 
     autoscaling:
-      enabled: true  # Ensure this block exists!
+      enabled: false  # Ensure this block exists!
       minReplicas: 1
       maxReplicas: 5
       targetCPUUtilization: 50  

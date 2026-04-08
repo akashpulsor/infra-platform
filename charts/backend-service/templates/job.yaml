@@ -1,0 +1,235 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-bootstrap
+  namespace: apps
+  labels:
+    app: keycloak-bootstrap
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: keycloak-bootstrap
+        sidecar.istio.io/inject: "false"
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: quay.io/keycloak/keycloak:26.0
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+
+              KCADM=/opt/keycloak/bin/kcadm.sh
+              SERVER="http://keycloak.apps.svc.cluster.local:8080"
+              REALM="dalai-llama"
+              DOMAIN="dalaillama.in"
+
+              echo "════════════════════════════════════════════════════════════"
+              echo "  Keycloak Bootstrap — Dalai LLAMA Platform"
+              echo "════════════════════════════════════════════════════════════"
+              echo ""
+
+              # ═══════════════════════════════════════════════════════════
+              # 1. LOGIN
+              # ═══════════════════════════════════════════════════════════
+              echo "▶ Step 1: Authenticating to Keycloak..."
+              $KCADM config credentials \
+                --server $SERVER \
+                --realm master \
+                --user admin \
+                --password "$KEYCLOAK_ADMIN_PASSWORD"
+              echo "  ✓ Authenticated as admin"
+              echo ""
+
+              # ═══════════════════════════════════════════════════════════
+              # 2. ENSURE REALM EXISTS
+              # ═══════════════════════════════════════════════════════════
+              echo "▶ Step 2: Ensuring realm '$REALM' exists..."
+              if $KCADM get realms/$REALM --fields realm 2>/dev/null | grep -q "$REALM"; then
+                echo "  ✓ Realm '$REALM' already exists"
+              else
+                $KCADM create realms \
+                  -s realm=$REALM \
+                  -s enabled=true \
+                  -s displayName="Dalai LLAMA Platform" \
+                  -s registrationAllowed=false \
+                  -s resetPasswordAllowed=true \
+                  -s loginWithEmailAllowed=true
+                echo "  ✓ Created realm: $REALM"
+              fi
+              echo ""
+
+              # ═══════════════════════════════════════════════════════════
+              # 3. CREATE REALM ROLES
+              # ═══════════════════════════════════════════════════════════
+              echo "▶ Step 3: Creating realm roles..."
+              for ROLE in ADMIN SUPERVISOR AGENT; do
+                if $KCADM get roles -r $REALM --fields name 2>/dev/null | grep -q "\"$ROLE\""; then
+                  echo "  ✓ Role $ROLE already exists"
+                else
+                  $KCADM create roles -r $REALM \
+                    -s name=$ROLE \
+                    -s "description=$ROLE role for Dalai LLAMA platform"
+                  echo "  ✓ Created role: $ROLE"
+                fi
+              done
+              echo ""
+
+              # ═══════════════════════════════════════════════════════════
+              # 4. HELPER — create or update public client
+              # ═══════════════════════════════════════════════════════════
+              create_public_client() {
+                local CLIENT_ID=$1
+                local REDIRECT_URIS=$2
+                local DESCRIPTION=$3
+
+                if $KCADM get clients -r $REALM -q clientId=$CLIENT_ID --fields clientId 2>/dev/null | grep -q "$CLIENT_ID"; then
+                  echo "  ✓ Client '$CLIENT_ID' exists — updating"
+                  local UUID=$($KCADM get clients -r $REALM -q clientId=$CLIENT_ID --fields id --format csv --noquotes 2>/dev/null | tail -1 | tr -d '\r')
+                  $KCADM update clients/$UUID -r $REALM \
+                    -s "redirectUris=$REDIRECT_URIS" \
+                    -s 'webOrigins=["*"]' \
+                    -s directAccessGrantsEnabled=true \
+                    -s 'attributes={"pkce.code.challenge.method":"S256"}'
+                else
+                  $KCADM create clients -r $REALM \
+                    -s clientId=$CLIENT_ID \
+                    -s "name=$DESCRIPTION" \
+                    -s enabled=true \
+                    -s publicClient=true \
+                    -s "redirectUris=$REDIRECT_URIS" \
+                    -s 'webOrigins=["*"]' \
+                    -s standardFlowEnabled=true \
+                    -s directAccessGrantsEnabled=true \
+                    -s 'attributes={"pkce.code.challenge.method":"S256"}'
+                  echo "  ✓ Created client: $CLIENT_ID"
+                fi
+              }
+
+              # ═══════════════════════════════════════════════════════════
+              # 5. CREATE PUBLIC CLIENTS
+              # ═══════════════════════════════════════════════════════════
+              echo "▶ Step 4: Creating/updating public clients..."
+
+              create_public_client "platform-ui" \
+                '["https://app.'$DOMAIN'/*","https://platform.'$DOMAIN'/*","http://localhost:5173/*","http://localhost:3000/*"]' \
+                "Platform UI"
+
+              create_public_client "dashboard-ui" \
+                '["https://dash.'$DOMAIN'/*","https://dashboard.'$DOMAIN'/*","https://dashboard-*.'$DOMAIN'/*","http://localhost:5174/*","http://localhost:5177/*"]' \
+                "Dashboard UI"
+
+              create_public_client "admin-ui" \
+                '["https://admin-*.'$DOMAIN'/*","http://localhost:5174/*","http://localhost:3000/*"]' \
+                "Admin UI"
+
+              create_public_client "supervisor-ui" \
+                '["https://supervisor-*.'$DOMAIN'/*","http://localhost:5175/*","http://localhost:3001/*"]' \
+                "Supervisor UI"
+
+              create_public_client "agent-ui" \
+                '["https://agent-*.'$DOMAIN'/*","http://localhost:5176/*","http://localhost:3002/*"]' \
+                "Agent UI"
+              echo ""
+
+              # ═══════════════════════════════════════════════════════════
+              # 6. CREATE CONFIDENTIAL CLIENT (platform-api)
+              # ═══════════════════════════════════════════════════════════
+              echo "▶ Step 5: Creating platform-api service account..."
+              if $KCADM get clients -r $REALM -q clientId=platform-api --fields clientId 2>/dev/null | grep -q "platform-api"; then
+                echo "  ✓ platform-api already exists"
+              else
+                $KCADM create clients -r $REALM \
+                  -s clientId=platform-api \
+                  -s name="Platform API — Backend service account" \
+                  -s enabled=true \
+                  -s publicClient=false \
+                  -s serviceAccountsEnabled=true \
+                  -s 'redirectUris=["/*"]' \
+                  -s standardFlowEnabled=false \
+                  -s directAccessGrantsEnabled=true
+                echo "  ✓ Created client: platform-api"
+              fi
+
+              PLATFORM_API_UUID=$($KCADM get clients -r $REALM -q clientId=platform-api --fields id --format csv --noquotes 2>/dev/null | tail -1 | tr -d '\r')
+              PLATFORM_API_SECRET=$($KCADM get clients/$PLATFORM_API_UUID/client-secret -r $REALM 2>/dev/null | grep -o '"value" *: *"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//')
+              echo "  ✓ platform-api secret: $PLATFORM_API_SECRET"
+              echo ""
+
+              # ═══════════════════════════════════════════════════════════
+              # 7. CREATE DEFAULT USERS
+              # ═══════════════════════════════════════════════════════════
+              echo "▶ Step 6: Ensuring default users exist..."
+
+              create_user() {
+                local USERNAME=$1
+                local EMAIL=$2
+                local PASSWORD=$3
+                local ROLE=$4
+
+                if $KCADM get users -r $REALM -q username=$USERNAME --fields username 2>/dev/null | grep -q "$USERNAME"; then
+                  echo "  ✓ User '$USERNAME' already exists"
+                else
+                  $KCADM create users -r $REALM \
+                    -s username=$USERNAME \
+                    -s email=$EMAIL \
+                    -s enabled=true \
+                    -s emailVerified=true
+                  $KCADM set-password -r $REALM --username $USERNAME --new-password "$PASSWORD"
+                  echo "  ✓ Created user: $USERNAME ($EMAIL)"
+                fi
+                $KCADM add-roles -r $REALM --uusername $USERNAME --rolename $ROLE 2>/dev/null || true
+                echo "  ✓ $USERNAME → $ROLE"
+              }
+
+              create_user "admin" "admin@$DOMAIN" "admin123" "ADMIN"
+              create_user "supervisor" "supervisor@$DOMAIN" "super123" "SUPERVISOR"
+              create_user "agent" "agent@$DOMAIN" "agent123" "AGENT"
+              echo ""
+
+              # ═══════════════════════════════════════════════════════════
+              # 8. SUMMARY
+              # ═══════════════════════════════════════════════════════════
+              echo "════════════════════════════════════════════════════════════"
+              echo "  ✅ Bootstrap Complete!"
+              echo "════════════════════════════════════════════════════════════"
+              echo ""
+              echo "  Realm:    $REALM"
+              echo "  Domain:   $DOMAIN"
+              echo ""
+              echo "  Roles:    ADMIN, SUPERVISOR, AGENT"
+              echo ""
+              echo "  Public Clients (PKCE):"
+              echo "    platform-ui     → https://app.$DOMAIN"
+              echo "    dashboard-ui    → https://dash.$DOMAIN"
+              echo "    admin-ui        → https://admin-*.$DOMAIN"
+              echo "    supervisor-ui   → https://supervisor-*.$DOMAIN"
+              echo "    agent-ui        → https://agent-*.$DOMAIN"
+              echo ""
+              echo "  Confidential Client:"
+              echo "    platform-api    → secret: $PLATFORM_API_SECRET"
+              echo ""
+              echo "  Users:"
+              echo "    admin      / admin123     → ADMIN"
+              echo "    supervisor / super123     → SUPERVISOR"
+              echo "    agent      / agent123     → AGENT"
+              echo ""
+              echo "  Dev ports: platform=5173 dashboard=5174/5177"
+              echo "             admin=5174 supervisor=5175 agent=5176"
+              echo ""
+              echo "  ⚠️  Run this to update the K8s secret:"
+              echo "  kubectl create secret generic keycloak-client-secret -n apps \\"
+              echo "    --from-literal=client-secret=$PLATFORM_API_SECRET \\"
+              echo "    --dry-run=client -o yaml | kubectl apply -f -"
+              echo ""
+
+          env:
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: password
