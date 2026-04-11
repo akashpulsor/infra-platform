@@ -52,6 +52,22 @@ minio:
     cdr: cdr-archives
 
 
+serviceEntries:
+  epsilon-greeter:
+    hosts:
+      - greeter.co.in
+    ports:
+      - number: 443
+        name: https
+        protocol: TLS
+  didww-api:
+    hosts:
+      - api.didww.com
+    ports:
+      - number: 443
+        name: https
+        protocol: TLS
+
 # =============================================================================
 # MICROSERVICES CONFIGURATION
 # =============================================================================
