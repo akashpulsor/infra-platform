@@ -1,6 +1,7 @@
 {{- if .Values.istio.enabled }}
 {{- range $serviceName, $serviceConfig := .Values.services }}
 {{- if $serviceConfig.enabled }}
+{{- if $serviceConfig.apiPaths }}
 ---
 apiVersion: networking.istio.io/v1
 kind: VirtualService
@@ -29,6 +30,7 @@ spec:
               number: {{ $serviceConfig.service.port }}
       timeout: 30s
     {{- end }}
+{{- end }}
 ---
 apiVersion: security.istio.io/v1
 kind: RequestAuthentication
