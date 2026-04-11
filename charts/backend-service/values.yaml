@@ -21,7 +21,7 @@ istio:
 keycloak:
   issuerUrl: https://auth.dalaillama.in/realms/dalai-llama
   jwksUri: https://auth.dalaillama.in/realms/dalai-llama/protocol/openid-connect/certs
-  adminUrl: https://auth.dalaillama.in
+  adminUrl: http://keycloak.infra.svc.cluster.local:8080
   adminRealm: master
   adminClientId: admin-cli
   adminUsername: admin
