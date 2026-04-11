@@ -146,7 +146,7 @@ services:
     health: {} # This prevents the nil pointer error
     image:
       repository: product-service
-      tag: "1.0.3"
+      tag: "1.0.4"
     service:
       port: 8080
       targetPort: 8080
