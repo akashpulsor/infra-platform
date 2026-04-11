@@ -2,9 +2,6 @@
 {{- range $serviceName, $serviceConfig := .Values.services }}
 {{- if $serviceConfig.enabled }}
 ---
-# =============================================================================
-# {{ $serviceConfig.name | upper }} - VIRTUAL SERVICE
-# =============================================================================
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
@@ -18,17 +15,10 @@ spec:
   hosts:
     - api.{{ $.Values.global.domain }}
   http:
+    {{- range $path := $serviceConfig.apiPaths }}
     - match:
         - uri:
-            prefix: /actuator
-      route:
-        - destination:
-            host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
-            port:
-              number: {{ $serviceConfig.service.port }}
-    - match:
-        - uri:
-            prefix: {{ $serviceConfig.apiPath }}
+            prefix: {{ $path }}
       retries:
         attempts: 3
         perTryTimeout: 10s
@@ -38,10 +28,8 @@ spec:
             port:
               number: {{ $serviceConfig.service.port }}
       timeout: 30s
+    {{- end }}
 ---
-# =============================================================================
-# {{ $serviceConfig.name | upper }} - AUTH
-# =============================================================================
 apiVersion: security.istio.io/v1
 kind: RequestAuthentication
 metadata:
@@ -55,7 +43,6 @@ spec:
     - issuer: {{ $.Values.keycloak.issuerUrl | quote }}
       jwksUri: {{ $.Values.keycloak.jwksUri | quote }}
       forwardOriginalToken: true
-
-{{- end }} {{/* Closes: if $serviceConfig.enabled */}}
-{{- end }} {{/* Closes: range .Values.services */}}
-{{- end }} {{/* Closes: if .Values.istio.enabled */}}
+{{- end }}
+{{- end }}
+{{- end }}

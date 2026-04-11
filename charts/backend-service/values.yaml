@@ -63,7 +63,8 @@ services:
     name: tenant-service
     namespace: apps
     health: {} # This prevents the nil pointer error
-    apiPath: /api/v1/tenants
+    apiPath: 
+      - /api/v1/tenants
     replicaCount: 1
     image:
       repository: tenant-service
@@ -120,7 +121,11 @@ services:
     expose: true
     name: product-service
     namespace: apps
-    apiPath: /api/v1/products
+    apiPaths:
+      - /api/v1/products
+      - /api/v1/did
+      - /api/v1/subscriptions
+
     replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
@@ -178,7 +183,8 @@ services:
     expose: true
     name: billing-service
     namespace: apps
-    apiPath: /api/v1/billing
+    apiPaths:
+      - /api/v1/billing
     replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
@@ -234,7 +240,8 @@ services:
     expose: true
     name: pbx-core
     namespace: apps
-    apiPath: /api/v1/pbx
+    apiPaths:
+      - /api/v1/pbx
     replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
@@ -291,7 +298,8 @@ services:
     expose: true
     name: ai-service
     namespace: apps
-    apiPath: /api/v1/ai
+    apiPaths:
+      - /api/v1/ai
     replicaCount: 1
     health:
       port: 8601
