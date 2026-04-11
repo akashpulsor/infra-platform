@@ -1,0 +1,20 @@
+# templates/destination-rules.yaml
+{{- if .Values.istio.enabled }}
+{{- if .Values.serviceEntries }}
+{{- range $name, $entry := .Values.serviceEntries }}
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
+spec:
+  host: {{ index $entry.hosts 0 }}
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+{{- end }}
+{{- end }}
+{{- end }}
