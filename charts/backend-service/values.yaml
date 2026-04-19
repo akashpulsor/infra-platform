@@ -15,6 +15,9 @@ global:
 
 istio:
   enabled: true
+  rateLimit:
+    enabled: true
+    publicRequestsPerMinute: 30   # /api/v1/public/* — prevents slug enumeration
 # =============================================================================
 # INFRASTRUCTURE SETTINGS (Keycloak, etc.)
 # =============================================================================

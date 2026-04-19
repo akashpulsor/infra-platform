@@ -1,0 +1,83 @@
+{{- if .Values.istio.enabled }}
+{{- if .Values.istio.rateLimit }}
+{{- if .Values.istio.rateLimit.enabled }}
+# ═══════════════════════════════════════════════════════════════════════
+# Local Rate Limit — protects public endpoints from enumeration/abuse.
+# Applied at the Istio sidecar level (no external rate-limit service needed).
+#
+# Targets: /api/v1/public/* on tenant-service
+# Limit:   {{ .Values.istio.rateLimit.publicRequestsPerMinute }} req/min per source IP
+# ═══════════════════════════════════════════════════════════════════════
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: public-api-rate-limit
+  namespace: {{ .Values.services.tenantService.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
+spec:
+  workloadSelector:
+    labels:
+      app: tenant-service
+  configPatches:
+    # 1. Add local rate-limit HTTP filter (before the router filter)
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.router
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+            type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            value:
+              stat_prefix: public_api_rate_limit
+              # Default: no rate limit (only rate-limit routes that opt in)
+              filter_enabled:
+                runtime_key: local_rate_limit_enabled
+                default_value:
+                  numerator: 100
+                  denominator: HUNDRED
+              filter_enforced:
+                runtime_key: local_rate_limit_enforced
+                default_value:
+                  numerator: 100
+                  denominator: HUNDRED
+              response_headers_enabled:
+                runtime_key: local_rate_limit_headers
+                default_value:
+                  numerator: 100
+                  denominator: HUNDRED
+              token_bucket:
+                max_tokens: {{ .Values.istio.rateLimit.publicRequestsPerMinute | default 30 }}
+                tokens_per_fill: {{ .Values.istio.rateLimit.publicRequestsPerMinute | default 30 }}
+                fill_interval: 60s
+    # 2. Rate-limit only /api/v1/public routes
+    - applyTo: HTTP_ROUTE
+      match:
+        context: SIDECAR_INBOUND
+        routeConfiguration:
+          vhost:
+            route:
+              action: ANY
+      patch:
+        operation: MERGE
+        value:
+          route:
+            rate_limits:
+              - actions:
+                  - header_value_match:
+                      descriptor_value: public-api
+                      headers:
+                        - name: ":path"
+                          prefix_match: /api/v1/public
+{{- end }}
+{{- end }}
+{{- end }}

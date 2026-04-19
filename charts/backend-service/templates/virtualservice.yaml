@@ -32,6 +32,8 @@ spec:
     {{- end }}
 {{- end }}
 ---
+# JWT validation — Istio validates tokens when present,
+# but does NOT reject requests without a token (that's AuthorizationPolicy's job).
 apiVersion: security.istio.io/v1
 kind: RequestAuthentication
 metadata:
@@ -45,6 +47,25 @@ spec:
     - issuer: {{ $.Values.keycloak.issuerUrl | quote }}
       jwksUri: {{ $.Values.keycloak.jwksUri | quote }}
       forwardOriginalToken: true
+---
+# Authorization: require JWT on all paths EXCEPT /api/v1/public/*
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ $serviceConfig.name }}-require-jwt
+  namespace: {{ $serviceConfig.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $serviceConfig.name }}
+  action: DENY
+  rules:
+    - from:
+        - source:
+            notRequestPrincipals: ["*"]
+      to:
+        - operation:
+            notPaths: ["/api/v1/public/*", "/actuator/health"]
 {{- end }}
 {{- end }}
 {{- end }}
