@@ -1,0 +1,41 @@
+{{/*
+  RTP External Access — NOT USED (hostPort approach preferred)
+
+  We use hostPort on the ai-service container instead of NodePort because:
+  1. hostPort bypasses kube-proxy and Istio iptables entirely
+  2. UDP packets from external RTPEngine go directly into the container
+  3. No extra K8s Service object needed
+
+  The hostPort is configured in additionalPorts in values.yaml.
+  RTPEngine targets: udp:<nodeIP>:5555
+
+  This file is kept as documentation. If you need NodePort instead
+  (e.g. multi-node cluster with LB), uncomment and set rtpNodePort
+  in values.yaml.
+*/}}
+{{- range $serviceName, $serviceConfig := .Values.services }}
+{{- if and $serviceConfig.enabled $serviceConfig.rtpNodePort }}
+{{- if $serviceConfig.rtpNodePort.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $serviceConfig.name }}-rtp
+  namespace: {{ $serviceConfig.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
+    app: {{ $serviceConfig.name }}
+    component: rtp
+spec:
+  type: NodePort
+  ports:
+    - port: {{ $serviceConfig.rtpNodePort.targetPort }}
+      targetPort: {{ $serviceConfig.rtpNodePort.targetPort }}
+      nodePort: {{ $serviceConfig.rtpNodePort.port }}
+      protocol: UDP
+      name: rtp-udp
+  selector:
+    app: {{ $serviceConfig.name }}
+{{- end }}
+{{- end }}
+{{- end }}

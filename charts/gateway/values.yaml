@@ -109,6 +109,9 @@ istio:
   gatewayName: central-gateway
   gatewayRef: istio-system/central-gateway
   hosts:
+    # Wildcard covers all tenant subdomains: admin-acme, agent-acme, etc.
+    - "*.dalaillama.in"
+    # Explicit hosts kept for clarity (also matched by wildcard)
     - auth.dalaillama.in
     - api.dalaillama.in
     - platform.dalaillama.in
@@ -120,6 +123,13 @@ istio:
     httpsRedirect: true
     clusterIssuer: letsencrypt-prod
     certificates:
+      # Wildcard cert — covers ALL *.dalaillama.in tenant subdomains
+      # Requires DNS-01 challenge (Let's Encrypt doesn't do HTTP-01 for wildcards)
+      - secretName: wildcard-dalaillama-in-tls
+        hosts:
+          - "*.dalaillama.in"
+          - dalaillama.in
+      # Individual certs kept as fallback (Istio picks most specific match)
       - secretName: auth-dalaillama-in-tls
         hosts:
           - auth.dalaillama.in

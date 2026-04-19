@@ -135,6 +135,42 @@ kafka:
     - name: provisioning.failed
       partitions: 3
       replicationFactor: 1
+    # ── PBX-Core → billing-service ──
+    - name: call.billing
+      partitions: 10
+      replicationFactor: 1
+    - name: call.cdr
+      partitions: 10
+      replicationFactor: 1
+    # ── Kamailio / FreeSWITCH → agent-service ──
+    - name: pbx-registration-events
+      partitions: 3
+      replicationFactor: 1
+    - name: pbx-call-events
+      partitions: 10
+      replicationFactor: 1
+    # ── AI pipeline ──
+    - name: rtp-voice-frames
+      partitions: 10
+      replicationFactor: 1
+    - name: ai-transcript-results
+      partitions: 10
+      replicationFactor: 1
+    # ── Agent-service ──
+    - name: agent.assign.requests
+      partitions: 3
+      replicationFactor: 1
+    - name: agent.assign.responses
+      partitions: 3
+      replicationFactor: 1
+    # ── Billing-service (produced) ──
+    - name: billing.subscription.activated
+      partitions: 3
+      replicationFactor: 1
+    # ── Product-service → tenant-service ──
+    - name: product.subscription.activated
+      partitions: 3
+      replicationFactor: 1
 
 # =============================================================================
 # MINIO - Object Storage (call recordings, voicemail, exports)

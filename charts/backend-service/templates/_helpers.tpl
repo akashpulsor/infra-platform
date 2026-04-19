@@ -292,6 +292,15 @@ app.kubernetes.io/part-of: dalai-llama-backend
   value: {{ .Values.services.tenantService.provisioning.ipPollIntervalSeconds | quote }}
 - name: PROVISIONING_MIN_WALLET_BALANCE
   value: {{ .Values.services.tenantService.provisioning.minWalletBalance | quote }}
+# RTP fork target for RTPEngine (outside cluster) → ai-service (inside cluster)
+{{- if .Values.services.tenantService.aiService }}
+{{- if .Values.services.tenantService.aiService.rtpExternalHost }}
+- name: DALAILLAMA_AI_SERVICE_RTP_EXTERNAL_HOST
+  value: {{ .Values.services.tenantService.aiService.rtpExternalHost | quote }}
+{{- end }}
+- name: DALAILLAMA_AI_SERVICE_RTP_EXTERNAL_PORT
+  value: {{ .Values.services.tenantService.aiService.rtpExternalPort | default 5555 | quote }}
+{{- end }}
 {{- end -}}
 
 {{/* Kafka Environment Variables */}}

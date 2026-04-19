@@ -79,12 +79,13 @@ services:
     name: tenant-service
     namespace: apps
     health: {} # This prevents the nil pointer error
-    apiPath: 
+    apiPaths:
       - /api/v1/tenants
+      - /api/v1/public
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "3.0.2"
+      tag: "1.0.5"
     service:
       port: 8080
       targetPort: 8080
@@ -101,6 +102,11 @@ services:
       ipWaitTimeoutMinutes: 5
       ipPollIntervalSeconds: 30
       minWalletBalance: 500
+    # RTP fork target — RTPEngine (same server) → ai-service (inside cluster)
+    # hostPort exposes 5555 directly on the node. Same-server: use 127.0.0.1
+    aiService:
+      rtpExternalHost: "127.0.0.1"   # Same server — RTPEngine → localhost:5555 → ai-service container
+      rtpExternalPort: 5555           # hostPort (same as container port)
     resources:
       limits:
         cpu: 500m
@@ -130,6 +136,7 @@ services:
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
+      SERVER_PORT: "8080"
 
   # --- PRODUCT SERVICE ---
   productService:
@@ -201,6 +208,7 @@ services:
     namespace: apps
     apiPaths:
       - /api/v1/billing
+      - /api/v1/webhooks/razorpay
     replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
@@ -240,6 +248,7 @@ services:
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
+      SERVER_PORT: "8080"
     # Billing settings
     billing:
       gracePeriodDays: 7
@@ -257,7 +266,18 @@ services:
     name: pbx-core
     namespace: apps
     apiPaths:
-      - /api/v1/pbx
+      - /api/v1/agents
+      - /api/v1/calls
+      - /api/v1/supervisor
+      - /api/v1/queues
+      - /api/v1/campaigns
+      - /api/v1/contacts
+      - /api/v1/bots
+      - /api/v1/routing
+      - /api/v1/trunks
+      - /api/v1/turn
+      - /api/v1/crm
+      - /ws
     replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
@@ -308,7 +328,7 @@ services:
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       WEBSOCKET_BROKER: "redis"
 
-  # --- pbxCore SERVICE ---
+  # --- AI SERVICE (Python/FastAPI) ---
   aiService:
     enabled: true
     expose: true
@@ -327,6 +347,15 @@ services:
     service:
       port: 8601
       targetPort: 8601
+    # RTP UDP port for voice-brain real-time audio.
+    # RTPEngine is OUTSIDE the cluster → hostPort bypasses Istio/kube-proxy entirely.
+    # RTPEngine sends to udp:<nodeIP>:5555 → goes directly into the container.
+    additionalPorts:
+      - name: rtp-udp
+        port: 5555
+        targetPort: 5555
+        hostPort: 5555
+        protocol: UDP
     database:
       name: ai_db
       username: ai_user
@@ -399,6 +428,12 @@ services:
         highpassHz: "80"
         limiterThreshold: "0.95"
     env: 
+      VOICEBRAIN_RTP_PORT: "5555"
+      KAFKA_BROKERS: "kafka.infra.svc.cluster.local:9092"
+      RTP_TOPIC: "rtp-voice-frames"
+      AI_RESULT_TOPIC: "ai-transcript-results"
+      KAFKA_REG_TOPIC: "pbx-registration-events"
+      KAFKA_CALL_TOPIC: "pbx-call-events"
       CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"

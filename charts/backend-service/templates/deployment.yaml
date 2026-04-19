@@ -24,6 +24,9 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "{{ $serviceConfig.service.targetPort }}"
         prometheus.io/path: "/actuator/prometheus"
+        {{- if $serviceConfig.additionalPorts }}
+        traffic.sidecar.istio.io/excludeInboundPorts: "{{ range $i, $p := $serviceConfig.additionalPorts }}{{ if $i }},{{ end }}{{ $p.targetPort }}{{ end }}"
+        {{- end }}
     spec:
       serviceAccountName: {{ $serviceConfig.name }}
       {{- if $serviceConfig.securityContext }}
@@ -37,6 +40,14 @@ spec:
           ports:
             - containerPort: {{ $serviceConfig.service.targetPort }}
               name: http
+            {{- range $serviceConfig.additionalPorts }}
+            - containerPort: {{ .targetPort }}
+              name: {{ .name }}
+              protocol: {{ .protocol | default "TCP" }}
+              {{- if .hostPort }}
+              hostPort: {{ .hostPort }}
+              {{- end }}
+            {{- end }}
           env:
             # ── DB config (all services) ──
             - name: DB_NAME
