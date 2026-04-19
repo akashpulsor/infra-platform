@@ -1,0 +1,22 @@
+{{- range $appName, $appConfig := .Values.apps }}
+{{- if $appConfig.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $appName }}
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: {{ $appName }}
+    app.kubernetes.io/part-of: dalaillama
+    app.kubernetes.io/component: frontend
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ $appConfig.service.port }}
+      targetPort: 80
+      name: http
+  selector:
+    app: {{ $appName }}
+{{- end }}
+{{- end }}

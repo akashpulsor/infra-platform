@@ -65,6 +65,7 @@ spec:
             notRequestPrincipals: ["*"]
       to:
         - operation:
+            ports: ["{{ $serviceConfig.service.port }}"]
             notPaths: ["/api/v1/public/*", "/actuator/health"]
 {{- end }}
 {{- end }}

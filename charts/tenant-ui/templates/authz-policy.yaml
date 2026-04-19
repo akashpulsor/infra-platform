@@ -1,0 +1,19 @@
+{{- range $appName, $appConfig := .Values.apps }}
+{{- if $appConfig.enabled }}
+---
+# UI apps are public (static files served by nginx).
+# Auth is handled client-side via Keycloak JS adapter.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ $appName }}-public
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $appName }}
+  action: ALLOW
+  rules:
+    - {}
+{{- end }}
+{{- end }}

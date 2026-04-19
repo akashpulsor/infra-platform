@@ -1,0 +1,73 @@
+# ═══════════════════════════════════════════════════════════════
+# tenant-ui Helm chart — deploy multiple tenant-facing UI apps
+#
+# Each app is deployed as its own Deployment + Service.
+# Istio VirtualServices for tenant subdomains (admin-acme, agent-acme, etc.)
+# are managed dynamically by IstioRouteReconciler in tenant-service.
+# ═══════════════════════════════════════════════════════════════
+
+global:
+  namespace: apps
+  domain: dalaillama.in
+  image:
+    registry: akashtripathi
+    pullPolicy: IfNotPresent
+  gateway:
+    namespace: istio-system
+    name: central-gateway
+
+# ── Shared env vars injected into all UI containers ──
+sharedEnv:
+  API_BASE_URL: "https://api.dalaillama.in/api/v1"
+  KEYCLOAK_URL: "https://auth.dalaillama.in"
+  PLATFORM_URL: "https://platform.dalaillama.in"
+
+# ── UI Apps ──
+apps:
+  admin-ui:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: akashtripathi/admin-ui
+      tag: "1.0.0"
+    service:
+      port: 80
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+  agent-ui:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: akashtripathi/agent-ui
+      tag: "1.0.0"
+    service:
+      port: 80
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+  supervisor-ui:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: akashtripathi/supervisor-ui
+      tag: "1.0.0"
+    service:
+      port: 80
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
