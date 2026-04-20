@@ -74,8 +74,6 @@ spec:
               value: "jdbc:postgresql://postgres.{{ $.Values.global.infraNamespace }}.svc.cluster.local:5432/{{ $serviceConfig.database.name }}"
             - name: SPRING_DATASOURCE_USERNAME
               value: {{ $serviceConfig.database.username | quote }}
-            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-              value: "kafka.{{ $.Values.global.infraNamespace }}.svc.cluster.local:9092"
             {{- end }}
 
             # ── Service-specific integrations ──

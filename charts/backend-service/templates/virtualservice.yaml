@@ -67,23 +67,7 @@ spec:
       jwksUri: {{ $.Values.keycloak.jwksUri | quote }}
       forwardOriginalToken: true
 ---
-# Allow CORS preflight (OPTIONS) requests without JWT
-apiVersion: security.istio.io/v1
-kind: AuthorizationPolicy
-metadata:
-  name: {{ $serviceConfig.name }}-allow-options
-  namespace: {{ $serviceConfig.namespace }}
-spec:
-  selector:
-    matchLabels:
-      app: {{ $serviceConfig.name }}
-  action: ALLOW
-  rules:
-    - to:
-        - operation:
-            methods: ["OPTIONS"]
----
-# Authorization: require JWT on all paths EXCEPT /api/v1/public/*
+# Authorization: require JWT on all paths EXCEPT /api/v1/public/*, health, and OPTIONS (CORS preflight)
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
@@ -102,6 +86,7 @@ spec:
         - operation:
             ports: ["{{ $serviceConfig.service.port }}"]
             notPaths: ["/api/v1/public/*", "/actuator/health"]
+            notMethods: ["OPTIONS"]
 {{- end }}
 {{- end }}
 {{- end }}
