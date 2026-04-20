@@ -23,7 +23,9 @@ istio:
 # =============================================================================
 keycloak:
   issuerUrl: https://auth.dalaillama.in/realms/dalai-llama
-  jwksUri: https://auth.dalaillama.in/realms/dalai-llama/protocol/openid-connect/certs
+  # Use internal cluster URL for Istio/Spring to fetch JWKS keys.
+  # issuer claim in token remains external; jwksUri is just where to fetch signing keys.
+  jwksUri: http://keycloak.apps.svc.cluster.local:80/realms/dalai-llama/protocol/openid-connect/certs
   adminUrl: http://keycloak.apps.svc.cluster.local:80
   adminRealm: master
   adminClientId: admin-cli
