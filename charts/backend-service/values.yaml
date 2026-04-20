@@ -340,6 +340,10 @@ services:
     apiPaths:
       - /api/v1/ai
     replicaCount: 1
+    # Recreate strategy required: hostPort 5555 can only be held by one pod at a time.
+    # RollingUpdate deadlocks because old pod holds the port → new pod can't schedule.
+    strategy:
+      type: Recreate
     health:
       port: 8601
       readinessPath: /ready

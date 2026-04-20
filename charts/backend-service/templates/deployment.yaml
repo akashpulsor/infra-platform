@@ -11,6 +11,10 @@ metadata:
     app: {{ $serviceConfig.name }}
 spec:
   replicas: {{ $serviceConfig.replicaCount }}
+  {{- if $serviceConfig.strategy }}
+  strategy:
+    type: {{ $serviceConfig.strategy.type }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ $serviceConfig.name }}
