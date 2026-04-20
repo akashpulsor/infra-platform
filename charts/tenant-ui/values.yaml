@@ -11,7 +11,7 @@ global:
   domain: dalaillama.in
   image:
     registry: akashtripathi
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   gateway:
     namespace: istio-system
     name: central-gateway
