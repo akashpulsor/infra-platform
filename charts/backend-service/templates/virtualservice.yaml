@@ -20,6 +20,25 @@ spec:
     - match:
         - uri:
             prefix: {{ $path }}
+      corsPolicy:
+        allowOrigins:
+          - exact: https://dashboard.dalaillama.in
+          - exact: https://platform.dalaillama.in
+          - prefix: http://localhost
+        allowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        allowHeaders:
+          - Authorization
+          - Content-Type
+          - Accept
+          - X-Requested-With
+        allowCredentials: true
+        maxAge: 86400s
       retries:
         attempts: 3
         perTryTimeout: 10s
@@ -47,6 +66,22 @@ spec:
     - issuer: {{ $.Values.keycloak.issuerUrl | quote }}
       jwksUri: {{ $.Values.keycloak.jwksUri | quote }}
       forwardOriginalToken: true
+---
+# Allow CORS preflight (OPTIONS) requests without JWT
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ $serviceConfig.name }}-allow-options
+  namespace: {{ $serviceConfig.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $serviceConfig.name }}
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            methods: ["OPTIONS"]
 ---
 # Authorization: require JWT on all paths EXCEPT /api/v1/public/*
 apiVersion: security.istio.io/v1
