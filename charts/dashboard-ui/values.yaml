@@ -22,7 +22,7 @@ keycloak:
 env:
   KEYCLOAK_URL: "https://auth.dalaillama.in"
   KEYCLOAK_REALM: "dalai-llama"
-  KEYCLOAK_CLIENT_ID: "platform-ui"
+  KEYCLOAK_CLIENT_ID: "dashboard-ui"
   PLATFORM_URL: "https://platform.dalaillama.in"
   DASHBOARD_APP_URL: "https://dashboard.dalaillama.in"
   API_BASE_URL: "https://api.dalaillama.in/api/v1"
