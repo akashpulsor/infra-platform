@@ -67,26 +67,30 @@ spec:
       jwksUri: {{ $.Values.keycloak.jwksUri | quote }}
       forwardOriginalToken: true
 ---
-# Authorization: require JWT on all paths EXCEPT /api/v1/public/*, health, and OPTIONS (CORS preflight)
-apiVersion: security.istio.io/v1
-kind: AuthorizationPolicy
-metadata:
-  name: {{ $serviceConfig.name }}-require-jwt
-  namespace: {{ $serviceConfig.namespace }}
-spec:
-  selector:
-    matchLabels:
-      app: {{ $serviceConfig.name }}
-  action: DENY
-  rules:
-    - from:
-        - source:
-            notRequestPrincipals: ["*"]
-      to:
-        - operation:
-            ports: ["{{ $serviceConfig.service.port }}"]
-            notPaths: ["/api/v1/public/*", "/actuator/health"]
-            notMethods: ["OPTIONS"]
+# NOTE: Istio AuthorizationPolicy (DENY) removed.
+# JWT enforcement is handled by Spring Security in each microservice.
+# RequestAuthentication above still validates tokens when present and sets principal for logging/tracing.
+# To re-enable Istio-level JWT enforcement, uncomment the AuthorizationPolicy below.
+#
+# apiVersion: security.istio.io/v1
+# kind: AuthorizationPolicy
+# metadata:
+#   name: {{ $serviceConfig.name }}-require-jwt
+#   namespace: {{ $serviceConfig.namespace }}
+# spec:
+#   selector:
+#     matchLabels:
+#       app: {{ $serviceConfig.name }}
+#   action: DENY
+#   rules:
+#     - from:
+#         - source:
+#             notRequestPrincipals: ["*"]
+#       to:
+#         - operation:
+#             ports: ["{{ $serviceConfig.service.port }}"]
+#             notPaths: ["/api/v1/public/*", "/actuator/health"]
+#             notMethods: ["OPTIONS"]
 {{- end }}
 {{- end }}
 {{- end }}
