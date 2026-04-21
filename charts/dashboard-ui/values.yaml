@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/dashboard-ui
-  tag: 1.0.0
+  tag: 1.0.3
   pullPolicy: Always
 
 replicaCount: 1
