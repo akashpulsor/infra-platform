@@ -354,6 +354,9 @@ app.kubernetes.io/part-of: dalai-llama-backend
     secretKeyRef:
       name: {{ .Values.secrets.razorpay.name }}
       key: {{ .Values.secrets.razorpay.webhookSecretKey }}
+- name: RAZORPAY_MOCK_ENABLED
+  value: {{ .Values.services.billingService.razorpay.enabled | quote }}
+      
 {{- end }}
 {{- end -}}
 
