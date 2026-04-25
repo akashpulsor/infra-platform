@@ -87,6 +87,7 @@ services:
     apiPaths:
       - /api/v1/tenants
       - /api/v1/public
+      - /ws
     replicaCount: 1
     image:
       repository: tenant-service
