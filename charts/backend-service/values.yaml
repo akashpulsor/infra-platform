@@ -159,7 +159,7 @@ services:
     health: {} # This prevents the nil pointer error
     image:
       repository: product-service
-      tag: "1.0.15"
+      tag: "1.0.16"
     service:
       port: 8080
       targetPort: 8080
@@ -219,7 +219,7 @@ services:
     health: {} # This prevents the nil pointer error
     image:
       repository: billing-service
-      tag: "1.0.16"
+      tag: "1.0.17"
     service:
       port: 8080
       targetPort: 8080
