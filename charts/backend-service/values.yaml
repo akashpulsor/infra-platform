@@ -7,7 +7,7 @@ global:
   domain: dalaillama.in
   image:
     registry: akashtripathi
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   gateway:
     enabled: true
     namespace: istio-system
@@ -91,7 +91,7 @@ services:
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "3.0.3"
+      tag: "3.0.4"
     service:
       port: 8080
       targetPort: 8080
@@ -159,7 +159,7 @@ services:
     health: {} # This prevents the nil pointer error
     image:
       repository: product-service
-      tag: "1.0.16"
+      tag: "1.0.17"
     service:
       port: 8080
       targetPort: 8080
