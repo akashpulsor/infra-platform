@@ -93,7 +93,7 @@ services:
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "3.0.8"
+      tag: "3.0.9"
     service:
       port: 8080
       targetPort: 8080
