@@ -86,6 +86,7 @@ services:
     health: {} # This prevents the nil pointer error
     apiPaths:
       - /api/v1/tenants
+      - /api/v1/tenants/me
       - /api/v1/public
       - /ws
     replicaCount: 1
