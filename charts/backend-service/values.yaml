@@ -18,6 +18,7 @@ istio:
   rateLimit:
     enabled: true
     publicRequestsPerMinute: 30   # /api/v1/public/* — prevents slug enumeration
+
 # =============================================================================
 # INFRASTRUCTURE SETTINGS (Keycloak, etc.)
 # =============================================================================
@@ -42,7 +43,6 @@ infra_secrets:
   redis:
     name: backend-redis-secret
     passwordKey: redis-password
-
   minio:
     name: backend-minio-secret
     rootUserKey: minio-root-user
@@ -55,7 +55,6 @@ minio:
     exports: campaign-exports
     knowledge: bot-knowledge
     cdr: cdr-archives
-
 
 serviceEntries:
   epsilon-greeter:
@@ -90,7 +89,7 @@ services:
       - /ws
     internalApiPaths:
       - /api/v1/internal
-      - /actuator  
+      - /actuator
     replicaCount: 1
     image:
       repository: tenant-service
@@ -124,20 +123,16 @@ services:
         cpu: 200m
         memory: 512Mi
     autoscaling:
-      enabled: false  # Ensure this block exists!
+      enabled: false
       minReplicas: 1
       maxReplicas: 5
-      targetCPUUtilization: 50    
+      targetCPUUtilization: 50
     env:
       SPRING_PROFILES_ACTIVE: prod
-      # JPA
       SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
       SPRING_JPA_SHOW_SQL: "false"
-      # Flyway
       SPRING_FLYWAY_ENABLED: "true"
-      # Logging
       LOG_LEVEL: "INFO"
-      # Health check scheduler
       HEALTH_CHECK_ENABLED: "true"
       HEALTH_CHECK_INTERVAL_SECONDS: "60"
       HEALTH_CHECK_FAILURE_THRESHOLD: "3"
@@ -153,6 +148,7 @@ services:
     expose: true
     name: product-service
     namespace: apps
+    health: {}
     apiPaths:
       - /api/v1/products
       - /api/v1/did
@@ -160,7 +156,6 @@ services:
     internalApiPaths:
       - /api/v1/internal/*
     replicaCount: 1
-    health: {} # This prevents the nil pointer error
     image:
       repository: product-service
       tag: "1.0.18"
@@ -170,7 +165,6 @@ services:
     database:
       name: product_db
       username: product_user
-    # SIP & DIDWW Integrations
     sip:
       domain: "sip.dalaillama.in"
       realm: "dalaillama.in"
@@ -186,21 +180,17 @@ services:
         cpu: 100m
         memory: 256Mi
     autoscaling:
-      enabled: false  # Ensure this block exists!
+      enabled: false
       minReplicas: 1
       maxReplicas: 5
-      targetCPUUtilization: 50      
+      targetCPUUtilization: 50
     env:
       SPRING_PROFILES_ACTIVE: prod
       SERVER_PORT: "8080"
-      # JPA
       SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
       SPRING_JPA_SHOW_SQL: "false"
-      # Flyway
       SPRING_FLYWAY_ENABLED: "true"
-      # Logging
       LOG_LEVEL: "INFO"
-      # Health check scheduler
       HEALTH_CHECK_ENABLED: "true"
       HEALTH_CHECK_INTERVAL_SECONDS: "60"
       HEALTH_CHECK_FAILURE_THRESHOLD: "3"
@@ -209,21 +199,19 @@ services:
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
 
-
   # --- BILLING SERVICE ---
   billingService:
     enabled: true
     expose: true
     name: billing-service
     namespace: apps
+    health: {}
     apiPaths:
       - /api/v1/billing
       - /api/v1/webhooks/razorpay
     internalApiPaths:
       - /api/v1/internal/*
-   
     replicaCount: 1
-    health: {} # This prevents the nil pointer error
     image:
       repository: billing-service
       tag: "1.0.17"
@@ -240,35 +228,27 @@ services:
       requests:
         cpu: 100m
         memory: 256Mi
-
     autoscaling:
-      enabled: false  # Ensure this block exists!
+      enabled: false
       minReplicas: 1
       maxReplicas: 5
-      targetCPUUtilization: 50  
-
+      targetCPUUtilization: 50
     env:
       SPRING_PROFILES_ACTIVE: prod
-      # JPA
       SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
       SHOW_SQL: "false"
       SQL_LOG_LEVEL: "WARN"
-      # Flyway
       SPRING_FLYWAY_ENABLED: "true"
-      # Logging
       LOG_LEVEL: "INFO"
       CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
       SERVER_PORT: "8080"
-    # Billing settings
     billing:
       gracePeriodDays: 7
       lowBalanceThreshold: 500
       defaultCurrency: INR
-    
-    # Razorpay
     razorpay:
       enabled: false
 
@@ -278,6 +258,7 @@ services:
     expose: true
     name: pbx-core
     namespace: apps
+    health: {}
     apiPaths:
       - /api/v1/agents
       - /api/v1/calls
@@ -290,25 +271,11 @@ services:
       - /api/v1/trunks
       - /api/v1/turn
       - /api/v1/crm
-        - /api/v1/routing
-        - /api/v1/queues
-        - /api/v1/ai
-        - /ws
-  
-      # True service-to-service endpoints inside the cluster/mesh only.
-      internalApiPaths:
-        - /api/v1/internal/*
-      # Exposed via ingress/gateway, but intended only for trusted callers
-      # such as localhost, the host machine, or specific source IPs/CIDRs.
-      trustedExternalPaths:
-        - /freeswitch
-        - /ai
-        - /kamailio
-        - /rtpengine
-      trustedExternalSourceCidrs:
-        - 127.0.0.1/32
-      replicaCount: 1
-    health: {} # This prevents the nil pointer error
+      - /api/v1/ai
+      - /ws
+    internalApiPaths:
+      - /api/v1/internal/*
+    replicaCount: 1
     image:
       repository: pbx-core
       tag: "2.0.8"
@@ -325,28 +292,23 @@ services:
       requests:
         cpu: 100m
         memory: 512Mi
-
     autoscaling:
-      enabled: false  # Ensure this block exists!
+      enabled: false
       minReplicas: 1
       maxReplicas: 5
-      targetCPUUtilization: 50  
+      targetCPUUtilization: 50
     telecom:
       publicIp: ""
       sipDomain: "sip.dalaillama.in"
       turnDomain: "turn.dalaillama.in"
       freeswitchEslHost: ""
       freeswitchEslPort: "8021"
-
     env:
       SPRING_PROFILES_ACTIVE: prod
-      # JPA
       SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
       SHOW_SQL: "false"
       SQL_LOG_LEVEL: "WARN"
-      # Flyway
       SPRING_FLYWAY_ENABLED: "true"
-      # Logging
       LOG_LEVEL: "INFO"
       CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
@@ -399,13 +361,11 @@ services:
       requests:
         cpu: 100m
         memory: 256Mi
-
     autoscaling:
-      enabled: false  # Ensure this block exists!
+      enabled: false
       minReplicas: 1
       maxReplicas: 5
-      targetCPUUtilization: 50  
-
+      targetCPUUtilization: 50
     ai:
       debug: "true"
       authEnabled: "true"
@@ -460,7 +420,7 @@ services:
         targetLufs: "-16.0"
         highpassHz: "80"
         limiterThreshold: "0.95"
-    env: 
+    env:
       VOICEBRAIN_RTP_PORT: "5555"
       KAFKA_BROKERS: "kafka.infra.svc.cluster.local:9092"
       RTP_TOPIC: "rtp-voice-frames"
@@ -475,12 +435,10 @@ services:
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       WEBSOCKET_BROKER: "redis"
 
-
 # =============================================================================
 # SECRETS MAPPING & VALUES
 # =============================================================================
 secrets:
-
   didww:
     name: dalai-backend-didww
     apiKeyKey: api-key
