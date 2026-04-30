@@ -86,9 +86,11 @@ services:
     health: {} # This prevents the nil pointer error
     apiPaths:
       - /api/v1/tenants
-      - /api/v1/tenants/me
       - /api/v1/public
       - /ws
+    internalApiPaths:
+      - /api/v1/internal
+      - /actuator  
     replicaCount: 1
     image:
       repository: tenant-service
@@ -155,7 +157,8 @@ services:
       - /api/v1/products
       - /api/v1/did
       - /api/v1/subscriptions
-
+    internalApiPaths:
+      - /api/v1/internal/*
     replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
@@ -216,6 +219,9 @@ services:
     apiPaths:
       - /api/v1/billing
       - /api/v1/webhooks/razorpay
+    internalApiPaths:
+      - /api/v1/internal/*
+   
     replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
@@ -284,8 +290,24 @@ services:
       - /api/v1/trunks
       - /api/v1/turn
       - /api/v1/crm
-      - /ws
-    replicaCount: 1
+        - /api/v1/routing
+        - /api/v1/queues
+        - /api/v1/ai
+        - /ws
+  
+      # True service-to-service endpoints inside the cluster/mesh only.
+      internalApiPaths:
+        - /api/v1/internal/*
+      # Exposed via ingress/gateway, but intended only for trusted callers
+      # such as localhost, the host machine, or specific source IPs/CIDRs.
+      trustedExternalPaths:
+        - /freeswitch
+        - /ai
+        - /kamailio
+        - /rtpengine
+      trustedExternalSourceCidrs:
+        - 127.0.0.1/32
+      replicaCount: 1
     health: {} # This prevents the nil pointer error
     image:
       repository: pbx-core
