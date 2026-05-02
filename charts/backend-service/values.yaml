@@ -243,7 +243,6 @@ services:
       CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
-      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m -XX:MetaspaceSize=128m"
       SERVER_PORT: "8080"
     billing:
       gracePeriodDays: 7
@@ -278,7 +277,7 @@ services:
     replicaCount: 1
     image:
       repository: pbx-core
-      tag: "3.0.0"
+      tag: "5.0.0"
     service:
       port: 8080
       targetPort: 8080
@@ -313,11 +312,11 @@ services:
       CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
-      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m -XX:MetaspaceSize=128m"
       KAMAILIO_JSONRPC_URL: "http://sip.dalaillama.in:5060/jsonrpc"
       SIP_WSS_URL: "wss://sip.dalaillama.in:7443"
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       WEBSOCKET_BROKER: "redis"
+      TRUSTED_NETWORKS: "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
 
   # --- AI SERVICE (Python/FastAPI) ---
   aiService:
