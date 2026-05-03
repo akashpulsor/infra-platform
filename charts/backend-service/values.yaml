@@ -93,7 +93,7 @@ services:
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "5.0.2"
+      tag: "5.0.3"
     service:
       port: 8080
       targetPort: 8080
@@ -158,7 +158,7 @@ services:
     replicaCount: 1
     image:
       repository: product-service
-      tag: "5.0.2"
+      tag: "5.0.3"
     service:
       port: 8080
       targetPort: 8080
@@ -214,7 +214,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "1.0.17"
+      tag: "5.0.1"
     service:
       port: 8080
       targetPort: 8080
@@ -282,7 +282,7 @@ services:
     replicaCount: 1
     image:
       repository: pbx-core
-      tag: "5.0.0"
+      tag: "5.0.1"
     service:
       port: 8080
       targetPort: 8080
