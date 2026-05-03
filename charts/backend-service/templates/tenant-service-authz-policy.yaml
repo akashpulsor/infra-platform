@@ -1,34 +1,50 @@
-{{- $tenant := .Values.services.tenantService }}
-{{- if and .Values.istio.enabled $tenant.enabled }}
+{{- if .Values.istio.enabled }}
+{{- range $serviceName, $serviceConfig := .Values.services }}
+{{- if and $serviceConfig.enabled $serviceConfig.apiPaths }}
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: {{ $tenant.name }}-allow-api
-  namespace: {{ $tenant.namespace }}
+  name: {{ $serviceConfig.name }}-allow-api
+  namespace: {{ $serviceConfig.namespace }}
   labels:
-    {{- include "dalai-backend.labels" . | nindent 4 }}
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      app: {{ $tenant.name }}
+      app: {{ $serviceConfig.name }}
   action: ALLOW
   rules:
+    # Allow health/actuator probes
     - to:
-{{- range $path := $tenant.apiPaths }}
         - operation:
-            paths:
-              - {{ $path }}
-{{- if not (hasSuffix "*" $path) }}
-              - {{ printf "%s/*" $path }}
+            paths: ["/actuator*"]
+    # Allow ALL internal service-to-service calls (prefix match)
+    - to:
+        - operation:
+            paths: ["/api/v1/internal*"]
+    # Allow public paths
+    - to:
+        - operation:
+            paths: ["/api/v1/public*"]
+    # Allow webhook paths
+    - to:
+        - operation:
+            paths: ["/api/v1/webhooks*"]
+    # Allow service-specific API paths
+{{- range $path := $serviceConfig.apiPaths }}
+    - to:
+        - operation:
+            paths: ["{{ $path }}", "{{ $path }}/*"]
+{{- end }}
+    # Allow service-specific internal paths
+{{- if $serviceConfig.internalApiPaths }}
+{{- range $path := $serviceConfig.internalApiPaths }}
+    - to:
+        - operation:
+            paths: ["{{ $path }}", "{{ $path }}/*"]
 {{- end }}
 {{- end }}
-{{- range $path := $tenant.internalApiPaths }}
-        - operation:
-            paths:
-              - {{ $path }}
-{{- if not (hasSuffix "*" $path) }}
-              - {{ printf "%s/*" $path }}
 {{- end }}
 {{- end }}
 {{- end }}

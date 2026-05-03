@@ -93,7 +93,7 @@ services:
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "4.0.2"
+      tag: "5.0.1"
     service:
       port: 8080
       targetPort: 8080
@@ -154,7 +154,7 @@ services:
       - /api/v1/did
       - /api/v1/subscriptions
     internalApiPaths:
-      - /api/v1/internal/*
+      - /api/v1/internal
     replicaCount: 1
     image:
       repository: product-service
@@ -210,7 +210,7 @@ services:
       - /api/v1/billing
       - /api/v1/webhooks/razorpay
     internalApiPaths:
-      - /api/v1/internal/*
+      - /api/v1/internal
     replicaCount: 1
     image:
       repository: billing-service
@@ -273,7 +273,12 @@ services:
       - /api/v1/ai
       - /ws
     internalApiPaths:
-      - /api/v1/internal/*
+      - /api/v1/internal
+      - /api/v1/write
+      - /internal
+      - /freeswitch
+      - /kamailio
+      - /rtpengine
     replicaCount: 1
     image:
       repository: pbx-core
