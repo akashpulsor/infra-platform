@@ -12,6 +12,16 @@ global:
     enabled: true
     namespace: istio-system
     name: central-gateway
+  cors:
+    allowOrigins:
+      - type: exact
+        value: "https://dashboard.dalaillama.in"
+      - type: exact
+        value: "https://platform.dalaillama.in"
+      - type: regex
+        value: "https://.*\\.dalaillama\\.in"
+      - type: prefix
+        value: "http://localhost"
 
 istio:
   enabled: true
@@ -93,7 +103,7 @@ services:
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "5.0.4"
+      tag: "5.0.5"
     service:
       port: 8080
       targetPort: 8080

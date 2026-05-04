@@ -22,9 +22,9 @@ spec:
             prefix: {{ $path }}
       corsPolicy:
         allowOrigins:
-          - exact: https://dashboard.dalaillama.in
-          - exact: https://platform.dalaillama.in
-          - prefix: http://localhost
+        {{- range $origin := $.Values.global.cors.allowOrigins }}
+          - {{ $origin.type }}: {{ $origin.value }}
+        {{- end }}
         allowMethods:
           - GET
           - POST
@@ -37,6 +37,8 @@ spec:
           - Content-Type
           - Accept
           - X-Requested-With
+          - X-App-Type
+          - X-Tenant-ID
         allowCredentials: true
         maxAge: 86400s
       retries:
