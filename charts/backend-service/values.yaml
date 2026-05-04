@@ -158,7 +158,7 @@ services:
     replicaCount: 1
     image:
       repository: product-service
-      tag: "5.0.4"
+      tag: "5.0.5"
     service:
       port: 8080
       targetPort: 8080
