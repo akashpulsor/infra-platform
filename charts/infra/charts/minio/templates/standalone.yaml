@@ -45,7 +45,7 @@ spec:
             - server
             - /data
             - --console-address
-            - :{{ .Values.service.ports.console | quote }}
+            - ":{{ .Values.service.ports.console }}"
           env:
             - name: MINIO_ROOT_USER
               valueFrom:
