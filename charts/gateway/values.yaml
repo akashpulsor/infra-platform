@@ -121,7 +121,7 @@ istio:
   tls:
     enabled: true
     httpsRedirect: true
-    clusterIssuer: letsencrypt-prod
+    clusterIssuer: letsencrypt-prod-dns
     certificates:
       # Individual certs — Istio picks most specific SNI match first
       - secretName: auth-dalaillama-in-tls
@@ -155,8 +155,7 @@ certificates:
       - dalaillama.in
 
 # ── DNS-01 ClusterIssuer (Cloudflare) ─────────────────────────────
-# Used by the wildcard Certificate. Individual certs can keep using
-# the existing letsencrypt-prod issuer (which may also be DNS-01).
+# Used by ALL Certificate resources (wildcard + individual).
 clusterIssuer:
   dns01:
     enabled: true
