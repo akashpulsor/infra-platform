@@ -73,12 +73,10 @@ spec:
               echo "Got admin token."
 
               echo "=== Step 1: Find basic scope and update sub mapper ==="
-              # Get all scopes, write to file for safe parsing
-              curl -s "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes" \
-                -H "Authorization: Bearer $TOKEN" > /tmp/scopes.json
-
-              # Find basic scope ID — match "name":"basic" then look backwards for id
-              BASIC_ID=$(cat /tmp/scopes.json | sed 's/},{/}\n{/g' | grep '"name":"basic"' | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+              # Get basic scope ID — grep for "name":"basic" with adjacent "id"
+              SCOPES=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes" \
+                -H "Authorization: Bearer $TOKEN")
+              BASIC_ID=$(echo "$SCOPES" | grep -o '"id":"[^"]*","name":"basic"' | head -1 | cut -d'"' -f4)
               echo "Basic scope: $BASIC_ID"
 
               if [ -z "$BASIC_ID" ]; then
@@ -86,32 +84,28 @@ spec:
                 exit 1
               fi
 
-              # Get mappers for basic scope
-              curl -s "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models" \
-                -H "Authorization: Bearer $TOKEN" > /tmp/mappers.json
-
-              # Find existing sub mapper
-              SUB_ID=$(cat /tmp/mappers.json | sed 's/},{/}\n{/g' | grep 'oidc-sub-mapper' | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+              # Find existing sub mapper by matching id adjacent to name:"sub"
+              MAPPERS=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models" \
+                -H "Authorization: Bearer $TOKEN")
+              SUB_ID=$(echo "$MAPPERS" | grep -o '"id":"[^"]*","name":"sub"' | head -1 | cut -d'"' -f4)
               echo "Existing sub mapper: $SUB_ID"
 
               if [ -n "$SUB_ID" ]; then
                 echo "Updating sub mapper with lightweight support..."
-                HTTP=$(curl -s -o /tmp/resp.txt -w "%{http_code}" -X PUT \
+                HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
                   "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models/$SUB_ID" \
                   -H "Authorization: Bearer $TOKEN" \
                   -H "Content-Type: application/json" \
                   -d "{\"id\":\"$SUB_ID\",\"name\":\"sub\",\"protocol\":\"openid-connect\",\"protocolMapper\":\"oidc-sub-mapper\",\"config\":{\"access.token.claim\":\"true\",\"id.token.claim\":\"true\",\"introspection.token.claim\":\"true\",\"lightweight.claim.access.token\":\"true\"}}")
                 echo "Update mapper: HTTP $HTTP"
-                cat /tmp/resp.txt 2>/dev/null; echo ""
               else
                 echo "Creating sub mapper..."
-                HTTP=$(curl -s -o /tmp/resp.txt -w "%{http_code}" -X POST \
+                HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
                   "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models" \
                   -H "Authorization: Bearer $TOKEN" \
                   -H "Content-Type: application/json" \
                   -d '{"name":"sub","protocol":"openid-connect","protocolMapper":"oidc-sub-mapper","config":{"access.token.claim":"true","id.token.claim":"true","introspection.token.claim":"true","lightweight.claim.access.token":"true"}}')
                 echo "Create mapper: HTTP $HTTP"
-                cat /tmp/resp.txt 2>/dev/null; echo ""
               fi
 
               echo "=== Done ==="
