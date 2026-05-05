@@ -166,3 +166,5 @@ clusterIssuer:
     privateKeySecret: letsencrypt-prod-dns
     cloudflareTokenSecret: cloudflare-api-token-secret
     cloudflareTokenKey: api-token
+    # Actual token value — leave empty here, override via values-secret.yaml
+    cloudflareApiToken: ""
