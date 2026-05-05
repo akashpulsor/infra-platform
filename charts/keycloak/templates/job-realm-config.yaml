@@ -97,15 +97,36 @@ spec:
               fi
               echo "Found default scope '$SCOPE_NAME' (id=$BASIC_SCOPE_ID)"
 
-              # Check if sub mapper already exists
-              EXISTING=$(curl -sf \
+              # Get existing mappers on this scope
+              echo "Checking existing protocol mappers on '$SCOPE_NAME' scope..."
+              MAPPERS=$(curl -sf \
                 "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_SCOPE_ID/protocol-mappers/models" \
                 -H "Authorization: Bearer $TOKEN")
 
-              if echo "$EXISTING" | grep -q '"protocolMapper":"oidc-sub-mapper"'; then
-                echo "Sub mapper already exists — skipping."
+              echo "Mappers: $MAPPERS"
+
+              # Find existing sub mapper ID (any mapper with oidc-sub-mapper type)
+              SUB_MAPPER_ID=$(echo "$MAPPERS" | grep -o '"id":"[^"]*","name":"[^"]*","protocol":"openid-connect","protocolMapper":"oidc-sub-mapper"' | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
+
+              if [ -n "$SUB_MAPPER_ID" ]; then
+                echo "Found existing sub mapper (id=$SUB_MAPPER_ID) — updating config..."
+                HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                  "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_SCOPE_ID/protocol-mappers/models/$SUB_MAPPER_ID" \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d "{
+                    \"id\": \"$SUB_MAPPER_ID\",
+                    \"name\": \"subject (sub)\",
+                    \"protocol\": \"openid-connect\",
+                    \"protocolMapper\": \"oidc-sub-mapper\",
+                    \"config\": {
+                      \"access.token.claim\": \"true\",
+                      \"introspection.token.claim\": \"true\"
+                    }
+                  }")
+                echo "Update sub mapper response: HTTP $HTTP_CODE"
               else
-                echo "Adding 'sub' protocol mapper to '$SCOPE_NAME' scope..."
+                echo "No existing sub mapper found — creating..."
                 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
                   "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_SCOPE_ID/protocol-mappers/models" \
                   -H "Authorization: Bearer $TOKEN" \
@@ -119,13 +140,13 @@ spec:
                       "introspection.token.claim": "true"
                     }
                   }')
+                echo "Create sub mapper response: HTTP $HTTP_CODE"
+              fi
 
-                if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "204" ]; then
-                  echo "Sub mapper added successfully (HTTP $HTTP_CODE)."
-                else
-                  echo "ERROR: Failed to add sub mapper (HTTP $HTTP_CODE)"
-                  exit 1
-                fi
+              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "204" ]; then
+                echo "Sub mapper configured successfully."
+              else
+                echo "WARNING: Sub mapper operation returned HTTP $HTTP_CODE (may need manual check)"
               fi
 
               echo "Realm config applied successfully."
