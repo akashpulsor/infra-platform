@@ -2,6 +2,7 @@
 # REALM CONFIG JOB
 # Applies realm-level settings (e.g. include 'sub' claim in access tokens).
 # Runs on every install/upgrade via Helm hook to ensure idempotent config.
+# Uses curl + Keycloak Admin REST API (no heavy Keycloak image needed).
 # =============================================================================
 {{- if .Values.jobs.realmConfig.enabled }}
 apiVersion: batch/v1
@@ -47,7 +48,7 @@ spec:
       {{- end }}
       containers:
         - name: realm-config
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: curlimages/curl:latest
           command:
             - sh
             - -c
@@ -56,18 +57,44 @@ spec:
               KEYCLOAK_URL="http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.servicePort }}"
               REALM="{{ .Values.keycloak.realmName }}"
 
-              echo "Configuring Keycloak admin CLI..."
-              /opt/keycloak/bin/kcadm.sh config credentials \
-                --server "$KEYCLOAK_URL" \
-                --realm master \
-                --user "$KEYCLOAK_ADMIN" \
-                --password "$KEYCLOAK_ADMIN_PASSWORD"
+              echo "Getting admin token..."
+              TOKEN=$(curl -sf -X POST \
+                "$KEYCLOAK_URL/realms/master/protocol/openid-connect/token" \
+                -H "Content-Type: application/x-www-form-urlencoded" \
+                -d "username=$KEYCLOAK_ADMIN" \
+                -d "password=$KEYCLOAK_ADMIN_PASSWORD" \
+                -d "grant_type=password" \
+                -d "client_id=admin-cli" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+
+              if [ -z "$TOKEN" ]; then
+                echo "ERROR: Failed to get admin token"
+                exit 1
+              fi
+              echo "Got admin token."
+
+              echo "Fetching current realm attributes for '$REALM'..."
+              CURRENT=$(curl -sf \
+                "$KEYCLOAK_URL/admin/realms/$REALM" \
+                -H "Authorization: Bearer $TOKEN")
+
+              if [ -z "$CURRENT" ]; then
+                echo "ERROR: Failed to fetch realm '$REALM'"
+                exit 1
+              fi
 
               echo "Setting access.token.include.sub=true on realm '$REALM'..."
-              /opt/keycloak/bin/kcadm.sh update "realms/$REALM" \
-                -s 'attributes."access.token.include.sub"=true'
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                "$KEYCLOAK_URL/admin/realms/$REALM" \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{\"attributes\":{\"access.token.include.sub\":\"true\"}}")
 
-              echo "Realm config applied successfully."
+              if [ "$HTTP_CODE" = "204" ] || [ "$HTTP_CODE" = "200" ]; then
+                echo "Realm config applied successfully (HTTP $HTTP_CODE)."
+              else
+                echo "ERROR: Failed to update realm (HTTP $HTTP_CODE)"
+                exit 1
+              fi
           env:
             - name: KEYCLOAK_ADMIN
               value: {{ .Values.auth.adminUser | quote }}
