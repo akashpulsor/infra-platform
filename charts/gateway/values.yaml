@@ -123,13 +123,7 @@ istio:
     httpsRedirect: true
     clusterIssuer: letsencrypt-prod
     certificates:
-      # Wildcard cert — covers ALL *.dalaillama.in tenant subdomains
-      # Requires DNS-01 challenge (Let's Encrypt doesn't do HTTP-01 for wildcards)
-      - secretName: wildcard-dalaillama-in-tls
-        hosts:
-          - "*.dalaillama.in"
-          - dalaillama.in
-      # Individual certs kept as fallback (Istio picks most specific match)
+      # Individual certs — Istio picks most specific SNI match first
       - secretName: auth-dalaillama-in-tls
         hosts:
           - auth.dalaillama.in
@@ -148,3 +142,27 @@ istio:
       - secretName: console-dalaillama-in-tls
         hosts:
           - console.dalaillama.in
+
+# ── Wildcard certificate for *.dalaillama.in ──────────────────────
+# Covers all per-tenant subdomains (agent-acme-xxx, admin-acme-xxx, etc.)
+# Requires DNS-01 challenge — HTTP-01 cannot validate wildcards.
+certificates:
+  wildcard:
+    enabled: true
+    secretName: wildcard-dalaillama-in-tls
+    dnsNames:
+      - "*.dalaillama.in"
+      - dalaillama.in
+
+# ── DNS-01 ClusterIssuer (Cloudflare) ─────────────────────────────
+# Used by the wildcard Certificate. Individual certs can keep using
+# the existing letsencrypt-prod issuer (which may also be DNS-01).
+clusterIssuer:
+  dns01:
+    enabled: true
+    name: letsencrypt-prod-dns
+    email: admin@dalaillama.in
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecret: letsencrypt-prod-dns
+    cloudflareTokenSecret: cloudflare-api-token-secret
+    cloudflareTokenKey: api-token

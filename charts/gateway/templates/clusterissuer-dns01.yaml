@@ -1,0 +1,21 @@
+{{- if .Values.clusterIssuer.dns01.enabled }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.clusterIssuer.dns01.name }}
+spec:
+  acme:
+    email: {{ .Values.clusterIssuer.dns01.email }}
+    server: {{ .Values.clusterIssuer.dns01.server }}
+    privateKeySecretRef:
+      name: {{ .Values.clusterIssuer.dns01.privateKeySecret }}
+    solvers:
+      - selector:
+          dnsZones:
+            - "dalaillama.in"
+        dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: {{ .Values.clusterIssuer.dns01.cloudflareTokenSecret }}
+              key: {{ .Values.clusterIssuer.dns01.cloudflareTokenKey }}
+{{- end }}
