@@ -103,7 +103,7 @@ services:
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "5.0.6"
+      tag: "5.0.8"
     service:
       port: 8080
       targetPort: 8080
@@ -168,7 +168,7 @@ services:
     replicaCount: 1
     image:
       repository: product-service
-      tag: "5.0.7"
+      tag: "5.0.8"
     service:
       port: 8080
       targetPort: 8080
