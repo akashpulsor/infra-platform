@@ -72,29 +72,63 @@ spec:
               fi
               echo "Got admin token."
 
-              echo "Fetching current realm attributes for '$REALM'..."
-              CURRENT=$(curl -sf \
-                "$KEYCLOAK_URL/admin/realms/$REALM" \
+              # ── Step 1: Add 'sub' protocol mapper to a default client scope ──
+              # In Keycloak 24+, 'sub' is NOT in the access token by default.
+              # We need an oidc-sub-mapper on a default scope so all clients get it.
+              echo "Looking up default client scopes..."
+              SCOPES=$(curl -sf \
+                "$KEYCLOAK_URL/admin/realms/$REALM/default-default-client-scopes" \
                 -H "Authorization: Bearer $TOKEN")
 
-              if [ -z "$CURRENT" ]; then
-                echo "ERROR: Failed to fetch realm '$REALM'"
-                exit 1
-              fi
+              # Find the 'basic' scope (ships with Keycloak, always default)
+              BASIC_SCOPE_ID=$(echo "$SCOPES" | grep -o '"id":"[^"]*","name":"basic"' | grep -o '"id":"[^"]*' | cut -d'"' -f4)
 
-              echo "Setting access.token.include.sub=true on realm '$REALM'..."
-              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
-                "$KEYCLOAK_URL/admin/realms/$REALM" \
-                -H "Authorization: Bearer $TOKEN" \
-                -H "Content-Type: application/json" \
-                -d "{\"attributes\":{\"access.token.include.sub\":\"true\"}}")
-
-              if [ "$HTTP_CODE" = "204" ] || [ "$HTTP_CODE" = "200" ]; then
-                echo "Realm config applied successfully (HTTP $HTTP_CODE)."
+              if [ -z "$BASIC_SCOPE_ID" ]; then
+                # Fallback: try 'roles' scope
+                BASIC_SCOPE_ID=$(echo "$SCOPES" | grep -o '"id":"[^"]*","name":"roles"' | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+                SCOPE_NAME="roles"
               else
-                echo "ERROR: Failed to update realm (HTTP $HTTP_CODE)"
+                SCOPE_NAME="basic"
+              fi
+
+              if [ -z "$BASIC_SCOPE_ID" ]; then
+                echo "ERROR: Could not find a default client scope (basic or roles)"
                 exit 1
               fi
+              echo "Found default scope '$SCOPE_NAME' (id=$BASIC_SCOPE_ID)"
+
+              # Check if sub mapper already exists
+              EXISTING=$(curl -sf \
+                "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_SCOPE_ID/protocol-mappers/models" \
+                -H "Authorization: Bearer $TOKEN")
+
+              if echo "$EXISTING" | grep -q '"protocolMapper":"oidc-sub-mapper"'; then
+                echo "Sub mapper already exists — skipping."
+              else
+                echo "Adding 'sub' protocol mapper to '$SCOPE_NAME' scope..."
+                HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                  "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_SCOPE_ID/protocol-mappers/models" \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d '{
+                    "name": "subject (sub)",
+                    "protocol": "openid-connect",
+                    "protocolMapper": "oidc-sub-mapper",
+                    "config": {
+                      "access.token.claim": "true",
+                      "introspection.token.claim": "true"
+                    }
+                  }')
+
+                if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "204" ]; then
+                  echo "Sub mapper added successfully (HTTP $HTTP_CODE)."
+                else
+                  echo "ERROR: Failed to add sub mapper (HTTP $HTTP_CODE)"
+                  exit 1
+                fi
+              fi
+
+              echo "Realm config applied successfully."
           env:
             - name: KEYCLOAK_ADMIN
               value: {{ .Values.auth.adminUser | quote }}
