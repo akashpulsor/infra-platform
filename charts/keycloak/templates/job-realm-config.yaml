@@ -108,6 +108,41 @@ spec:
                 echo "Create mapper: HTTP $HTTP"
               fi
 
+              echo "=== Step 2: Disable lightweight access tokens on all public clients ==="
+              # Get all clients
+              curl -s "$KEYCLOAK_URL/admin/realms/$REALM/clients" \
+                -H "Authorization: Bearer $TOKEN" > /tmp/clients.json
+
+              # Extract all client UUIDs that are public
+              for CLIENT_UUID in $(grep -o '"id":"[^"]*","clientId":"[^"]*"[^}]*"publicClient":true' /tmp/clients.json | grep -o '"id":"[^"]*' | cut -d'"' -f4); do
+                CLIENT_CID=$(grep -o "\"id\":\"$CLIENT_UUID\",\"clientId\":\"[^\"]*" /tmp/clients.json | grep -o '"clientId":"[^"]*' | cut -d'"' -f4)
+                echo "Processing public client: $CLIENT_CID ($CLIENT_UUID)"
+
+                # Get full client JSON to file
+                curl -s "$KEYCLOAK_URL/admin/realms/$REALM/clients/$CLIENT_UUID" \
+                  -H "Authorization: Bearer $TOKEN" > /tmp/client.json
+
+                # Disable lightweight tokens in the JSON
+                if grep -q '"access.token.lightweight.claim"' /tmp/client.json; then
+                  sed -i 's/"access.token.lightweight.claim":"true"/"access.token.lightweight.claim":"false"/g' /tmp/client.json
+                  echo "  Updated existing lightweight attribute"
+                elif grep -q '"attributes":{' /tmp/client.json; then
+                  sed -i 's/"attributes":{/"attributes":{"access.token.lightweight.claim":"false",/g' /tmp/client.json
+                  echo "  Injected lightweight attribute into attributes"
+                else
+                  echo "  WARNING: no attributes block found, skipping"
+                  continue
+                fi
+
+                # PUT back
+                HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                  "$KEYCLOAK_URL/admin/realms/$REALM/clients/$CLIENT_UUID" \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d @/tmp/client.json)
+                echo "  Client update: HTTP $HTTP"
+              done
+
               echo "=== Done ==="
           env:
             - name: KEYCLOAK_ADMIN
