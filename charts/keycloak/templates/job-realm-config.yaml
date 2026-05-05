@@ -97,19 +97,24 @@ spec:
               fi
               echo "Found default scope '$SCOPE_NAME' (id=$BASIC_SCOPE_ID)"
 
-              # Get existing mappers on this scope
+              # ── Step 1: Upsert 'sub' mapper on default scope with lightweight support ──
               echo "Checking existing protocol mappers on '$SCOPE_NAME' scope..."
               MAPPERS=$(curl -sf \
                 "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_SCOPE_ID/protocol-mappers/models" \
                 -H "Authorization: Bearer $TOKEN")
 
-              echo "Mappers: $MAPPERS"
-
-              # Find existing sub mapper ID (any mapper with oidc-sub-mapper type)
+              # Find existing sub mapper ID
               SUB_MAPPER_ID=$(echo "$MAPPERS" | grep -o '"id":"[^"]*","name":"[^"]*","protocol":"openid-connect","protocolMapper":"oidc-sub-mapper"' | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
 
+              SUB_MAPPER_CONFIG='{
+                "access.token.claim": "true",
+                "id.token.claim": "true",
+                "introspection.token.claim": "true",
+                "lightweight.claim.access.token": "true"
+              }'
+
               if [ -n "$SUB_MAPPER_ID" ]; then
-                echo "Found existing sub mapper (id=$SUB_MAPPER_ID) — updating config..."
+                echo "Found existing sub mapper (id=$SUB_MAPPER_ID) — updating with lightweight support..."
                 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
                   "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_SCOPE_ID/protocol-mappers/models/$SUB_MAPPER_ID" \
                   -H "Authorization: Bearer $TOKEN" \
@@ -121,12 +126,14 @@ spec:
                     \"protocolMapper\": \"oidc-sub-mapper\",
                     \"config\": {
                       \"access.token.claim\": \"true\",
-                      \"introspection.token.claim\": \"true\"
+                      \"id.token.claim\": \"true\",
+                      \"introspection.token.claim\": \"true\",
+                      \"lightweight.claim.access.token\": \"true\"
                     }
                   }")
                 echo "Update sub mapper response: HTTP $HTTP_CODE"
               else
-                echo "No existing sub mapper found — creating..."
+                echo "No existing sub mapper found — creating with lightweight support..."
                 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
                   "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_SCOPE_ID/protocol-mappers/models" \
                   -H "Authorization: Bearer $TOKEN" \
@@ -137,7 +144,9 @@ spec:
                     "protocolMapper": "oidc-sub-mapper",
                     "config": {
                       "access.token.claim": "true",
-                      "introspection.token.claim": "true"
+                      "id.token.claim": "true",
+                      "introspection.token.claim": "true",
+                      "lightweight.claim.access.token": "true"
                     }
                   }')
                 echo "Create sub mapper response: HTTP $HTTP_CODE"
@@ -146,8 +155,26 @@ spec:
               if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "204" ]; then
                 echo "Sub mapper configured successfully."
               else
-                echo "WARNING: Sub mapper operation returned HTTP $HTTP_CODE (may need manual check)"
+                echo "WARNING: Sub mapper response HTTP $HTTP_CODE"
               fi
+
+              # ── Step 2: Disable lightweight access tokens on all public clients ──
+              echo "Checking public clients for lightweight access token setting..."
+              CLIENTS=$(curl -sf \
+                "$KEYCLOAK_URL/admin/realms/$REALM/clients" \
+                -H "Authorization: Bearer $TOKEN")
+
+              # Find public clients (publicClient=true) and disable lightweight tokens
+              for CLIENT_ID in $(echo "$CLIENTS" | grep -o '"id":"[^"]*","clientId":"[^"]*"[^}]*"publicClient":true' | grep -o '"id":"[^"]*' | cut -d'"' -f4); do
+                CLIENT_NAME=$(echo "$CLIENTS" | grep -o "\"id\":\"$CLIENT_ID\",\"clientId\":\"[^\"]*" | grep -o '"clientId":"[^"]*' | cut -d'"' -f4)
+                echo "Disabling lightweight access tokens on client '$CLIENT_NAME'..."
+                HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                  "$KEYCLOAK_URL/admin/realms/$REALM/clients/$CLIENT_ID" \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"id\":\"$CLIENT_ID\",\"clientId\":\"$CLIENT_NAME\",\"attributes\":{\"access.token.lightweight.claim\":\"false\"}}")
+                echo "  -> HTTP $HTTP_CODE"
+              done
 
               echo "Realm config applied successfully."
           env:
