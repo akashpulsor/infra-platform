@@ -15,6 +15,10 @@ auth:
 
 
 
+theme:
+  enabled: false
+  initImage: ""
+
 database:
   enabled: true
   vendor: postgres
