@@ -90,30 +90,19 @@ spec:
               SUB_ID=$(echo "$MAPPERS" | grep -o '"id":"[^"]*","name":"sub"' | head -1 | cut -d'"' -f4)
               echo "Existing sub mapper: $SUB_ID"
 
-              echo "=== Step 2: Add user-id-as-sub mapper to basic scope ==="
-              # The built-in oidc-sub-mapper doesn't work for access tokens in KC26.
-              # Use a User Property mapper to explicitly map user.id -> "sub" claim.
-              PROP_MAPPER_ID=$(echo "$MAPPERS" | grep -o '"id":"[^"]*","name":"user-id-sub"' | head -1 | cut -d'"' -f4)
+              echo "=== Step 2: Assign basic scope to all realm clients ==="
+              # The 'basic' scope (with the sub mapper) may not be assigned to
+              # existing clients. This PUT is idempotent — no body needed.
+              CLIENTS=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM/clients" \
+                -H "Authorization: Bearer $TOKEN")
 
-              MAPPER_BODY='{"name":"user-id-sub","protocol":"openid-connect","protocolMapper":"oidc-usermodel-property-mapper","config":{"user.attribute":"id","claim.name":"sub","jsonType.label":"String","id.token.claim":"true","access.token.claim":"true","lightweight.claim.access.token":"true","introspection.token.claim":"true"}}'
-
-              if [ -n "$PROP_MAPPER_ID" ]; then
-                echo "Updating existing user-id-sub mapper ($PROP_MAPPER_ID)..."
+              for CID in $(echo "$CLIENTS" | grep -o '"id":"[^"]*' | cut -d'"' -f4); do
+                CNAME=$(echo "$CLIENTS" | grep -o "\"id\":\"$CID\",\"clientId\":\"[^\"]*" | grep -o '"clientId":"[^"]*' | cut -d'"' -f4)
                 HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
-                  "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models/$PROP_MAPPER_ID" \
-                  -H "Authorization: Bearer $TOKEN" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"id\":\"$PROP_MAPPER_ID\",\"name\":\"user-id-sub\",\"protocol\":\"openid-connect\",\"protocolMapper\":\"oidc-usermodel-property-mapper\",\"config\":{\"user.attribute\":\"id\",\"claim.name\":\"sub\",\"jsonType.label\":\"String\",\"id.token.claim\":\"true\",\"access.token.claim\":\"true\",\"lightweight.claim.access.token\":\"true\",\"introspection.token.claim\":\"true\"}}")
-                echo "Update user-id-sub mapper: HTTP $HTTP"
-              else
-                echo "Creating user-id-sub mapper..."
-                HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-                  "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models" \
-                  -H "Authorization: Bearer $TOKEN" \
-                  -H "Content-Type: application/json" \
-                  -d "$MAPPER_BODY")
-                echo "Create user-id-sub mapper: HTTP $HTTP"
-              fi
+                  "$KEYCLOAK_URL/admin/realms/$REALM/clients/$CID/default-client-scopes/$BASIC_ID" \
+                  -H "Authorization: Bearer $TOKEN")
+                echo "  $CNAME -> HTTP $HTTP"
+              done
 
               echo "=== Done ==="
           env:
