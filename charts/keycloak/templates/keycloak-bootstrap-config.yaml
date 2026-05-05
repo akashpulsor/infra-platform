@@ -7,7 +7,7 @@ metadata:
 data:
   realm.json: |
     {
-      "realm": "platform",
+      "realm": {{ .Values.keycloak.realmName | quote }},
       "enabled": true,
       "displayName": "Dalai Llama Platform",
 
@@ -23,7 +23,11 @@ data:
 
       "accessTokenLifespan": 300,
       "ssoSessionIdleTimeout": 1800,
-      "ssoSessionMaxLifespan": 36000
+      "ssoSessionMaxLifespan": 36000,
+
+      "attributes": {
+        "access.token.include.sub": "true"
+      }
     }
 ---
 apiVersion: v1

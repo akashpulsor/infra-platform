@@ -1,0 +1,79 @@
+# =============================================================================
+# REALM CONFIG JOB
+# Applies realm-level settings (e.g. include 'sub' claim in access tokens).
+# Runs on every install/upgrade via Helm hook to ensure idempotent config.
+# =============================================================================
+{{- if .Values.jobs.realmConfig.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-realm-config
+  labels:
+    app: keycloak
+    job: realm-config
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "20"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  ttlSecondsAfterFinished: {{ .Values.jobs.realmConfig.ttlSecondsAfterFinished }}
+  backoffLimit: {{ .Values.jobs.realmConfig.backoffLimit }}
+  template:
+    metadata:
+      annotations:
+        {{- if and .Values.istio.enabled .Values.istio.excludeOutboundPorts }}
+        traffic.sidecar.istio.io/excludeOutboundPorts: {{ .Values.istio.excludeOutboundPorts | quote }}
+        {{- end }}
+        sidecar.istio.io/inject: "false"
+      labels:
+        app: keycloak
+        job: realm-config
+    spec:
+      restartPolicy: OnFailure
+      {{- if .Values.jobs.realmConfig.waitForKeycloak }}
+      initContainers:
+        - name: wait-for-keycloak
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Keycloak to be ready..."
+              until curl -sf http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.managementPort }}/health/ready; do
+                echo "Keycloak not ready yet, waiting..."
+                sleep 10
+              done
+              echo "Keycloak is ready!"
+      {{- end }}
+      containers:
+        - name: realm-config
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              KEYCLOAK_URL="http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.servicePort }}"
+              REALM="{{ .Values.keycloak.realmName }}"
+
+              echo "Configuring Keycloak admin CLI..."
+              /opt/keycloak/bin/kcadm.sh config credentials \
+                --server "$KEYCLOAK_URL" \
+                --realm master \
+                --user "$KEYCLOAK_ADMIN" \
+                --password "$KEYCLOAK_ADMIN_PASSWORD"
+
+              echo "Setting access.token.include.sub=true on realm '$REALM'..."
+              /opt/keycloak/bin/kcadm.sh update "realms/$REALM" \
+                -s 'attributes."access.token.include.sub"=true'
+
+              echo "Realm config applied successfully."
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: {{ .Values.auth.adminUser | quote }}
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: password
+{{- end }}

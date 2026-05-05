@@ -7,6 +7,10 @@ replicaCount: 1
 
 keycloak:
   hostname: ""
+  realmName: dalai-llama
+
+auth:
+  adminUser: admin
 
 
 
@@ -90,6 +94,14 @@ jobs:
     schedule: "0 2 * * *"  # Daily at 2 AM
     backoffLimit: 1
     ttlSecondsAfterFinished: 300
+
+  # Realm config job - applies realm attributes (e.g. include sub in token)
+  # Runs on every install/upgrade to ensure realm settings are correct.
+  realmConfig:
+    enabled: true
+    waitForKeycloak: true
+    backoffLimit: 3
+    ttlSecondsAfterFinished: 600
 
     # Custom batch job template
   custom:
