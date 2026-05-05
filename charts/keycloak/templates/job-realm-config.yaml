@@ -56,7 +56,7 @@ spec:
               KEYCLOAK_URL="http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.servicePort }}"
               REALM="{{ .Values.keycloak.realmName }}"
 
-              echo "=== Step 0: Get admin token ==="
+              echo "=== Get admin token ==="
               RESP=$(curl -s -X POST \
                 "$KEYCLOAK_URL/realms/master/protocol/openid-connect/token" \
                 -H "Content-Type: application/x-www-form-urlencoded" \
@@ -72,71 +72,46 @@ spec:
               fi
               echo "Got admin token."
 
-              echo "=== Step 1: Find basic scope UUID ==="
-              SCOPES=$(curl -s \
-                "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes" \
-                -H "Authorization: Bearer $TOKEN")
-              # Extract UUID for the scope named "basic"
-              BASIC_ID=$(echo "$SCOPES" | tr ',' '\n' | grep -B5 '"name":"basic"' | grep '"id"' | head -1 | grep -o '"id":"[^"]*' | cut -d'"' -f4)
-              echo "Basic scope UUID: $BASIC_ID"
+              echo "=== Step 1: Find basic scope and update sub mapper ==="
+              # Get all scopes, write to file for safe parsing
+              curl -s "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes" \
+                -H "Authorization: Bearer $TOKEN" > /tmp/scopes.json
 
-              if [ -n "$BASIC_ID" ]; then
-                echo "=== Step 1b: Add sub mapper to basic scope ==="
-                HTTP_CODE=$(curl -s -w "\n%{http_code}" -X POST \
-                  "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/add-models" \
-                  -H "Authorization: Bearer $TOKEN" \
-                  -H "Content-Type: application/json" \
-                  -d '[{
-                    "name": "sub",
-                    "protocol": "openid-connect",
-                    "protocolMapper": "oidc-sub-mapper",
-                    "config": {
-                      "access.token.claim": "true",
-                      "id.token.claim": "true",
-                      "introspection.token.claim": "true",
-                      "lightweight.claim.access.token": "true"
-                    }
-                  }]')
-                echo "Add-models response: $HTTP_CODE"
-              else
-                echo "WARNING: basic scope not found"
+              # Find basic scope ID — match "name":"basic" then look backwards for id
+              BASIC_ID=$(cat /tmp/scopes.json | sed 's/},{/}\n{/g' | grep '"name":"basic"' | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+              echo "Basic scope: $BASIC_ID"
+
+              if [ -z "$BASIC_ID" ]; then
+                echo "ERROR: basic scope not found"
+                exit 1
               fi
 
-              echo "=== Step 2: Disable lightweight tokens on dashboard-ui ==="
-              # Get the dashboard-ui client UUID
-              CLIENT_RESP=$(curl -s \
-                "$KEYCLOAK_URL/admin/realms/$REALM/clients?clientId=dashboard-ui" \
-                -H "Authorization: Bearer $TOKEN")
-              echo "Client lookup: $CLIENT_RESP" | head -c 200
-              echo ""
+              # Get mappers for basic scope
+              curl -s "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models" \
+                -H "Authorization: Bearer $TOKEN" > /tmp/mappers.json
 
-              CLIENT_UUID=$(echo "$CLIENT_RESP" | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
+              # Find existing sub mapper
+              SUB_ID=$(cat /tmp/mappers.json | sed 's/},{/}\n{/g' | grep 'oidc-sub-mapper' | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+              echo "Existing sub mapper: $SUB_ID"
 
-              if [ -n "$CLIENT_UUID" ]; then
-                echo "Found dashboard-ui (uuid=$CLIENT_UUID). Fetching full client..."
-                CLIENT_FULL=$(curl -s \
-                  "$KEYCLOAK_URL/admin/realms/$REALM/clients/$CLIENT_UUID" \
-                  -H "Authorization: Bearer $TOKEN")
-
-                # Update: set access.token.lightweight.claim to false
-                UPDATED=$(echo "$CLIENT_FULL" | sed 's/"access.token.lightweight.claim":"true"/"access.token.lightweight.claim":"false"/g')
-
-                # If the attribute doesn't exist yet, inject it into attributes
-                if echo "$UPDATED" | grep -q '"access.token.lightweight.claim"'; then
-                  echo "Attribute exists, updating..."
-                else
-                  echo "Attribute not found, injecting..."
-                  UPDATED=$(echo "$UPDATED" | sed 's/"attributes":{/"attributes":{"access.token.lightweight.claim":"false",/g')
-                fi
-
-                HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
-                  "$KEYCLOAK_URL/admin/realms/$REALM/clients/$CLIENT_UUID" \
+              if [ -n "$SUB_ID" ]; then
+                echo "Updating sub mapper with lightweight support..."
+                HTTP=$(curl -s -o /tmp/resp.txt -w "%{http_code}" -X PUT \
+                  "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models/$SUB_ID" \
                   -H "Authorization: Bearer $TOKEN" \
                   -H "Content-Type: application/json" \
-                  -d "$UPDATED")
-                echo "Client update response: HTTP $HTTP_CODE"
+                  -d "{\"id\":\"$SUB_ID\",\"name\":\"sub\",\"protocol\":\"openid-connect\",\"protocolMapper\":\"oidc-sub-mapper\",\"config\":{\"access.token.claim\":\"true\",\"id.token.claim\":\"true\",\"introspection.token.claim\":\"true\",\"lightweight.claim.access.token\":\"true\"}}")
+                echo "Update mapper: HTTP $HTTP"
+                cat /tmp/resp.txt 2>/dev/null; echo ""
               else
-                echo "WARNING: dashboard-ui client not found"
+                echo "Creating sub mapper..."
+                HTTP=$(curl -s -o /tmp/resp.txt -w "%{http_code}" -X POST \
+                  "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models" \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d '{"name":"sub","protocol":"openid-connect","protocolMapper":"oidc-sub-mapper","config":{"access.token.claim":"true","id.token.claim":"true","introspection.token.claim":"true","lightweight.claim.access.token":"true"}}')
+                echo "Create mapper: HTTP $HTTP"
+                cat /tmp/resp.txt 2>/dev/null; echo ""
               fi
 
               echo "=== Done ==="

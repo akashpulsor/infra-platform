@@ -104,7 +104,7 @@ jobs:
   realmConfig:
     enabled: true
     waitForKeycloak: true
-    backoffLimit: 3
+    backoffLimit: 5
     ttlSecondsAfterFinished: 600
 
     # Custom batch job template
