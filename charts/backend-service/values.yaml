@@ -301,11 +301,11 @@ services:
       username: pbx_user
     resources:
       limits:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 1000m       # also bump from 500m — too tight for STOMP + ESL listener
+        memory: 2Gi
       requests:
-        cpu: 100m
-        memory: 512Mi
+        cpu: 200m
+        memory: 1Gi
     autoscaling:
       enabled: false
       minReplicas: 1
