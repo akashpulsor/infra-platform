@@ -1,0 +1,47 @@
+# templates/realm-config-rbac.yaml
+# =============================================================================
+# RBAC for realm-config job to write keycloak-client-secret in apps namespace
+# =============================================================================
+{{- if .Values.jobs.realmConfig.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: keycloak-realm-config
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: keycloak-realm-config-secrets
+  namespace: {{ .Values.keycloak.appsNamespace | default "apps" }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: keycloak-realm-config-secrets
+  namespace: {{ .Values.keycloak.appsNamespace | default "apps" }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+subjects:
+  - kind: ServiceAccount
+    name: keycloak-realm-config
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: keycloak-realm-config-secrets
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

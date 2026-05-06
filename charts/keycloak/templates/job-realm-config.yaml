@@ -1,8 +1,14 @@
 # =============================================================================
 # REALM CONFIG JOB
-# Applies realm-level settings (e.g. include 'sub' claim in access tokens).
-# Runs on every install/upgrade via Helm hook to ensure idempotent config.
-# Uses curl + Keycloak Admin REST API (no heavy Keycloak image needed).
+# Idempotent post-install/upgrade hook that:
+#   1. Bumps master accessTokenLifespan to 3600 (avoids 60s tokens)
+#   2. Ensures platform-api confidential client exists in MASTER realm
+#   3. Reads platform-api secret + syncs to keycloak-client-secret in apps ns
+#   4. Grants master-realm + {realm}-realm roles to platform-api SA
+#   5. Configures sub mapper on basic scope (so JWT contains sub)
+#   6. Assigns basic scope as default to all realm clients
+#   7. Verifies the entire flow with client_credentials
+# Uses curl + Keycloak Admin REST API + K8s API (no kubectl needed).
 # =============================================================================
 {{- if .Values.jobs.realmConfig.enabled }}
 apiVersion: batch/v1
@@ -31,6 +37,7 @@ spec:
         job: realm-config
     spec:
       restartPolicy: OnFailure
+      serviceAccountName: keycloak-realm-config
       {{- if .Values.jobs.realmConfig.waitForKeycloak }}
       initContainers:
         - name: wait-for-keycloak
@@ -53,8 +60,13 @@ spec:
             - sh
             - -c
             - |
+              set -e
               KEYCLOAK_URL="http://keycloak.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.servicePort }}"
               REALM="{{ .Values.keycloak.realmName }}"
+              APPS_NS="{{ .Values.keycloak.appsNamespace | default "apps" }}"
+              K8S_API="https://kubernetes.default.svc"
+              K8S_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              K8S_CA=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
               echo "=== Get admin token ==="
               RESP=$(curl -s -X POST \
@@ -65,46 +77,235 @@ spec:
                 -d "grant_type=password" \
                 -d "client_id=admin-cli")
               TOKEN=$(echo "$RESP" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
-
               if [ -z "$TOKEN" ]; then
                 echo "ERROR: Failed to get admin token. Response: $RESP"
                 exit 1
               fi
               echo "Got admin token."
 
-              echo "=== Step 1: Find basic scope and update sub mapper ==="
-              # Get basic scope ID — grep for "name":"basic" with adjacent "id"
-              SCOPES=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes" \
-                -H "Authorization: Bearer $TOKEN")
-              BASIC_ID=$(echo "$SCOPES" | grep -o '"id":"[^"]*","name":"basic"' | head -1 | cut -d'"' -f4)
-              echo "Basic scope: $BASIC_ID"
+              # ─────────────────────────────────────────────────────────
+              # STEP 1: Bump master accessTokenLifespan to 3600
+              # Default is 60s which kills any multi-step admin operation.
+              # ─────────────────────────────────────────────────────────
+              echo ""
+              echo "=== Step 1: Set master accessTokenLifespan=3600 ==="
+              HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                "$KEYCLOAK_URL/admin/realms/master" \
+                -d '{"accessTokenLifespan":3600}')
+              echo "  HTTP $HTTP"
 
-              if [ -z "$BASIC_ID" ]; then
-                echo "ERROR: basic scope not found"
+              # ─────────────────────────────────────────────────────────
+              # STEP 2: Ensure platform-api confidential client in MASTER
+              # ─────────────────────────────────────────────────────────
+              echo ""
+              echo "=== Step 2: Ensure platform-api in master ==="
+              PA_UUID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+                "$KEYCLOAK_URL/admin/realms/master/clients?clientId=platform-api" \
+                | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
+
+              if [ -z "$PA_UUID" ]; then
+                echo "  Creating platform-api in master..."
+                curl -s -o /dev/null -X POST \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  "$KEYCLOAK_URL/admin/realms/master/clients" \
+                  -d '{
+                    "clientId": "platform-api",
+                    "name": "Platform Backend Admin Client",
+                    "enabled": true,
+                    "protocol": "openid-connect",
+                    "publicClient": false,
+                    "serviceAccountsEnabled": true,
+                    "directAccessGrantsEnabled": false,
+                    "standardFlowEnabled": false,
+                    "implicitFlowEnabled": false,
+                    "clientAuthenticatorType": "client-secret"
+                  }'
+                PA_UUID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+                  "$KEYCLOAK_URL/admin/realms/master/clients?clientId=platform-api" \
+                  | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
+                echo "  Created: $PA_UUID"
+              else
+                echo "  Already exists: $PA_UUID"
+                # Force critical settings in case of drift
+                curl -s -o /dev/null -X PUT \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  "$KEYCLOAK_URL/admin/realms/master/clients/$PA_UUID" \
+                  -d '{"serviceAccountsEnabled":true,"publicClient":false,"clientAuthenticatorType":"client-secret"}'
+              fi
+
+              # ─────────────────────────────────────────────────────────
+              # STEP 3: Read platform-api secret + sync to K8s
+              # ─────────────────────────────────────────────────────────
+              echo ""
+              echo "=== Step 3: Sync platform-api secret to K8s ==="
+              PA_SECRET=$(curl -s -H "Authorization: Bearer $TOKEN" \
+                "$KEYCLOAK_URL/admin/realms/master/clients/$PA_UUID/client-secret" \
+                | grep -o '"value":"[^"]*' | cut -d'"' -f4)
+              if [ -z "$PA_SECRET" ]; then
+                echo "ERROR: Could not read platform-api secret"
+                exit 1
+              fi
+              echo "  Secret length: ${#PA_SECRET}"
+
+              ENCODED=$(printf '%s' "$PA_SECRET" | base64 | tr -d '\n')
+              SECRET_BODY="{\"apiVersion\":\"v1\",\"kind\":\"Secret\",\"metadata\":{\"name\":\"keycloak-client-secret\",\"namespace\":\"$APPS_NS\"},\"type\":\"Opaque\",\"data\":{\"client-secret\":\"$ENCODED\"}}"
+
+              # Try POST first; if 409 (exists) then PATCH
+              CREATE_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                --cacert "$K8S_CA" \
+                -H "Authorization: Bearer $K8S_TOKEN" \
+                -H "Content-Type: application/json" \
+                "$K8S_API/api/v1/namespaces/$APPS_NS/secrets" \
+                -d "$SECRET_BODY")
+
+              if [ "$CREATE_HTTP" = "201" ]; then
+                echo "  Secret created (HTTP 201)"
+              elif [ "$CREATE_HTTP" = "409" ]; then
+                PATCH_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+                  --cacert "$K8S_CA" \
+                  -H "Authorization: Bearer $K8S_TOKEN" \
+                  -H "Content-Type: application/strategic-merge-patch+json" \
+                  "$K8S_API/api/v1/namespaces/$APPS_NS/secrets/keycloak-client-secret" \
+                  -d "{\"data\":{\"client-secret\":\"$ENCODED\"}}")
+                echo "  Secret existed, patched (HTTP $PATCH_HTTP)"
+              else
+                echo "ERROR: K8s secret create failed (HTTP $CREATE_HTTP)"
                 exit 1
               fi
 
-              # Find existing sub mapper by matching id adjacent to name:"sub"
+              # ─────────────────────────────────────────────────────────
+              # STEP 4: Grant cross-realm roles to platform-api SA
+              # Master-realm roles → can manage master + create realms
+              # {realm}-realm roles → can manage dalai-llama users/clients
+              # ─────────────────────────────────────────────────────────
+              echo ""
+              echo "=== Step 4: Grant cross-realm roles to platform-api SA ==="
+              SA_USER_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+                "$KEYCLOAK_URL/admin/realms/master/clients/$PA_UUID/service-account-user" \
+                | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
+              if [ -z "$SA_USER_ID" ]; then
+                echo "ERROR: Could not find service account user for platform-api"
+                exit 1
+              fi
+              echo "  SA user: $SA_USER_ID"
+
+              for CLIENT_ID in master-realm "${REALM}-realm"; do
+                CL_UUID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+                  "$KEYCLOAK_URL/admin/realms/master/clients?clientId=$CLIENT_ID" \
+                  | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
+
+                if [ -z "$CL_UUID" ]; then
+                  echo "  WARN: $CLIENT_ID client not found, skipping"
+                  continue
+                fi
+
+                ROLES=$(curl -s -H "Authorization: Bearer $TOKEN" \
+                  "$KEYCLOAK_URL/admin/realms/master/clients/$CL_UUID/roles")
+
+                HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  "$KEYCLOAK_URL/admin/realms/master/users/$SA_USER_ID/role-mappings/clients/$CL_UUID" \
+                  -d "$ROLES")
+                echo "  $CLIENT_ID roles -> HTTP $HTTP"
+              done
+
+              # ─────────────────────────────────────────────────────────
+              # STEP 5: Sub mapper on basic scope ({realm} realm)
+              # Ensures JWT access tokens contain `sub` claim with user UUID.
+              # ─────────────────────────────────────────────────────────
+              echo ""
+              echo "=== Step 5: Configure sub mapper on basic scope ($REALM) ==="
+              SCOPES=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes" \
+                -H "Authorization: Bearer $TOKEN")
+              BASIC_ID=$(echo "$SCOPES" | grep -o '"id":"[^"]*","name":"basic"' | head -1 | cut -d'"' -f4)
+
+              if [ -z "$BASIC_ID" ]; then
+                echo "ERROR: basic scope not found in $REALM"
+                exit 1
+              fi
+              echo "  Basic scope: $BASIC_ID"
+
               MAPPERS=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models" \
                 -H "Authorization: Bearer $TOKEN")
               SUB_ID=$(echo "$MAPPERS" | grep -o '"id":"[^"]*","name":"sub"' | head -1 | cut -d'"' -f4)
-              echo "Existing sub mapper: $SUB_ID"
 
-              echo "=== Step 2: Assign basic scope to all realm clients ==="
-              # The 'basic' scope (with the sub mapper) may not be assigned to
-              # existing clients. This PUT is idempotent — no body needed.
+              SUB_CONFIG='"config":{"user.attribute":"id","claim.name":"sub","jsonType.label":"String","id.token.claim":"true","access.token.claim":"true","userinfo.token.claim":"true","introspection.token.claim":"true"}'
+
+              if [ -n "$SUB_ID" ]; then
+                echo "  Updating existing sub mapper $SUB_ID"
+                BODY="{\"id\":\"$SUB_ID\",\"name\":\"sub\",\"protocol\":\"openid-connect\",\"protocolMapper\":\"oidc-usermodel-property-mapper\",\"consentRequired\":false,$SUB_CONFIG}"
+                HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models/$SUB_ID" \
+                  -d "$BODY")
+                echo "    HTTP $HTTP"
+              else
+                echo "  Creating sub mapper"
+                BODY="{\"name\":\"sub\",\"protocol\":\"openid-connect\",\"protocolMapper\":\"oidc-usermodel-property-mapper\",\"consentRequired\":false,$SUB_CONFIG}"
+                HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  "$KEYCLOAK_URL/admin/realms/$REALM/client-scopes/$BASIC_ID/protocol-mappers/models" \
+                  -d "$BODY")
+                echo "    HTTP $HTTP"
+              fi
+
+              # ─────────────────────────────────────────────────────────
+              # STEP 6: Assign basic scope to all $REALM clients
+              # ─────────────────────────────────────────────────────────
+              echo ""
+              echo "=== Step 6: Assign basic scope as default to $REALM clients ==="
               CLIENTS=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM/clients" \
                 -H "Authorization: Bearer $TOKEN")
 
               for CID in $(echo "$CLIENTS" | grep -o '"id":"[^"]*' | cut -d'"' -f4); do
-                CNAME=$(echo "$CLIENTS" | grep -o "\"id\":\"$CID\",\"clientId\":\"[^\"]*" | grep -o '"clientId":"[^"]*' | cut -d'"' -f4)
                 HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
                   "$KEYCLOAK_URL/admin/realms/$REALM/clients/$CID/default-client-scopes/$BASIC_ID" \
                   -H "Authorization: Bearer $TOKEN")
-                echo "  $CNAME -> HTTP $HTTP"
+                echo "  client $CID -> HTTP $HTTP"
               done
 
-              echo "=== Done ==="
+              # ─────────────────────────────────────────────────────────
+              # STEP 7: Verify the full flow
+              # ─────────────────────────────────────────────────────────
+              echo ""
+              echo "=== Step 7: Verify ==="
+              CC_TOKEN=$(curl -s -X POST "$KEYCLOAK_URL/realms/master/protocol/openid-connect/token" \
+                -d "grant_type=client_credentials&client_id=platform-api&client_secret=$PA_SECRET" \
+                -H "Content-Type: application/x-www-form-urlencoded" \
+                | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+              if [ -z "$CC_TOKEN" ]; then
+                echo "FAIL: client_credentials returned no token"
+                exit 1
+              fi
+              echo "  client_credentials: OK (token len ${#CC_TOKEN})"
+
+              DL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+                -H "Authorization: Bearer $CC_TOKEN" \
+                "$KEYCLOAK_URL/admin/realms/$REALM/users?max=1")
+              if [ "$DL_HTTP" != "200" ]; then
+                echo "FAIL: query $REALM users (HTTP $DL_HTTP)"
+                exit 1
+              fi
+              echo "  Query $REALM users: OK"
+
+              REALMS_HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+                -H "Authorization: Bearer $CC_TOKEN" \
+                "$KEYCLOAK_URL/admin/realms")
+              if [ "$REALMS_HTTP" != "200" ]; then
+                echo "FAIL: list realms (HTTP $REALMS_HTTP)"
+                exit 1
+              fi
+              echo "  List realms: OK"
+
+              echo ""
+              echo "=== Bootstrap complete ✓ ==="
           env:
             - name: KEYCLOAK_ADMIN
               value: {{ .Values.auth.adminUser | quote }}

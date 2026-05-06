@@ -8,7 +8,7 @@ replicaCount: 1
 keycloak:
   hostname: ""
   realmName: dalai-llama
-
+  appsNamespace: apps
 auth:
   adminUser: admin
 
