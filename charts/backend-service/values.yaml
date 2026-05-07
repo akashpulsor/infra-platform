@@ -103,7 +103,7 @@ services:
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "5.0.95"
+      tag: "5.0.96"
     service:
       port: 8080
       targetPort: 8080
@@ -168,7 +168,7 @@ services:
     replicaCount: 1
     image:
       repository: product-service
-      tag: "5.0.8"
+      tag: "5.0.9"
     service:
       port: 8080
       targetPort: 8080
@@ -224,7 +224,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.1"
+      tag: "5.0.2"
     service:
       port: 8080
       targetPort: 8080
