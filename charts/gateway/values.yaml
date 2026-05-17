@@ -116,6 +116,7 @@ istio:
     - api.dalaillama.in
     - platform.dalaillama.in
     - dashboard.dalaillama.in
+    - creator.dalaillama.in
     - media.dalaillama.in
     - console.dalaillama.in
   tls:
@@ -136,6 +137,9 @@ istio:
       - secretName: dashboard-dalaillama-in-tls
         hosts:
           - dashboard.dalaillama.in
+      - secretName: creator-dalaillama-in-tls
+        hosts:
+          - creator.dalaillama.in
       - secretName: media-dalaillama-in-tls
         hosts:
           - media.dalaillama.in

@@ -143,6 +143,16 @@ app.kubernetes.io/part-of: dalai-llama-backend
       key: {{ .Values.secrets.pbxCore.coturnSecretKey }}
 {{- end -}}
 
+{{/* Creator Service AI Provider Integrations */}}
+{{- define "dalai-backend.creator-ai-integrations" -}}
+- name: OPENAI_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.openaiApiKeyKey }}
+      optional: true
+{{- end -}}
+
 {{/* AI Service Specific Integrations */}}
 {{- define "dalai-backend.ai-service-integrations" -}}
 
@@ -303,6 +313,17 @@ app.kubernetes.io/part-of: dalai-llama-backend
 {{- end }}
 {{- end -}}
 
+{{/* Tenant Service Credential Delivery */}}
+{{- define "dalai-backend.tenant-credential-envs" -}}
+- name: DALAI_CRED_ENCRYPTION_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.tenantServiceCredentials.name }}
+      key: {{ .Values.secrets.tenantServiceCredentials.encryptionKeyKey }}
+- name: DALAI_CRED_TTL_HOURS
+  value: {{ .Values.services.tenantService.credentials.ttlHours | default 72 | quote }}
+{{- end -}}
+
 {{/* Kafka Environment Variables */}}
 {{- define "dalai-backend.kafka-envs" -}}
 - name: KAFKA_BOOTSTRAP_SERVERS
@@ -325,6 +346,8 @@ app.kubernetes.io/part-of: dalai-llama-backend
   value: "http://{{ .Values.services.pbxCoreService.name }}.{{ .Values.services.pbxCoreService.namespace }}.svc.cluster.local:8080"
 - name: AI_SERVICE_URL
   value: "http://{{ .Values.services.aiService.name }}.{{ .Values.services.aiService.namespace }}.svc.cluster.local:{{ .Values.services.aiService.service.port }}"
+- name: CREATOR_SERVICE_URL
+  value: "http://{{ .Values.services.creatorService.name }}.{{ .Values.services.creatorService.namespace }}.svc.cluster.local:{{ .Values.services.creatorService.service.port }}"
 {{- end -}}
 
 {{/* Billing Service Specific Integrations (Razorpay & Thresholds) */}}
@@ -385,4 +408,8 @@ app.kubernetes.io/part-of: dalai-llama-backend
   value: {{ .Values.minio.buckets.knowledge | default "bot-knowledge" | quote }}
 - name: MINIO_BUCKET_CDR
   value: {{ .Values.minio.buckets.cdr | default "cdr-archives" | quote }}
+- name: MINIO_BUCKET_CREATOR_ASSETS
+  value: {{ .Values.minio.buckets.creatorAssets | default "creator-assets" | quote }}
+- name: MINIO_BUCKET_CREATOR_EXPORTS
+  value: {{ .Values.minio.buckets.creatorExports | default "creator-exports" | quote }}
 {{- end -}}

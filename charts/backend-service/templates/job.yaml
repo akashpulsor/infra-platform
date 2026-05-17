@@ -67,7 +67,7 @@ spec:
               # 3. CREATE REALM ROLES
               # ═══════════════════════════════════════════════════════════
               echo "▶ Step 3: Creating realm roles..."
-              for ROLE in ADMIN SUPERVISOR AGENT; do
+              for ROLE in ADMIN SUPERVISOR AGENT CREATOR; do
                 if $KCADM get roles -r $REALM --fields name 2>/dev/null | grep -q "\"$ROLE\""; then
                   echo "  ✓ Role $ROLE already exists"
                 else
@@ -120,8 +120,12 @@ spec:
                 "Platform UI"
 
               create_public_client "dashboard-ui" \
-                '["https://dash.'$DOMAIN'/*","https://dashboard.'$DOMAIN'/*","https://dashboard-*.'$DOMAIN'/*","http://localhost:5174/*","http://localhost:5177/*"]' \
+                '["https://dashboard.'$DOMAIN'/*","https://dashboard-*.'$DOMAIN'/*","http://localhost:5174/*","http://localhost:5177/*","http://localhost:5181/*"]' \
                 "Dashboard UI"
+
+              create_public_client "creator-ui" \
+                '["https://creator.'$DOMAIN'/*","http://localhost:5181/*","http://localhost:5182/*"]' \
+                "Creator UI"
 
               create_public_client "admin-ui" \
                 '["https://admin-*.'$DOMAIN'/*","http://localhost:5174/*","http://localhost:3000/*"]' \
@@ -201,11 +205,12 @@ spec:
               echo "  Realm:    $REALM"
               echo "  Domain:   $DOMAIN"
               echo ""
-              echo "  Roles:    ADMIN, SUPERVISOR, AGENT"
+              echo "  Roles:    ADMIN, SUPERVISOR, AGENT, CREATOR"
               echo ""
               echo "  Public Clients (PKCE):"
               echo "    platform-ui     → https://app.$DOMAIN"
-              echo "    dashboard-ui    → https://dash.$DOMAIN"
+              echo "    dashboard-ui    → https://dashboard.$DOMAIN"
+              echo "    creator-ui      → https://creator.$DOMAIN"
               echo "    admin-ui        → https://admin-*.$DOMAIN"
               echo "    supervisor-ui   → https://supervisor-*.$DOMAIN"
               echo "    agent-ui        → https://agent-*.$DOMAIN"

@@ -71,7 +71,7 @@ spec:
             {{- if ne $serviceName "aiService" }}
             # ── Spring-specific config (not needed for Python) ──
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://postgres.{{ $.Values.global.infraNamespace }}.svc.cluster.local:5432/{{ $serviceConfig.database.name }}"
+              value: "jdbc:postgresql://postgres.{{ $.Values.global.infraNamespace }}.svc.cluster.local:5432/{{ $serviceConfig.database.name }}?sslmode=disable"
             - name: SPRING_DATASOURCE_USERNAME
               value: {{ $serviceConfig.database.username | quote }}
             {{- end }}
@@ -83,12 +83,16 @@ spec:
             {{- if eq $serviceName "tenantService" }}
             {{- include "dalai-backend.keycloak-admin-envs" $ | nindent 12 }}
             {{- include "dalai-backend.provisioning-envs" $ | nindent 12 }}
+            {{- include "dalai-backend.tenant-credential-envs" $ | nindent 12 }}
             {{- end }}
             {{- if eq $serviceName "productService" }}
             {{- include "dalai-backend.product-integrations" $ | nindent 12 }}
             {{- end }}
             {{- if eq $serviceName "billingService" }}
             {{- include "dalai-backend.billing-integrations" $ | nindent 12 }}
+            {{- end }}
+            {{- if eq $serviceName "creatorService" }}
+            {{- include "dalai-backend.creator-ai-integrations" $ | nindent 12 }}
             {{- end }}
             {{- if eq $serviceName "pbxCoreService" }}
             {{- include "dalai-backend.pbx-core-integrations" $ | nindent 12 }}

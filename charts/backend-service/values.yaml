@@ -65,6 +65,8 @@ minio:
     exports: campaign-exports
     knowledge: bot-knowledge
     cdr: cdr-archives
+    creatorAssets: creator-assets
+    creatorExports: creator-exports
 
 serviceEntries:
   epsilon-greeter:
@@ -103,7 +105,7 @@ services:
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "5.0.87"
+      tag: "5.0.88"
     service:
       port: 8080
       targetPort: 8080
@@ -120,6 +122,8 @@ services:
       ipWaitTimeoutMinutes: 5
       ipPollIntervalSeconds: 30
       minWalletBalance: 500
+    credentials:
+      ttlHours: 72
     # RTP fork target — RTPEngine (same server) → ai-service (inside cluster)
     # hostPort exposes 5555 directly on the node. Same-server: use 127.0.0.1
     aiService:
@@ -224,7 +228,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.3"
+      tag: "5.0.4"
     service:
       port: 8080
       targetPort: 8080
@@ -254,12 +258,88 @@ services:
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
+      CREATOR_KAFKA_BILLING_EVENTS_TOPIC: "creator.billing.events"
+      BILLING_USAGE_MARGIN_PERCENT: "80"
+      BILLING_CURRENCY_CONVERSION_RATES: "INR_INR=1"
     billing:
       gracePeriodDays: 7
       lowBalanceThreshold: 500
       defaultCurrency: INR
     razorpay:
       enabled: false
+
+  # --- CREATOR SERVICE ---
+  creatorService:
+    enabled: true
+    expose: true
+    name: creator-service
+    namespace: apps
+    health: {}
+    apiPaths:
+      - /api/v1/creator
+    internalApiPaths:
+      - /api/v1/internal/creator
+      - /actuator
+    replicaCount: 1
+    image:
+      repository: creator-service
+      tag: "0.1.0"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: creator_db
+      username: creator_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: "8080"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SPRING_JPA_SHOW_SQL: "false"
+      SHOW_SQL: "false"
+      SQL_LOG_LEVEL: "WARN"
+      SPRING_FLYWAY_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://localhost:5184,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
+      CREATOR_AI_PROVIDER: "openai"
+      CREATOR_AI_MODEL: "gpt-4o-mini"
+      OPENAI_BASE_URL: "https://api.openai.com/v1"
+      CREATOR_AI_TIMEOUT_MS: "60000"
+      CREATOR_AI_MAX_OUTPUT_TOKENS: "4096"
+      CREATOR_AI_BILLING_ENABLED: "true"
+      CREATOR_AI_TOKEN_RATE: "0.0001"
+      CREATOR_AI_MINIMUM_CHARGE: "0"
+      CREATOR_AI_BILLING_CURRENCY: "INR"
+      CREATOR_WALLET_GUARD_ENABLED: "true"
+      CREATOR_MINIMUM_WALLET_BALANCE: "100"
+      CREATOR_WALLET_CHECK_TIMEOUT_MS: "3000"
+      CREATOR_JOB_TTL_SECONDS: "86400"
+      CREATOR_KAFKA_GENERATION_JOBS_TOPIC: "creator.generation.jobs"
+      CREATOR_KAFKA_BILLING_EVENTS_TOPIC: "creator.billing.events"
+      CREATOR_KAFKA_ANALYTICS_EVENTS_TOPIC: "creator.analytics.events"
+      CREATOR_TREND_SCHEDULER_ENABLED: "false"
+      CREATOR_TREND_SCHEDULER_FIXED_DELAY_MS: "1800000"
+      CREATOR_TREND_SCHEDULER_INITIAL_DELAY_MS: "60000"
+      CREATOR_TREND_SCHEDULER_WINDOW_MINUTES: "30"
+      CREATOR_TREND_SCHEDULER_COUNTRY_CODE: "IN"
+      MINIO_BUCKET_CREATOR_ASSETS: "creator-assets"
+      MINIO_BUCKET_CREATOR_EXPORTS: "creator-exports"
+      MINIO_PUBLIC_URL: "https://media.dalaillama.in"
+      MINIO_SIGNED_URL_TTL_SECONDS: "3600"
 
   # --- pbxCore SERVICE ---
   pbxCoreService:
@@ -453,6 +533,13 @@ services:
 # SECRETS MAPPING & VALUES
 # =============================================================================
 secrets:
+  tenantServiceCredentials:
+    name: tenant-service-credentials
+    encryptionKeyKey: encryption-key
+    values:
+      # Base64-encoded 32-byte key. Example: openssl rand -base64 32
+      encryptionKey: ""
+
   didww:
     name: dalai-backend-didww
     apiKeyKey: api-key

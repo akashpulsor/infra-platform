@@ -236,6 +236,9 @@ function Run-Deployment {
             Write-Step "Deploying dashboard UI"
             helm upgrade --install dashboard-ui charts/dashboard-ui -n apps -f charts/dashboard-ui/values.yaml
 
+            Write-Step "Deploying creator UI"
+            helm upgrade --install creator-ui charts/creator-ui -n apps -f charts/creator-ui/values.yaml
+
             Write-Step "Deploying gateway"
             helm upgrade --install gateway charts/gateway -n apps -f charts/gateway/values.yaml
         }

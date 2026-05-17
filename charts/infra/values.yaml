@@ -20,6 +20,9 @@ postgres:
     - username: billing_user
       password: ""
       database: billing_db
+    - username: creator_user
+      password: ""
+      database: creator_db
     - username: pbx_user
       password: ""
       database: pbx_db
@@ -33,6 +36,7 @@ postgres:
     - tenant_db
     - product_db
     - billing_db
+    - creator_db
     - pbx_db
     - ai_db
     - keycloak_db
@@ -126,6 +130,15 @@ kafka:
     - name: billing.cdr.rated
       partitions: 3
       replicationFactor: 1
+    - name: creator.generation.jobs
+      partitions: 3
+      replicationFactor: 1
+    - name: creator.billing.events
+      partitions: 3
+      replicationFactor: 1
+    - name: creator.analytics.events
+      partitions: 3
+      replicationFactor: 1
     - name: cdr.completed
       partitions: 10
       replicationFactor: 1
@@ -198,7 +211,7 @@ minio:
     limits:
       cpu: 500m
       memory: 512Mi
-  defaultBuckets: "call-recordings,voicemail,campaign-exports,bot-knowledge,cdr-archives"
+  defaultBuckets: "call-recordings,voicemail,campaign-exports,bot-knowledge,cdr-archives,creator-assets,creator-exports"
   service:
     type: ClusterIP
     ports:

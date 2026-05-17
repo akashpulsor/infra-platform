@@ -257,10 +257,56 @@ spec:
               fi
 
               # ─────────────────────────────────────────────────────────
-              # STEP 6: Assign basic scope to all $REALM clients
+              # STEP 6: Ensure public UI clients and Creator redirects
+              # Keeps dashboard localhost redirects and creator-ui in sync.
+              # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              echo ""
+              echo "=== Step 6: Ensure public UI clients ==="
+              ensure_public_client() {
+                CLIENT_ID="$1"
+                CLIENT_NAME="$2"
+                REDIRECT_URIS="$3"
+
+                CLIENT_UUID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+                  "$KEYCLOAK_URL/admin/realms/$REALM/clients?clientId=$CLIENT_ID" \
+                  | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
+
+                cat > /tmp/public-client.json <<EOF
+                {"clientId":"$CLIENT_ID","name":"$CLIENT_NAME","enabled":true,"protocol":"openid-connect","publicClient":true,"standardFlowEnabled":true,"directAccessGrantsEnabled":true,"implicitFlowEnabled":false,"redirectUris":$REDIRECT_URIS,"webOrigins":["*"],"attributes":{"pkce.code.challenge.method":"S256"}}
+                EOF
+
+                if [ -n "$CLIENT_UUID" ]; then
+                  HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                    -H "Authorization: Bearer $TOKEN" \
+                    -H "Content-Type: application/json" \
+                    "$KEYCLOAK_URL/admin/realms/$REALM/clients/$CLIENT_UUID" \
+                    -d @/tmp/public-client.json)
+                  echo "  Updated $CLIENT_ID -> HTTP $HTTP"
+                else
+                  HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                    -H "Authorization: Bearer $TOKEN" \
+                    -H "Content-Type: application/json" \
+                    "$KEYCLOAK_URL/admin/realms/$REALM/clients" \
+                    -d @/tmp/public-client.json)
+                  echo "  Created $CLIENT_ID -> HTTP $HTTP"
+                fi
+              }
+
+              ensure_public_client "dashboard-ui" "Dashboard UI" '["https://dashboard.dalaillama.in/*","https://dashboard-*.dalaillama.in/*","http://localhost:5174/*","http://localhost:5177/*","http://localhost:5181/*"]'
+              ensure_public_client "creator-ui" "Creator UI" '["https://creator.dalaillama.in/*","http://localhost:5181/*","http://localhost:5182/*"]'
+
+              CREATOR_ROLE_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                "$KEYCLOAK_URL/admin/realms/$REALM/roles" \
+                -d '{"name":"CREATOR","description":"CREATOR role for Dalai LLAMA creator app"}')
+              echo "  Ensure CREATOR role -> HTTP $CREATOR_ROLE_HTTP"
+
+              # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              # STEP 7: Assign basic scope to all $REALM clients
               # ─────────────────────────────────────────────────────────
               echo ""
-              echo "=== Step 6: Assign basic scope as default to $REALM clients ==="
+              echo "=== Step 7: Assign basic scope as default to $REALM clients ==="
               CLIENTS=$(curl -s "$KEYCLOAK_URL/admin/realms/$REALM/clients" \
                 -H "Authorization: Bearer $TOKEN")
 
@@ -272,10 +318,10 @@ spec:
               done
 
               # ─────────────────────────────────────────────────────────
-              # STEP 7: Verify the full flow
+              # STEP 8: Verify the full flow
               # ─────────────────────────────────────────────────────────
               echo ""
-              echo "=== Step 7: Verify ==="
+              echo "=== Step 8: Verify ==="
               CC_TOKEN=$(curl -s -X POST "$KEYCLOAK_URL/realms/master/protocol/openid-connect/token" \
                 -d "grant_type=client_credentials&client_id=platform-api&client_secret=$PA_SECRET" \
                 -H "Content-Type: application/x-www-form-urlencoded" \
