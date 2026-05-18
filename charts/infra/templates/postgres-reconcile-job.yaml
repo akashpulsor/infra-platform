@@ -1,0 +1,90 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-reconcile-users
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: postgres
+    part-of: dalai-infra
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "20"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: postgres
+        job: reconcile-users
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: reconcile
+          image: "{{ dig "image" "repository" "postgres" .Values.postgres }}:{{ dig "image" "tag" "16.1-alpine" .Values.postgres }}"
+          imagePullPolicy: {{ dig "image" "pullPolicy" "IfNotPresent" .Values.postgres }}
+          env:
+            - name: PGHOST
+              value: "postgres.{{ .Release.Namespace }}.svc.cluster.local"
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: "postgres"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.postgres.name }}
+                  key: {{ .Values.secrets.postgres.passwordKey }}
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.auth.database | quote }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+
+              echo "Waiting for PostgreSQL..."
+              until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do
+                sleep 5
+              done
+
+              echo "Reconciling PostgreSQL databases and roles..."
+
+              {{- range .Values.postgres.databases }}
+              psql -v ON_ERROR_STOP=1 --dbname "$POSTGRES_DB" <<-EOSQL
+                SELECT 'CREATE DATABASE "{{ . }}"'
+                WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{{ . }}')\gexec
+                GRANT ALL PRIVILEGES ON DATABASE "{{ . }}" TO postgres;
+              EOSQL
+              {{- end }}
+
+              {{- range .Values.postgres.users }}
+              psql -v ON_ERROR_STOP=1 --dbname "$POSTGRES_DB" <<-EOSQL
+                DO
+                \$do\$
+                BEGIN
+                  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ .username }}') THEN
+                    CREATE ROLE "{{ .username }}" LOGIN PASSWORD '{{ .password }}';
+                  ELSE
+                    ALTER ROLE "{{ .username }}" WITH LOGIN PASSWORD '{{ .password }}';
+                  END IF;
+                END
+                \$do\$;
+                GRANT ALL PRIVILEGES ON DATABASE "{{ .database }}" TO "{{ .username }}";
+              EOSQL
+
+              psql -v ON_ERROR_STOP=1 --dbname "{{ .database }}" <<-EOSQL
+                GRANT USAGE, CREATE ON SCHEMA public TO "{{ .username }}";
+                GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "{{ .username }}";
+                GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "{{ .username }}";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "{{ .username }}";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "{{ .username }}";
+              EOSQL
+              {{- end }}
+
+              echo "PostgreSQL reconciliation complete."
+{{- end }}

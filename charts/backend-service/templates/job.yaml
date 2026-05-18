@@ -124,7 +124,7 @@ spec:
                 "Dashboard UI"
 
               create_public_client "creator-ui" \
-                '["https://creator.'$DOMAIN'/*","http://localhost:5181/*","http://localhost:5182/*"]' \
+                '["https://creator.'$DOMAIN'/*","https://creator.'$DOMAIN'/auth/callback","http://localhost:5181/*","http://localhost:5181/auth/callback","http://localhost:5182/*","http://localhost:5182/auth/callback"]' \
                 "Creator UI"
 
               create_public_client "admin-ui" \

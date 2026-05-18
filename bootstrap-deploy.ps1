@@ -240,7 +240,7 @@ function Run-Deployment {
             helm upgrade --install creator-ui charts/creator-ui -n apps -f charts/creator-ui/values.yaml
 
             Write-Step "Deploying gateway"
-            helm upgrade --install gateway charts/gateway -n apps -f charts/gateway/values.yaml
+            helm upgrade --install gateway charts/gateway -n istio-system -f charts/gateway/values.yaml
         }
     }
     finally {

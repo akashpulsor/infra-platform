@@ -293,7 +293,7 @@ spec:
               }
 
               ensure_public_client "dashboard-ui" "Dashboard UI" '["https://dashboard.dalaillama.in/*","https://dashboard-*.dalaillama.in/*","http://localhost:5174/*","http://localhost:5177/*","http://localhost:5181/*"]'
-              ensure_public_client "creator-ui" "Creator UI" '["https://creator.dalaillama.in/*","http://localhost:5181/*","http://localhost:5182/*"]'
+              ensure_public_client "creator-ui" "Creator UI" '["https://creator.dalaillama.in/*","https://creator.dalaillama.in/auth/callback","http://localhost:5181/*","http://localhost:5181/auth/callback","http://localhost:5182/*","http://localhost:5182/auth/callback"]'
 
               CREATOR_ROLE_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
                 -H "Authorization: Bearer $TOKEN" \
