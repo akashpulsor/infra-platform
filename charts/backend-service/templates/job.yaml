@@ -2,7 +2,11 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: keycloak-bootstrap
-  namespace: apps
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "30"
+    "helm.sh/hook-delete-policy": before-hook-creation
   labels:
     app: keycloak-bootstrap
 spec:

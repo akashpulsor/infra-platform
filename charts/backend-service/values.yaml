@@ -150,7 +150,7 @@ services:
       HEALTH_CHECK_ENABLED: "true"
       HEALTH_CHECK_INTERVAL_SECONDS: "60"
       HEALTH_CHECK_FAILURE_THRESHOLD: "3"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
@@ -228,7 +228,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.4"
+      tag: "5.0.5"
     service:
       port: 8080
       targetPort: 8080
@@ -254,7 +254,7 @@ services:
       SQL_LOG_LEVEL: "WARN"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -336,8 +336,6 @@ services:
       CREATOR_TREND_SCHEDULER_INITIAL_DELAY_MS: "60000"
       CREATOR_TREND_SCHEDULER_WINDOW_MINUTES: "30"
       CREATOR_TREND_SCHEDULER_COUNTRY_CODE: "IN"
-      MINIO_BUCKET_CREATOR_ASSETS: "creator-assets"
-      MINIO_BUCKET_CREATOR_EXPORTS: "creator-exports"
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       MINIO_SIGNED_URL_TTL_SECONDS: "3600"
 
