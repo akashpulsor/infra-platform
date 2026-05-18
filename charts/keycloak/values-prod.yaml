@@ -10,7 +10,8 @@ theme:
 
 jobs:
   realmImport:
-    enabled: false
+    enabled: true
+    useHelmHook: true
   realmConfig:
     enabled: true
   custom:

@@ -70,11 +70,9 @@ istio:
 jobs:
   # Realm import job - imports realm configuration on first install
   realmImport:
-    # Keep disabled for normal upgrades because Kubernetes Jobs are immutable.
-    # Enable only for a first-time realm bootstrap or run it manually.
-    enabled: false
-    # When false, create a normal Job so Helm does not wait on it during install/upgrade.
-    useHelmHook: false
+    enabled: true
+    # Run as a post-install hook so Helm does not try to patch the immutable Job on upgrades.
+    useHelmHook: true
     # Run the import hook on upgrades too. Usually not needed because import uses --override=false.
     runOnUpgrade: false
     # ConfigMap containing realm JSON files
