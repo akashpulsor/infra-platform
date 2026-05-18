@@ -31,6 +31,9 @@ spec:
         {{- if $serviceConfig.database }}
         checksum/db-secret: {{ printf "%s:%s" $serviceConfig.database.username ($serviceConfig.database.password | default "") | sha256sum }}
         {{- end }}
+        {{- if eq $serviceName "tenantService" }}
+        checksum/tenant-credentials-secret: {{ printf "%s:%s" $.Values.secrets.tenantServiceCredentials.name (required "secrets.tenantServiceCredentials.values.encryptionKey is required. Generate once with: openssl rand -base64 32" $.Values.secrets.tenantServiceCredentials.values.encryptionKey) | sha256sum }}
+        {{- end }}
         {{- if $serviceConfig.additionalPorts }}
         traffic.sidecar.istio.io/excludeInboundPorts: "{{ range $i, $p := $serviceConfig.additionalPorts }}{{ if $i }},{{ end }}{{ $p.targetPort }}{{ end }}"
         {{- end }}
