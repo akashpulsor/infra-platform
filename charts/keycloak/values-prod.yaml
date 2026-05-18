@@ -9,6 +9,10 @@ theme:
   enabled: false
 
 jobs:
+  realmImport:
+    enabled: false
+  realmConfig:
+    enabled: true
   custom:
     enabled: false
 resources:
