@@ -280,10 +280,15 @@ services:
     internalApiPaths:
       - /api/v1/internal/creator
       - /actuator
+    gateway:
+      timeout: 180s
+      retries:
+        attempts: 1
+        perTryTimeout: 180s
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.2"
+      tag: "0.1.3"
     service:
       port: 8080
       targetPort: 8080
@@ -322,7 +327,7 @@ services:
       GEMINI_MODEL: "gemini-2.5-flash"
       GEMINI_IMAGE_MODEL: "imagen-3.0-generate-001"
       CREATOR_STORYBOARD_IMAGE_GENERATION_ENABLED: "true"
-      CREATOR_AI_TIMEOUT_MS: "60000"
+      CREATOR_AI_TIMEOUT_MS: "180000"
       CREATOR_AI_MAX_OUTPUT_TOKENS: "4096"
       CREATOR_AI_BILLING_ENABLED: "true"
       CREATOR_AI_TOKEN_RATE: "0.0001"

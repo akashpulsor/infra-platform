@@ -17,6 +17,9 @@ spec:
     - api.{{ $.Values.global.domain }}
   http:
     {{- range $path := $serviceConfig.apiPaths }}
+    {{- $routeTimeout := dig "gateway" "timeout" (dig "routeTimeout" "30s" $.Values.global) $serviceConfig }}
+    {{- $retryAttempts := dig "gateway" "retries" "attempts" (dig "routeRetries" "attempts" 3 $.Values.global) $serviceConfig }}
+    {{- $perTryTimeout := dig "gateway" "retries" "perTryTimeout" (dig "routeRetries" "perTryTimeout" "10s" $.Values.global) $serviceConfig }}
     - match:
         - uri:
             prefix: {{ $path }}
@@ -42,14 +45,14 @@ spec:
         allowCredentials: true
         maxAge: 86400s
       retries:
-        attempts: 3
-        perTryTimeout: 10s
+        attempts: {{ $retryAttempts }}
+        perTryTimeout: {{ $perTryTimeout }}
       route:
         - destination:
             host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
             port:
               number: {{ $serviceConfig.service.port }}
-      timeout: 30s
+      timeout: {{ $routeTimeout }}
     {{- end }}
 {{- end }}
 ---
