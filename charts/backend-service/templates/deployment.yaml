@@ -34,6 +34,10 @@ spec:
         {{- if eq $serviceName "tenantService" }}
         checksum/tenant-credentials-secret: {{ printf "%s:%s" $.Values.secrets.tenantServiceCredentials.name (required "secrets.tenantServiceCredentials.values.encryptionKey is required. Generate once with: openssl rand -base64 32" $.Values.secrets.tenantServiceCredentials.values.encryptionKey) | sha256sum }}
         {{- end }}
+        {{- if eq $serviceName "creatorService" }}
+        checksum/creator-ai-secret: {{ printf "%s:%s:%s:%s:%s" $.Values.secrets.aiService.name ($.Values.secrets.aiService.values.openaiApiKey | default "") ($.Values.secrets.aiService.values.geminiApiKey | default "") $.Values.secrets.aiService.openaiApiKeyKey $.Values.secrets.aiService.geminiApiKeyKey | sha256sum }}
+        checksum/creator-reddit-secret: {{ printf "%s:%s:%s:%s:%s" $.Values.secrets.reddit.name ($.Values.secrets.reddit.values.clientId | default "") ($.Values.secrets.reddit.values.clientSecret | default "") $.Values.secrets.reddit.clientIdKey $.Values.secrets.reddit.clientSecretKey | sha256sum }}
+        {{- end }}
         {{- if $serviceConfig.additionalPorts }}
         traffic.sidecar.istio.io/excludeInboundPorts: "{{ range $i, $p := $serviceConfig.additionalPorts }}{{ if $i }},{{ end }}{{ $p.targetPort }}{{ end }}"
         {{- end }}
