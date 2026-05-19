@@ -315,8 +315,8 @@ services:
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
-      CREATOR_AI_PROVIDER: "openai"
-      CREATOR_AI_MODEL: "gpt-4o-mini"
+      CREATOR_AI_PROVIDER: "gemini"
+      CREATOR_AI_MODEL: "gemini-2.5-flash"
       OPENAI_BASE_URL: "https://api.openai.com/v1"
       GEMINI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta"
       GEMINI_MODEL: "gemini-2.5-flash"
@@ -586,6 +586,14 @@ secrets:
       deepgramApiKey: ""
       googleApiKey: ""
       googleCredentialsJson: ""
+
+  reddit:
+    name: reddit-secrets
+    clientIdKey: reddit-client-id
+    clientSecretKey: reddit-client-secret
+    values:
+      clientId: ""
+      clientSecret: ""
 
   razorpay:
     name: dalai-backend-razorpay
