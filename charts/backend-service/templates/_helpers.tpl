@@ -151,6 +151,24 @@ app.kubernetes.io/part-of: dalai-llama-backend
       name: {{ .Values.secrets.aiService.name }}
       key: {{ .Values.secrets.aiService.openaiApiKeyKey }}
       optional: true
+- name: GEMINI_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.geminiApiKeyKey }}
+      optional: true
+- name: REDDIT_CLIENT_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.reddit.name }}
+      key: {{ .Values.secrets.reddit.clientIdKey }}
+      optional: true
+- name: REDDIT_CLIENT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.reddit.name }}
+      key: {{ .Values.secrets.reddit.clientSecretKey }}
+      optional: true
 {{- end -}}
 
 {{/* AI Service Specific Integrations */}}
@@ -180,6 +198,12 @@ app.kubernetes.io/part-of: dalai-llama-backend
     secretKeyRef:
       name: {{ .Values.secrets.aiService.name }}
       key: {{ .Values.secrets.aiService.openaiApiKeyKey }}
+      optional: true
+- name: GEMINI_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.geminiApiKeyKey }}
       optional: true
 - name: DEEPGRAM_API_KEY
   valueFrom:

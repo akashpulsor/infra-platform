@@ -228,7 +228,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.5"
+      tag: "5.0.5 "
     service:
       port: 8080
       targetPort: 8080
@@ -283,7 +283,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.0"
+      tag: "0.1.1"
     service:
       port: 8080
       targetPort: 8080
@@ -318,6 +318,10 @@ services:
       CREATOR_AI_PROVIDER: "openai"
       CREATOR_AI_MODEL: "gpt-4o-mini"
       OPENAI_BASE_URL: "https://api.openai.com/v1"
+      GEMINI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta"
+      GEMINI_MODEL: "gemini-2.5-flash"
+      GEMINI_IMAGE_MODEL: "imagen-3.0-generate-001"
+      CREATOR_STORYBOARD_IMAGE_GENERATION_ENABLED: "true"
       CREATOR_AI_TIMEOUT_MS: "60000"
       CREATOR_AI_MAX_OUTPUT_TOKENS: "4096"
       CREATOR_AI_BILLING_ENABLED: "true"
@@ -571,12 +575,14 @@ secrets:
   aiService:
     name: ai-service-secrets
     openaiApiKeyKey: openai-api-key
+    geminiApiKeyKey: gemini-api-key
     deepgramApiKeyKey: deepgram-api-key
     googleApiKeyKey: google-api-key
     googleCredentialsJsonKey: google-credentials-json
     googleCredentialsJsonPathKey: google-credentials-json-path
     values:
       openaiApiKey: ""
+      geminiApiKey: ""
       deepgramApiKey: ""
       googleApiKey: ""
       googleCredentialsJson: ""
