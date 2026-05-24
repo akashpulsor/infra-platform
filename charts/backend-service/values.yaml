@@ -288,7 +288,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.92"
+      tag: "0.1.93"
     service:
       port: 8080
       targetPort: 8080
@@ -325,7 +325,7 @@ services:
       OPENAI_BASE_URL: "https://api.openai.com/v1"
       GEMINI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta"
       GEMINI_MODEL: "gemini-2.5-flash"
-      GEMINI_IMAGE_MODEL: "imagen-3.0-generate-001"
+      GEMINI_IMAGE_MODEL: "gemini-3.1-flash-image-preview"
       CREATOR_STORYBOARD_IMAGE_GENERATION_ENABLED: "true"
       CREATOR_AI_TIMEOUT_MS: "180000"
       CREATOR_AI_MAX_OUTPUT_TOKENS: "32768"
