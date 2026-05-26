@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.0.9
+  tag: 0.1.9
   pullPolicy: Always
 
 replicaCount: 1
@@ -27,6 +27,7 @@ env:
   PLATFORM_URL: "https://platform.dalaillama.in"
   CREATOR_APP_URL: "https://creator.dalaillama.in"
   API_BASE_URL: "https://api.dalaillama.in/api/v1"
+  GA_MEASUREMENT_ID: "G-YVWC0J9JC3"
 
 resources:
   requests:
