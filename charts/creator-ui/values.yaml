@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.0.3
+  tag: 0.0.4
   pullPolicy: Always
 
 replicaCount: 1
