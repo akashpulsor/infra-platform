@@ -288,7 +288,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.99"
+      tag: "0.1.991"
     service:
       port: 8080
       targetPort: 8080
@@ -325,7 +325,14 @@ services:
       OPENAI_BASE_URL: "https://api.openai.com/v1"
       GEMINI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta"
       GEMINI_MODEL: "gemini-2.5-flash"
-      GEMINI_IMAGE_MODEL: "gemini-3.1-flash-image-preview"
+      GEMINI_IMAGE_MODEL: "gemini-2.5-flash-image"
+      GEMINI_VIDEO_MODEL: "veo-3.1-generate-preview"
+      GEMINI_VIDEO_RESOLUTION: "1080p"
+      GEMINI_VIDEO_DURATION_SECONDS: "8"
+      GEMINI_VIDEO_PERSON_GENERATION: "allow_adult"
+      GEMINI_VIDEO_POLL_INTERVAL_MS: "10000"
+      GEMINI_VIDEO_TIMEOUT_MS: "900000"
+      CREATOR_SHOT_VIDEO_GENERATION_ENABLED: "true"
       CREATOR_STORYBOARD_IMAGE_GENERATION_ENABLED: "true"
       CREATOR_AI_TIMEOUT_MS: "180000"
       CREATOR_AI_MAX_OUTPUT_TOKENS: "32768"
