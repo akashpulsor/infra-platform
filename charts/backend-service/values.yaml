@@ -228,7 +228,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.5 "
+      tag: "5.0.6"
     service:
       port: 8080
       targetPort: 8080
@@ -288,7 +288,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.983"
+      tag: "0.1.984"
     service:
       port: 8080
       targetPort: 8080
@@ -327,6 +327,11 @@ services:
       GEMINI_MODEL: "gemini-2.5-flash"
       GEMINI_IMAGE_MODEL: "gemini-2.5-flash-image"
       GEMINI_VIDEO_MODEL: "veo-3.1-generate-preview"
+      CREATOR_GOOGLE_GENAI_BACKEND: "ai_studio"
+      GOOGLE_CLOUD_PROJECT_ID: ""
+      GOOGLE_CLOUD_LOCATION: "us-central1"
+      LYRIA_MUSIC_GENERATION_ENABLED: "true"
+      LYRIA_MUSIC_MODEL: "lyria-3-clip-preview"
       GEMINI_VIDEO_RESOLUTION: "1080p"
       GEMINI_VIDEO_DURATION_SECONDS: "8"
       GEMINI_VIDEO_PERSON_GENERATION: "allow_adult"
@@ -340,6 +345,8 @@ services:
       CREATOR_AI_TOKEN_RATE: "0.0001"
       CREATOR_AI_MINIMUM_CHARGE: "0"
       CREATOR_AI_BILLING_CURRENCY: "INR"
+      CREATOR_AUDIO_ENHANCEMENT_RATE_PER_MINUTE_USD: "0.02"
+      CREATOR_AI_USAGE_MARKUP_PERCENT: "80"
       CREATOR_WALLET_GUARD_ENABLED: "true"
       CREATOR_MINIMUM_WALLET_BALANCE: "100"
       CREATOR_WALLET_CHECK_TIMEOUT_MS: "3000"

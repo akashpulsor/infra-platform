@@ -157,6 +157,12 @@ app.kubernetes.io/part-of: dalai-llama-backend
       name: {{ .Values.secrets.aiService.name }}
       key: {{ .Values.secrets.aiService.geminiApiKeyKey }}
       optional: true
+- name: GOOGLE_CREDENTIALS_JSON
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.googleCredentialsJsonKey }}
+      optional: true
 - name: REDDIT_CLIENT_ID
   valueFrom:
     secretKeyRef:
