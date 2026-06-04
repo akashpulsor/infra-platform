@@ -288,7 +288,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.984"
+      tag: "0.1.985"
     service:
       port: 8080
       targetPort: 8080
@@ -297,11 +297,11 @@ services:
       username: creator_user
     resources:
       limits:
-        cpu: 500m
-        memory: 768Mi
+        cpu: 1000m
+        memory: 2Gi
       requests:
-        cpu: 100m
-        memory: 256Mi
+        cpu: 200m
+        memory: 1Gi
     autoscaling:
       enabled: false
       minReplicas: 1
