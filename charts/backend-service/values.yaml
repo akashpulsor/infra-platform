@@ -260,7 +260,7 @@ services:
       SERVER_PORT: "8080"
       CREATOR_KAFKA_BILLING_EVENTS_TOPIC: "creator.billing.events"
       BILLING_USAGE_MARGIN_PERCENT: "80"
-      BILLING_CURRENCY_CONVERSION_RATES: "INR_INR=1"
+      BILLING_CURRENCY_CONVERSION_RATES: "INR_INR=1,USD_INR=96"
     billing:
       gracePeriodDays: 7
       lowBalanceThreshold: 500
@@ -288,7 +288,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.985"
+      tag: "0.1.986"
     service:
       port: 8080
       targetPort: 8080
@@ -327,6 +327,24 @@ services:
       GEMINI_MODEL: "gemini-2.5-flash"
       GEMINI_IMAGE_MODEL: "gemini-2.5-flash-image"
       GEMINI_VIDEO_MODEL: "veo-3.1-generate-preview"
+      CREATOR_STUDIO_POLISH_VIDEO_PROVIDER: "luma"
+      CREATOR_STUDIO_POLISH_PROMPT_COMPACTION_ENABLED: "true"
+      CREATOR_STUDIO_POLISH_PROMPT_COMPACTION_GOOGLE_VEO_CHARS: "1800"
+      CREATOR_STUDIO_POLISH_PROMPT_COMPACTION_LUMA_CHARS: "1800"
+      CREATOR_STUDIO_POLISH_PROMPT_COMPACTION_RUNWAY_CHARS: "900"
+      LUMA_BASE_URL: "https://api.lumalabs.ai/dream-machine/v1"
+      LUMA_VIDEO_MODEL: "ray-flash-2"
+      LUMA_VIDEO_MODE: "adhere_2"
+      LUMA_VIDEO_POLL_INTERVAL_MS: "10000"
+      LUMA_VIDEO_TIMEOUT_MS: "900000"
+      CREATOR_PROVIDER_CREDIT_CHECK_ENABLED: "true"
+      CREATOR_LUMA_LOW_CREDIT_THRESHOLD_USD: "10"
+      CREATOR_RUNWAY_LOW_CREDIT_THRESHOLD_CREDITS: "100"
+      RUNWAY_BASE_URL: "https://api.dev.runwayml.com"
+      RUNWAY_API_VERSION: "2024-11-06"
+      RUNWAY_VIDEO_MODEL: "gen4_aleph"
+      RUNWAY_VIDEO_POLL_INTERVAL_MS: "5000"
+      RUNWAY_VIDEO_TIMEOUT_MS: "900000"
       CREATOR_GOOGLE_GENAI_BACKEND: "ai_studio"
       GOOGLE_CLOUD_PROJECT_ID: ""
       GOOGLE_CLOUD_LOCATION: "us-central1"
@@ -595,6 +613,8 @@ secrets:
     name: ai-service-secrets
     openaiApiKeyKey: openai-api-key
     geminiApiKeyKey: gemini-api-key
+    lumaApiKeyKey: luma-api-key
+    runwayApiSecretKey: runway-api-secret
     deepgramApiKeyKey: deepgram-api-key
     googleApiKeyKey: google-api-key
     googleCredentialsJsonKey: google-credentials-json
@@ -602,6 +622,8 @@ secrets:
     values:
       openaiApiKey: ""
       geminiApiKey: ""
+      lumaApiKey: ""
+      runwayApiSecret: ""
       deepgramApiKey: ""
       googleApiKey: ""
       googleCredentialsJson: ""

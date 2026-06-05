@@ -157,6 +157,18 @@ app.kubernetes.io/part-of: dalai-llama-backend
       name: {{ .Values.secrets.aiService.name }}
       key: {{ .Values.secrets.aiService.geminiApiKeyKey }}
       optional: true
+- name: LUMA_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.lumaApiKeyKey }}
+      optional: true
+- name: RUNWAY_API_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.runwayApiSecretKey }}
+      optional: true
 - name: GOOGLE_CREDENTIALS_JSON
   valueFrom:
     secretKeyRef:
