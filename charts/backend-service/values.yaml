@@ -219,7 +219,9 @@ services:
     expose: true
     name: billing-service
     namespace: apps
-    health: {}
+    health:
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     apiPaths:
       - /api/v1/billing
       - /api/v1/webhooks/razorpay
@@ -258,6 +260,7 @@ services:
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
+      MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
       CREATOR_KAFKA_BILLING_EVENTS_TOPIC: "creator.billing.events"
       BILLING_USAGE_MARGIN_PERCENT: "80"
       BILLING_CURRENCY_CONVERSION_RATES: "INR_INR=1,USD_INR=96"
@@ -288,7 +291,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.986"
+      tag: "0.1.987"
     service:
       port: 8080
       targetPort: 8080
@@ -345,6 +348,19 @@ services:
       RUNWAY_VIDEO_MODEL: "gen4_aleph"
       RUNWAY_VIDEO_POLL_INTERVAL_MS: "5000"
       RUNWAY_VIDEO_TIMEOUT_MS: "900000"
+      CREATOR_STUDIO_POLISH_KAFKA_QUEUE_ENABLED: "true"
+      CREATOR_STUDIO_POLISH_JOBS_TOPIC: "creator.studio-polish.jobs"
+      CREATOR_STUDIO_POLISH_CONSUMER_CONCURRENCY: "1"
+      CREATOR_STUDIO_POLISH_TOPIC_PARTITIONS: "12"
+      CREATOR_STUDIO_POLISH_PROVIDER_QUEUE_ENABLED: "true"
+      CREATOR_STUDIO_POLISH_PROVIDER_QUEUE_MAX_WAIT_MS: "1800000"
+      CREATOR_STUDIO_POLISH_PROVIDER_QUEUE_POLL_MS: "5000"
+      CREATOR_RUNWAY_MAX_CONCURRENT_GENERATIONS: "1"
+      CREATOR_RUNWAY_MAX_GENERATIONS_PER_DAY: "50"
+      CREATOR_LUMA_MAX_CONCURRENT_GENERATIONS: "10"
+      CREATOR_LUMA_MAX_GENERATIONS_PER_DAY: "1000"
+      CREATOR_GOOGLE_VEO_MAX_CONCURRENT_GENERATIONS: "1"
+      CREATOR_GOOGLE_VEO_MAX_GENERATIONS_PER_DAY: "50"
       CREATOR_GOOGLE_GENAI_BACKEND: "ai_studio"
       GOOGLE_CLOUD_PROJECT_ID: ""
       GOOGLE_CLOUD_LOCATION: "us-central1"
