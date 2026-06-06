@@ -291,7 +291,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.989"
+      tag: "0.1.971"
     service:
       port: 8080
       targetPort: 8080
@@ -345,7 +345,7 @@ services:
       CREATOR_RUNWAY_LOW_CREDIT_THRESHOLD_CREDITS: "100"
       RUNWAY_BASE_URL: "https://api.dev.runwayml.com"
       RUNWAY_API_VERSION: "2024-11-06"
-      RUNWAY_VIDEO_MODEL: "gen4_aleph"
+      RUNWAY_VIDEO_MODEL: "aleph2"
       RUNWAY_VIDEO_POLL_INTERVAL_MS: "5000"
       RUNWAY_VIDEO_TIMEOUT_MS: "900000"
       CREATOR_STUDIO_POLISH_KAFKA_QUEUE_ENABLED: "true"
