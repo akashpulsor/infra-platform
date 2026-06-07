@@ -291,7 +291,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.973"
+      tag: "0.1.974"
     service:
       port: 8080
       targetPort: 8080
@@ -348,6 +348,12 @@ services:
       RUNWAY_VIDEO_MODEL: "aleph2"
       RUNWAY_VIDEO_POLL_INTERVAL_MS: "5000"
       RUNWAY_VIDEO_TIMEOUT_MS: "900000"
+      DECART_BASE_URL: "https://api.decart.ai/v1"
+      DECART_VIDEO_MODEL: "lucy-vton-3"
+      DECART_VIDEO_RESOLUTION: "720p"
+      DECART_ENHANCE_PROMPT: "false"
+      DECART_VIDEO_POLL_INTERVAL_MS: "5000"
+      DECART_VIDEO_TIMEOUT_MS: "900000"
       CREATOR_STUDIO_POLISH_KAFKA_QUEUE_ENABLED: "true"
       CREATOR_STUDIO_POLISH_JOBS_TOPIC: "creator.studio-polish.jobs"
       CREATOR_STUDIO_POLISH_CONSUMER_CONCURRENCY: "1"
@@ -359,6 +365,8 @@ services:
       CREATOR_RUNWAY_MAX_GENERATIONS_PER_DAY: "50"
       CREATOR_LUMA_MAX_CONCURRENT_GENERATIONS: "10"
       CREATOR_LUMA_MAX_GENERATIONS_PER_DAY: "1000"
+      CREATOR_DECART_MAX_CONCURRENT_GENERATIONS: "1"
+      CREATOR_DECART_MAX_GENERATIONS_PER_DAY: "100"
       CREATOR_GOOGLE_VEO_MAX_CONCURRENT_GENERATIONS: "1"
       CREATOR_GOOGLE_VEO_MAX_GENERATIONS_PER_DAY: "50"
       CREATOR_GOOGLE_GENAI_BACKEND: "ai_studio"
@@ -639,6 +647,7 @@ secrets:
     geminiApiKeyKey: gemini-api-key
     lumaApiKeyKey: luma-api-key
     runwayApiSecretKey: runway-api-secret
+    decartApiKeyKey: decart-api-key
     deepgramApiKeyKey: deepgram-api-key
     googleApiKeyKey: google-api-key
     googleCredentialsJsonKey: google-credentials-json
@@ -648,6 +657,7 @@ secrets:
       geminiApiKey: ""
       lumaApiKey: ""
       runwayApiSecret: ""
+      decartApiKey: ""
       deepgramApiKey: ""
       googleApiKey: ""
       googleCredentialsJson: ""
