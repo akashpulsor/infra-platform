@@ -96,6 +96,17 @@ spec:
                 -d '{"accessTokenLifespan":3600}')
               echo "  HTTP $HTTP"
 
+              {{- if .Values.theme.enabled }}
+              echo ""
+              echo "=== Step 1b: Set $REALM login/email theme ==="
+              THEME_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                "$KEYCLOAK_URL/admin/realms/$REALM" \
+                -d '{"loginTheme":"{{ default "dalaillama" .Values.theme.name }}","emailTheme":"{{ default "dalaillama" .Values.theme.name }}"}')
+              echo "  Theme {{ default "dalaillama" .Values.theme.name }} -> HTTP $THEME_HTTP"
+              {{- end }}
+
               # ─────────────────────────────────────────────────────────
               # STEP 2: Ensure platform-api confidential client in MASTER
               # ─────────────────────────────────────────────────────────

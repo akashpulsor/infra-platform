@@ -28,7 +28,7 @@ data:
 
   # Custom CSS for login page
   dalaillama.css: |
-    /* DalaiLLAMA Custom Theme */
+    /* Dalai Llama Platform Custom Theme */
     
     /* Background */
     .login-pf body {
@@ -105,8 +105,8 @@ data:
 
   # Custom messages/translations
   messages_en.properties: |
-    loginTitle=DalaiLLAMA
-    loginTitleHtml=<strong>DalaiLLAMA</strong> Contact Center
+    loginTitle=Dalai Llama Platform
+    loginTitleHtml=<strong>Dalai Llama</strong> Platform
     doLogIn=Sign In
     noAccount=Need an account?
     doRegister=Register here

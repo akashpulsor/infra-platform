@@ -6,7 +6,10 @@ database:
 
 replicaCount: 3
 theme:
-  enabled: false
+  enabled: true
+  name: dalaillama
+  mode: configmap
+  configMapName: keycloak-theme-config
 
 jobs:
   realmImport:

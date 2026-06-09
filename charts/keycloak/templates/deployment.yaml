@@ -1,3 +1,6 @@
+{{- $themeMode := default (ternary "image" "configmap" (ne (default "" .Values.theme.initImage) "")) .Values.theme.mode -}}
+{{- $themeName := default "dalaillama" .Values.theme.name -}}
+{{- $themeConfigMap := default "keycloak-theme-config" .Values.theme.configMapName -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,13 +20,16 @@ spec:
         {{- if and .Values.istio.enabled .Values.istio.excludeOutboundPorts }}
         traffic.sidecar.istio.io/excludeOutboundPorts: {{ .Values.istio.excludeOutboundPorts | quote }}
         {{- end }}
+        {{- if and .Values.theme.enabled (eq $themeMode "configmap") }}
+        checksum/theme: {{ include (print $.Template.BasePath "/theme-configmap.yaml") . | sha256sum }}
+        {{- end }}
       labels:
         app: keycloak
         sidecar.istio.io/inject: "{{ .Values.istio.enabled | default "false" }}"
 
     spec:
 
-      {{- if .Values.theme.enabled }}
+      {{- if and .Values.theme.enabled (eq $themeMode "image") }}
       initContainers:
         - name: theme-loader
           image: {{ .Values.theme.initImage }}
@@ -167,12 +173,53 @@ spec:
 
           {{- if .Values.theme.enabled }}
           volumeMounts:
+            {{- if eq $themeMode "image" }}
             - name: themes
               mountPath: /opt/keycloak/themes
+            {{- else if eq $themeMode "configmap" }}
+            - name: themes
+              mountPath: /opt/keycloak/themes/{{ $themeName }}
+              readOnly: true
+            {{- end }}
           {{- end }}
 
       {{- if .Values.theme.enabled }}
       volumes:
+        {{- if eq $themeMode "image" }}
         - name: themes
           emptyDir: {}
+        {{- else if eq $themeMode "configmap" }}
+        - name: themes
+          configMap:
+            name: {{ $themeConfigMap }}
+            items:
+              - key: root-theme.properties
+                path: theme.properties
+              - key: login-theme.properties
+                path: login/theme.properties
+              - key: login.css
+                path: login/resources/css/login.css
+              - key: dalaillama.css
+                path: login/resources/css/dalaillama.css
+              - key: login.ftl
+                path: login/login.ftl
+              - key: register.ftl
+                path: login/register.ftl
+              - key: forgot-password.ftl
+                path: login/forgot-password.ftl
+              - key: reset-password.ftl
+                path: login/reset-password.ftl
+              - key: login-messages-en.properties
+                path: login/messages/messages_en.properties
+              - key: email-theme.properties
+                path: email/theme.properties
+              - key: email-messages-en.properties
+                path: email/messages/messages_en.properties
+              - key: email-verification.ftl
+                path: email/html/email-verification.ftl
+              - key: execute-actions.ftl
+                path: email/html/execute-actions.ftl
+              - key: password-reset.ftl
+                path: email/html/password-reset.ftl
+        {{- end }}
       {{- end }}

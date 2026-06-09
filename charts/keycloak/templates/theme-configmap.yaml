@@ -1,15 +1,41 @@
-{{- if .Values.theme.enabled }}
-
+{{- $themeMode := default (ternary "image" "configmap" (ne (default "" .Values.theme.initImage) "")) .Values.theme.mode -}}
+{{- $themeName := default "dalaillama" .Values.theme.name -}}
+{{- if and .Values.theme.enabled (eq $themeMode "configmap") }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: keycloak-theme-config
+  name: {{ default "keycloak-theme-config" .Values.theme.configMapName }}
   labels:
     app: keycloak
-
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/component: theme
 data:
-  theme.properties: |
-    parent=keycloak
-    import=common/keycloak
-
+  root-theme.properties: |-
+{{ .Files.Get (printf "themes/%s/theme.properties" $themeName) | indent 4 }}
+  login-theme.properties: |-
+{{ .Files.Get (printf "themes/%s/login/theme.properties" $themeName) | indent 4 }}
+  login.css: |-
+{{ .Files.Get (printf "themes/%s/login/resources/css/login.css" $themeName) | indent 4 }}
+  dalaillama.css: |-
+{{ .Files.Get (printf "themes/%s/login/resources/css/dalaillama.css" $themeName) | indent 4 }}
+  login.ftl: |-
+{{ .Files.Get (printf "themes/%s/login/login.ftl" $themeName) | indent 4 }}
+  register.ftl: |-
+{{ .Files.Get (printf "themes/%s/login/register.ftl" $themeName) | indent 4 }}
+  forgot-password.ftl: |-
+{{ .Files.Get (printf "themes/%s/login/forgot-password.ftl" $themeName) | indent 4 }}
+  reset-password.ftl: |-
+{{ .Files.Get (printf "themes/%s/login/reset-password.ftl" $themeName) | indent 4 }}
+  login-messages-en.properties: |-
+{{ .Files.Get (printf "themes/%s/login/messages/messages_en.properties" $themeName) | indent 4 }}
+  email-theme.properties: |-
+{{ .Files.Get (printf "themes/%s/email/theme.properties" $themeName) | indent 4 }}
+  email-messages-en.properties: |-
+{{ .Files.Get (printf "themes/%s/email/messages/messages_en.properties" $themeName) | indent 4 }}
+  email-verification.ftl: |-
+{{ .Files.Get (printf "themes/%s/email/html/email-verification.ftl" $themeName) | indent 4 }}
+  execute-actions.ftl: |-
+{{ .Files.Get (printf "themes/%s/email/html/execute-actions.ftl" $themeName) | indent 4 }}
+  password-reset.ftl: |-
+{{ .Files.Get (printf "themes/%s/email/html/password-reset.ftl" $themeName) | indent 4 }}
 {{- end }}

@@ -17,6 +17,9 @@ auth:
 
 theme:
   enabled: false
+  name: dalaillama
+  mode: configmap
+  configMapName: keycloak-theme-config
   initImage: ""
 
 database:

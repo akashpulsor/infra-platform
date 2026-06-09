@@ -17,7 +17,7 @@
                 Reset your password
               </h2>
               <p style="color:#6b7280;font-size:14px;">
-                Click the button below to reset your DalaiLLAMA password.
+                Click the button below to reset your Dalai Llama Platform password.
               </p>
               <a href="${link}"
                  style="display:inline-block;margin-top:24px;padding:12px 24px;

@@ -1,6 +1,6 @@
 apiVersion: v2
 name: keycloak
-description: Keycloak Identity Provider for DalaiLLAMA platform
+description: Keycloak Identity Provider for Dalai Llama Platform
 type: application
 version: 1.0.0
 appVersion: "26.0"
