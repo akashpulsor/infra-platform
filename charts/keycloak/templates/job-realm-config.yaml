@@ -36,7 +36,7 @@ spec:
         app: keycloak
         job: realm-config
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: Never
       serviceAccountName: keycloak-realm-config
       {{- if .Values.jobs.realmConfig.waitForKeycloak }}
       initContainers:

@@ -82,6 +82,18 @@ spec:
             - name: KC_HTTP_MANAGEMENT_ENABLED
               value: "true"
 
+            {{- if .Values.theme.enabled }}
+            # ConfigMap-backed themes should reflect chart changes after rollout.
+            - name: KC_SPI_THEME_CACHE_THEMES
+              value: "false"
+
+            - name: KC_SPI_THEME_CACHE_TEMPLATES
+              value: "false"
+
+            - name: KC_SPI_THEME_STATIC_MAX_AGE
+              value: "-1"
+            {{- end }}
+
             # ==========================
             # Bootstrap Admin
             # ==========================

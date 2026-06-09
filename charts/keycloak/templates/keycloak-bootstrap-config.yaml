@@ -10,6 +10,10 @@ data:
       "realm": {{ .Values.keycloak.realmName | quote }},
       "enabled": true,
       "displayName": "Dalai Llama Platform",
+      {{- if .Values.theme.enabled }}
+      "loginTheme": {{ default "dalaillama" .Values.theme.name | quote }},
+      "emailTheme": {{ default "dalaillama" .Values.theme.name | quote }},
+      {{- end }}
 
       "sslRequired": "external",
       "registrationAllowed": false,
