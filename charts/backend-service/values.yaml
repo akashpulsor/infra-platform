@@ -291,7 +291,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.983"
+      tag: "0.1.984"
     service:
       port: 8080
       targetPort: 8080
@@ -404,11 +404,14 @@ services:
       CREATOR_KAFKA_GENERATION_JOBS_TOPIC: "creator.generation.jobs"
       CREATOR_KAFKA_BILLING_EVENTS_TOPIC: "creator.billing.events"
       CREATOR_KAFKA_ANALYTICS_EVENTS_TOPIC: "creator.analytics.events"
-      CREATOR_TREND_SCHEDULER_ENABLED: "true"
+      CREATOR_TREND_SCHEDULER_ENABLED: "false"
       CREATOR_TREND_SCHEDULER_FIXED_DELAY_MS: "1800000"
       CREATOR_TREND_SCHEDULER_INITIAL_DELAY_MS: "60000"
       CREATOR_TREND_SCHEDULER_WINDOW_MINUTES: "30"
       CREATOR_TREND_SCHEDULER_COUNTRY_CODE: "IN"
+      CREATOR_WEEKLY_IDEA_SCHEDULER_ENABLED: "true"
+      CREATOR_WEEKLY_IDEA_SCHEDULER_FIXED_DELAY_MS: "1296000000"
+      CREATOR_WEEKLY_IDEA_SCHEDULER_INITIAL_DELAY_MS: "60000"
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       MINIO_SIGNED_URL_TTL_SECONDS: "3600"
 
