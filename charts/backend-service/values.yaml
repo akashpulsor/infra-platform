@@ -230,7 +230,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.6"
+      tag: "5.0.7"
     service:
       port: 8080
       targetPort: 8080
@@ -291,7 +291,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.981"
+      tag: "0.1.982"
     service:
       port: 8080
       targetPort: 8080
