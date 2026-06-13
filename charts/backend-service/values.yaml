@@ -291,7 +291,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.801"
+      tag: "0.1.802"
     service:
       port: 8080
       targetPort: 8080
