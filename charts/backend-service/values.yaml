@@ -291,7 +291,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.809"
+      tag: "0.1.810"
     service:
       port: 8080
       targetPort: 8080
@@ -383,6 +383,7 @@ services:
       CREATOR_STORYBOARD_IMAGE_GENERATION_ENABLED: "true"
       CREATOR_AI_TIMEOUT_MS: "180000"
       CREATOR_AI_MAX_OUTPUT_TOKENS: "32768"
+      CREATOR_AI_SHORTS_GENERATION_STALE_JOB_TIMEOUT_MS: "7200000"
       CREATOR_AI_BILLING_ENABLED: "true"
       CREATOR_AI_TOKEN_RATE: "0.0001"
       CREATOR_AI_MINIMUM_CHARGE: "0"
