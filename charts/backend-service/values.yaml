@@ -291,7 +291,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.814"
+      tag: "0.1.815"
     service:
       port: 8080
       targetPort: 8080
@@ -300,11 +300,11 @@ services:
       username: creator_user
     resources:
       limits:
-        cpu: 1000m
-        memory: 2Gi
+        cpu: 2000m
+        memory: 4Gi
       requests:
-        cpu: 200m
-        memory: 1Gi
+        cpu: 500m
+        memory: 2Gi
     autoscaling:
       enabled: false
       minReplicas: 1
@@ -323,6 +323,7 @@ services:
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
+      JAVA_OPTS: "-XX:MaxRAMPercentage=45.0 -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp"
       CREATOR_AI_PROVIDER: "gemini"
       CREATOR_AI_MODEL: "gemini-2.5-flash"
       OPENAI_BASE_URL: "https://api.openai.com/v1"
@@ -383,7 +384,13 @@ services:
       CREATOR_STORYBOARD_IMAGE_GENERATION_ENABLED: "true"
       CREATOR_AI_TIMEOUT_MS: "180000"
       CREATOR_AI_MAX_OUTPUT_TOKENS: "32768"
+      CREATOR_AI_SHORTS_GENERATION_CONSUMER_CONCURRENCY: "1"
+      CREATOR_SHORTS_GENERATION_CONSUMER_CONCURRENCY: "1"
       CREATOR_AI_SHORTS_GENERATION_STALE_JOB_TIMEOUT_MS: "7200000"
+      CREATOR_SHORTS_RENDER_MAX_CANDIDATES: "1"
+      CREATOR_SHORTS_RENDER_FFMPEG_TIMEOUT_MINUTES: "30"
+      CREATOR_SHORTS_POST_RENDER_QA_COMMAND_TIMEOUT_SECONDS: "90"
+      CREATOR_SHORTS_POST_RENDER_QA_COMMAND_OUTPUT_MAX_CHARS: "12000"
       CREATOR_AI_BILLING_ENABLED: "true"
       CREATOR_AI_TOKEN_RATE: "0.0001"
       CREATOR_AI_MINIMUM_CHARGE: "0"
