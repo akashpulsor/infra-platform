@@ -226,7 +226,9 @@ run_deploy() {
   if [[ "$SKIP_ISTIO" != "true" ]]; then
     step "Installing Istio"
     require_cmd istioctl
-    istioctl install -y --set profile=default
+    istioctl install -y \
+      --set profile=default \
+      --set meshConfig.defaultConfig.proxyMetadata.SECRET_TTL=720h
 
     kubectl apply -f istio-namespaces.yaml
     kubectl label namespace infra istio-injection=disabled --overwrite
@@ -272,6 +274,9 @@ run_deploy() {
 
     step "Deploying creator UI"
     helm upgrade --install creator-ui charts/creator-ui -n apps -f charts/creator-ui/values.yaml
+
+    step "Deploying creative worker UI"
+    helm upgrade --install creative-worker-ui charts/creative-worker-ui -n apps -f charts/creative-worker-ui/values.yaml
 
     step "Deploying gateway"
     helm upgrade --install gateway charts/gateway -n istio-system -f charts/gateway/values.yaml

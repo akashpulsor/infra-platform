@@ -18,14 +18,8 @@ data:
 {{ .Files.Get (printf "themes/%s/login/resources/css/login.css" $themeName) | indent 4 }}
   dalaillama.css: |-
 {{ .Files.Get (printf "themes/%s/login/resources/css/dalaillama.css" $themeName) | indent 4 }}
-  login.ftl: |-
-{{ .Files.Get (printf "themes/%s/login/login.ftl" $themeName) | indent 4 }}
-  register.ftl: |-
-{{ .Files.Get (printf "themes/%s/login/register.ftl" $themeName) | indent 4 }}
-  forgot-password.ftl: |-
-{{ .Files.Get (printf "themes/%s/login/forgot-password.ftl" $themeName) | indent 4 }}
-  reset-password.ftl: |-
-{{ .Files.Get (printf "themes/%s/login/reset-password.ftl" $themeName) | indent 4 }}
+  phone-country-code.js: |-
+{{ .Files.Get (printf "themes/%s/login/resources/js/phone-country-code.js" $themeName) | indent 4 }}
   login-messages-en.properties: |-
 {{ .Files.Get (printf "themes/%s/login/messages/messages_en.properties" $themeName) | indent 4 }}
   email-theme.properties: |-

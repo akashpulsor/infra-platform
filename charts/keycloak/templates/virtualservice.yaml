@@ -1,4 +1,6 @@
 {{- if .Values.istio.enabled }}
+{{- $destinationRule := .Values.istio.destinationRule | default dict }}
+{{- $retries := .Values.istio.retries | default dict }}
 # =============================================================================
 # VirtualService - Routes traffic to Keycloak
 # =============================================================================
@@ -22,16 +24,23 @@ spec:
     - match:
         - uri:
             prefix: /
+      headers:
+        request:
+          set:
+            x-forwarded-proto: "https"
+            x-forwarded-port: "443"
       route:
         - destination:
             host: keycloak.{{ .Release.Namespace }}.svc.cluster.local
             port:
               number: {{ .Values.service.servicePort }}
       timeout: 30s
+      {{- if $retries.enabled }}
       retries:
-        attempts: 3
-        perTryTimeout: 10s
-        retryOn: connect-failure,refused-stream,unavailable,cancelled,reset
+        attempts: {{ $retries.attempts | default 3 }}
+        perTryTimeout: {{ $retries.perTryTimeout | default "10s" | quote }}
+        retryOn: {{ $retries.retryOn | default "connect-failure,refused-stream,unavailable,cancelled,reset" | quote }}
+      {{- end }}
 ---
 # =============================================================================
 # DestinationRule - Traffic policy for Keycloak
@@ -48,7 +57,7 @@ spec:
   host: keycloak.{{ .Release.Namespace }}.svc.cluster.local
   trafficPolicy:
     tls:
-      mode: ISTIO_MUTUAL
+      mode: {{ $destinationRule.tlsMode | default "DISABLE" | quote }}
     connectionPool:
       http:
         h2UpgradePolicy: DO_NOT_UPGRADE

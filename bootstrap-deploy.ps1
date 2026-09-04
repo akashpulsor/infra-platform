@@ -192,7 +192,9 @@ function Run-Deployment {
         if (-not $SkipIstio) {
             Write-Step "Installing Istio"
             Assert-Command "istioctl"
-            istioctl install -y --set profile=default
+            istioctl install -y `
+                --set profile=default `
+                --set meshConfig.defaultConfig.proxyMetadata.SECRET_TTL=720h
 
             kubectl apply -f istio-namespaces.yaml
             kubectl label namespace infra istio-injection=disabled --overwrite
@@ -238,6 +240,9 @@ function Run-Deployment {
 
             Write-Step "Deploying creator UI"
             helm upgrade --install creator-ui charts/creator-ui -n apps -f charts/creator-ui/values.yaml
+
+            Write-Step "Deploying creative worker UI"
+            helm upgrade --install creative-worker-ui charts/creative-worker-ui -n apps -f charts/creative-worker-ui/values.yaml
 
             Write-Step "Deploying gateway"
             helm upgrade --install gateway charts/gateway -n istio-system -f charts/gateway/values.yaml

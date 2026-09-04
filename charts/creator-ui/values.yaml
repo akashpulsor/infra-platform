@@ -1,7 +1,7 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.98
-  pullPolicy: Always
+  tag: 0.1.238-video-model-dropdown
+  pullPolicy: IfNotPresent
 
 replicaCount: 1
 
@@ -28,6 +28,13 @@ env:
   CREATOR_APP_URL: "https://creator.dalaillama.in"
   API_BASE_URL: "https://api.dalaillama.in/api/v1"
   GA_MEASUREMENT_ID: "G-YVWC0J9JC3"
+
+# The browser only needs Razorpay's public key ID. The private key and webhook
+# secret stay exclusively on billing-service.
+razorpay:
+  enabled: true
+  existingSecret: dalai-backend-razorpay
+  keyIdKey: key-id
 
 resources:
   requests:

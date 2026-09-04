@@ -1,5 +1,13 @@
 global:
   namespace: infra
+  localDev:
+    # When true, postgres/kafka/minio/redis Services switch from ClusterIP to
+    # LoadBalancer so they're reachable from the host (e.g. IntelliJ/Postman
+    # against this k3d cluster) via k3d's serverlb. Off by default - flip on
+    # only for a local debugging session, then back off:
+    #   helm upgrade infra charts/infra --reuse-values --set global.localDev.exposeInfraLoadBalancer=true
+    #   helm upgrade infra charts/infra --reuse-values --set global.localDev.exposeInfraLoadBalancer=false
+    exposeInfraLoadBalancer: false
 
 # =============================================================================
 # INFRASTRUCTURE - LOCAL SUBCHARTS
@@ -32,6 +40,12 @@ postgres:
     - username: keycloak
       password: ""
       database: keycloak_db
+    - username: trend_intelligence_user
+      password: ""
+      database: trend_intelligence_db
+    - username: chat_user
+      password: ""
+      database: chat_db
   databases:
     - tenant_db
     - product_db
@@ -40,16 +54,22 @@ postgres:
     - pbx_db
     - ai_db
     - keycloak_db
+    - trend_intelligence_db
+    - chat_db
 
   persistence:
-    size: 10Gi
+    # Matches the live PVC size in this cluster -- the local-path storage class here can't
+    # resize, so this must track reality exactly or every `helm upgrade infra` fails trying to
+    # patch a PVC to a size Kubernetes won't apply. Bump only alongside actually resizing/
+    # recreating the underlying volume.
+    size: 2Gi
   resources:
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 512Mi
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 1Gi
 
 redis:
   enabled: true
@@ -58,7 +78,8 @@ redis:
     enabled: true
     password: "redis123"
   persistence:
-    size: 5Gi
+    # See postgres.persistence.size comment -- must match the live PVC.
+    size: 1Gi
   resources:
     requests:
       cpu: 50m
@@ -73,7 +94,8 @@ kafka:
   kraft:
     clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
   persistence:
-    size: 10Gi
+    # See postgres.persistence.size comment -- must match the live PVC.
+    size: 2Gi
   resources:
     requests:
       cpu: 200m
@@ -184,6 +206,9 @@ kafka:
     - name: product.subscription.activated
       partitions: 3
       replicationFactor: 1
+    - name: product.subscription.failed
+      partitions: 3
+      replicationFactor: 1
 
 # =============================================================================
 # MINIO - Object Storage (call recordings, voicemail, exports)
@@ -203,7 +228,8 @@ minio:
     existingSecretName: minio-secret
 
   persistence:
-    size: 50Gi
+    # See postgres.persistence.size comment -- must match the live PVC.
+    size: 5Gi
   resources:
     requests:
       cpu: 100m

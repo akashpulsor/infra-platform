@@ -1,101 +1,216 @@
 {{- if .Values.istio.enabled }}
+
 {{- range $serviceName, $serviceConfig := .Values.services }}
+
 {{- if $serviceConfig.enabled }}
+
 {{- if $serviceConfig.apiPaths }}
+
 ---
+
 apiVersion: networking.istio.io/v1
+
 kind: VirtualService
+
 metadata:
+
   name: {{ $serviceConfig.name }}
+
   namespace: {{ $serviceConfig.namespace }}
+
   labels:
+
     {{- include "dalai-backend.labels" $ | nindent 4 }}
+
 spec:
+
   gateways:
+
     - {{ printf "%s/%s" $.Values.global.gateway.namespace $.Values.global.gateway.name }}
+
   hosts:
+
     - api.{{ $.Values.global.domain }}
+
   http:
-    {{- range $path := $serviceConfig.apiPaths }}
-    {{- $routeTimeout := dig "gateway" "timeout" (dig "routeTimeout" "30s" $.Values.global) $serviceConfig }}
-    {{- $retryAttempts := dig "gateway" "retries" "attempts" (dig "routeRetries" "attempts" 3 $.Values.global) $serviceConfig }}
-    {{- $perTryTimeout := dig "gateway" "retries" "perTryTimeout" (dig "routeRetries" "perTryTimeout" "10s" $.Values.global) $serviceConfig }}
+
+    {{- range $pathEntry := $serviceConfig.apiPaths }}
+
+    {{- $path := $pathEntry }}
+    {{- $timeout := "30s" }}
+    {{- $retryEnabled := true }}
+    {{- $exact := false }}
+    {{- if kindIs "map" $pathEntry }}
+    {{- $path = $pathEntry.path }}
+    {{- if $pathEntry.timeout }}
+    {{- $timeout = $pathEntry.timeout }}
+    {{- end }}
+    {{- if hasKey $pathEntry "retries" }}
+    {{- $retryEnabled = $pathEntry.retries }}
+    {{- end }}
+    {{- if hasKey $pathEntry "exact" }}
+    {{- $exact = $pathEntry.exact }}
+    {{- end }}
+    {{- end }}
+
     - match:
+
         - uri:
+{{- if $exact }}
+
+            exact: {{ $path }}
+{{- else }}
+
             prefix: {{ $path }}
+{{- end }}
+
       corsPolicy:
+
         allowOrigins:
         {{- range $origin := $.Values.global.cors.allowOrigins }}
           - {{ $origin.type }}: {{ $origin.value }}
         {{- end }}
+
         allowMethods:
+
           - GET
+
           - POST
+
           - PUT
+
           - DELETE
+
           - PATCH
+
           - OPTIONS
+
         allowHeaders:
+
           - Authorization
+
           - Content-Type
+
           - Accept
+
           - X-Requested-With
+
           - X-App-Type
+
           - X-Tenant-ID
+
         allowCredentials: true
+
         maxAge: 86400s
+      {{- if $retryEnabled }}
+
       retries:
-        attempts: {{ $retryAttempts }}
-        perTryTimeout: {{ $perTryTimeout }}
+
+        attempts: 3
+
+        perTryTimeout: 10s
+      {{- end }}
+
       route:
+
         - destination:
+
             host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
+
             port:
+
               number: {{ $serviceConfig.service.port }}
-      timeout: {{ $routeTimeout }}
+
+      timeout: {{ $timeout }}
+
     {{- end }}
+
 {{- end }}
+
 ---
+
 # JWT validation — Istio validates tokens when present,
+
 # but does NOT reject requests without a token (that's AuthorizationPolicy's job).
+
 apiVersion: security.istio.io/v1
+
 kind: RequestAuthentication
+
 metadata:
+
   name: {{ $serviceConfig.name }}-jwt
+
   namespace: {{ $serviceConfig.namespace }}
+
 spec:
+
   selector:
+
     matchLabels:
+
       app: {{ $serviceConfig.name }}
+
   jwtRules:
+
     - issuer: {{ $.Values.keycloak.issuerUrl | quote }}
+
       jwksUri: {{ $.Values.keycloak.jwksUri | quote }}
+
       forwardOriginalToken: true
+
 ---
+
 # NOTE: Istio AuthorizationPolicy (DENY) removed.
+
 # JWT enforcement is handled by Spring Security in each microservice.
+
 # RequestAuthentication above still validates tokens when present and sets principal for logging/tracing.
+
 # To re-enable Istio-level JWT enforcement, uncomment the AuthorizationPolicy below.
+
 #
+
 # apiVersion: security.istio.io/v1
+
 # kind: AuthorizationPolicy
+
 # metadata:
+
 #   name: {{ $serviceConfig.name }}-require-jwt
+
 #   namespace: {{ $serviceConfig.namespace }}
+
 # spec:
+
 #   selector:
+
 #     matchLabels:
+
 #       app: {{ $serviceConfig.name }}
+
 #   action: DENY
+
 #   rules:
+
 #     - from:
+
 #         - source:
+
 #             notRequestPrincipals: ["*"]
+
 #       to:
+
 #         - operation:
+
 #             ports: ["{{ $serviceConfig.service.port }}"]
+
 #             notPaths: ["/api/v1/public/*", "/actuator/health"]
+
 #             notMethods: ["OPTIONS"]
+
 {{- end }}
+
 {{- end }}
+
 {{- end }}

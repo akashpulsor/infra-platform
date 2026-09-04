@@ -157,6 +157,12 @@ app.kubernetes.io/part-of: dalai-llama-backend
       name: {{ .Values.secrets.aiService.name }}
       key: {{ .Values.secrets.aiService.geminiApiKeyKey }}
       optional: true
+- name: GOOGLE_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.googleApiKeyKey }}
+      optional: true
 - name: LUMA_API_KEY
   valueFrom:
     secretKeyRef:
@@ -168,6 +174,30 @@ app.kubernetes.io/part-of: dalai-llama-backend
     secretKeyRef:
       name: {{ .Values.secrets.aiService.name }}
       key: {{ .Values.secrets.aiService.runwayApiSecretKey }}
+      optional: true
+- name: SEEDANCE_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.falSecretName | default .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.falApiKeyKey }}
+      optional: true
+- name: FAL_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.falSecretName | default .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.falApiKeyKey }}
+      optional: true
+- name: OMINI_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.ominiApiKeyKey }}
+      optional: true
+- name: GOOGLE_VEO_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.googleVeoApiKeyKey }}
       optional: true
 - name: DECART_API_KEY
   valueFrom:
@@ -193,6 +223,25 @@ app.kubernetes.io/part-of: dalai-llama-backend
       name: {{ .Values.secrets.reddit.name }}
       key: {{ .Values.secrets.reddit.clientSecretKey }}
       optional: true
+{{- end -}}
+
+{{/* LLM Gateway -- reuses the already-provisioned Google API key from ai-service-secrets, no new secret needed */}}
+{{- define "dalai-backend.llm-gateway-integrations" -}}
+- name: GOOGLE_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.googleApiKeyKey }}
+- name: FAL_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.falApiKeyKey }}
+- name: ELEVENLABS_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.elevenLabsApiKeyKey }}
 {{- end -}}
 
 {{/* AI Service Specific Integrations */}}
@@ -331,6 +380,204 @@ app.kubernetes.io/part-of: dalai-llama-backend
   value: {{ .Values.services.aiService.ai.audio.highpassHz | quote }}
 - name: AUDIO_LIMITER_THRESHOLD
   value: {{ .Values.services.aiService.ai.audio.limiterThreshold | quote }}
+- name: AVATAR_GENERATION_ENABLED
+  value: {{ .Values.services.aiService.ai.avatar.generationEnabled | quote }}
+- name: AVATAR_LOCAL_RUNTIME_ENABLED
+  value: {{ .Values.services.aiService.ai.avatar.localRuntimeEnabled | quote }}
+- name: AVATAR_GENERATION_RUNNER_URL
+  value: {{ .Values.services.aiService.ai.avatar.generationRunnerUrl | quote }}
+- name: AVATAR_GENERATION_RUNNER_PATH
+  value: {{ .Values.services.aiService.ai.avatar.generationRunnerPath | quote }}
+- name: AVATAR_VOICE_RUNNER_PATH
+  value: {{ .Values.services.aiService.ai.avatar.voiceRunnerPath | quote }}
+- name: AVATAR_LIPSYNC_RUNNER_PATH
+  value: {{ .Values.services.aiService.ai.avatar.lipSyncRunnerPath | quote }}
+- name: AVATAR_STT_RUNNER_PATH
+  value: {{ .Values.services.aiService.ai.avatar.sttRunnerPath | quote }}
+- name: AVATAR_IMAGE_RUNNER_PATH
+  value: {{ .Values.services.aiService.ai.avatar.imageRunnerPath | quote }}
+- name: AVATAR_POSTPROCESS_RUNNER_PATH
+  value: {{ .Values.services.aiService.ai.avatar.postprocessRunnerPath | quote }}
+- name: AVATAR_GENERATION_TIMEOUT_SECONDS
+  value: {{ .Values.services.aiService.ai.avatar.generationTimeoutSeconds | quote }}
+- name: AVATAR_GENERATION_GPU_PROFILE
+  value: {{ .Values.services.aiService.ai.avatar.gpuProfile | quote }}
+- name: AVATAR_VOICE_MODEL
+  value: {{ .Values.services.aiService.ai.avatar.voiceModel | quote }}
+- name: AVATAR_TALKING_MODEL
+  value: {{ .Values.services.aiService.ai.avatar.talkingModel | quote }}
+- name: AVATAR_IMAGE_MODEL
+  value: {{ .Values.services.aiService.ai.avatar.imageModel | quote }}
+- name: AVATAR_LIGHTING_MODEL
+  value: {{ .Values.services.aiService.ai.avatar.lightingModel | quote }}
+- name: AVATAR_VIDEO_MODEL
+  value: {{ .Values.services.aiService.ai.avatar.videoModel | quote }}
+- name: AVATAR_LIPSYNC_MODEL
+  value: {{ .Values.services.aiService.ai.avatar.lipSyncModel | quote }}
+- name: FAL_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.falSecretName | default .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.falApiKeyKey }}
+      optional: true
+- name: AVATAR_FAL_VOICE_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.voiceEndpoint | quote }}
+- name: AVATAR_FAL_TTS_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.ttsEndpoint | quote }}
+- name: AVATAR_FAL_ELEVENLABS_TTS_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.elevenLabsTtsEndpoint | quote }}
+- name: AVATAR_FAL_CHATTERBOX_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.chatterboxEndpoint | quote }}
+- name: AVATAR_FAL_ECHOMIMIC_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.echoMimicEndpoint | quote }}
+- name: AVATAR_FAL_ECHOMIMIC_USD_PER_SECOND
+  value: {{ .Values.services.aiService.ai.avatar.fal.echoMimicUsdPerSecond | quote }}
+- name: AVATAR_FAL_HAPPY_HORSE_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.happyHorseEndpoint | quote }}
+- name: AVATAR_FAL_HAPPY_HORSE_720P_USD_PER_SECOND
+  value: {{ .Values.services.aiService.ai.avatar.fal.happyHorse720pUsdPerSecond | quote }}
+- name: AVATAR_FAL_HAPPY_HORSE_1080P_USD_PER_SECOND
+  value: {{ .Values.services.aiService.ai.avatar.fal.happyHorse1080pUsdPerSecond | quote }}
+- name: AVATAR_FAL_HEYGEN_AVATAR4_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.heygenAvatar4Endpoint | quote }}
+- name: AVATAR_FAL_HEYGEN_AVATAR4_USD_PER_SECOND
+  value: {{ .Values.services.aiService.ai.avatar.fal.heygenAvatar4UsdPerSecond | quote }}
+- name: AVATAR_FAL_LIVEPORTRAIT_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.livePortraitEndpoint | quote }}
+- name: AVATAR_FAL_LIPSYNC_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.lipSyncEndpoint | quote }}
+- name: AVATAR_FAL_MUSETALK_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.museTalkEndpoint | quote }}
+- name: AVATAR_FAL_VIDEO_EDIT_ENDPOINT
+  value: {{ .Values.services.aiService.ai.avatar.fal.videoEditEndpoint | quote }}
+- name: AVATAR_FAL_VIDEO_EDIT_USD_PER_SECOND
+  value: {{ .Values.services.aiService.ai.avatar.fal.videoEditUsdPerSecond | quote }}
+- name: AVATAR_FAL_MEDIA_EXPIRATION_SECONDS
+  value: {{ .Values.services.aiService.ai.avatar.fal.mediaExpirationSeconds | quote }}
+- name: AVATAR_FAL_STORE_IO
+  value: {{ .Values.services.aiService.ai.avatar.fal.storeIo | quote }}
+- name: AVATAR_PROPRIETARY_API_TIMEOUT_SECONDS
+  value: {{ .Values.services.aiService.ai.avatar.proprietaryApiTimeoutSeconds | quote }}
+- name: AVATAR_MODEL_ROOT
+  value: {{ .Values.services.aiService.ai.avatar.modelRoot | quote }}
+- name: AVATAR_WORK_ROOT
+  value: {{ .Values.services.aiService.ai.avatar.workRoot | quote }}
+- name: AVATAR_DOWNLOAD_TIMEOUT_SECONDS
+  value: {{ .Values.services.aiService.ai.avatar.downloadTimeoutSeconds | quote }}
+- name: AVATAR_STAGE_TIMEOUT_SECONDS
+  value: {{ .Values.services.aiService.ai.avatar.stageTimeoutSeconds | quote }}
+- name: AVATAR_ALLOW_TEST_FALLBACK
+  value: {{ .Values.services.aiService.ai.avatar.allowTestFallback | quote }}
+- name: AVATAR_COSYVOICE_REPO
+  value: {{ .Values.services.aiService.ai.avatar.cosyVoice.repo | quote }}
+- name: AVATAR_COSYVOICE2_MODEL_DIR
+  value: {{ .Values.services.aiService.ai.avatar.cosyVoice.modelDir | quote }}
+- name: AVATAR_COSYVOICE2_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.cosyVoice.command | quote }}
+- name: AVATAR_ELEVENLABS_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.elevenLabsApiKeyKey }}
+      optional: true
+- name: AVATAR_ELEVENLABS_BASE_URL
+  value: {{ .Values.services.aiService.ai.avatar.elevenLabs.baseUrl | quote }}
+- name: AVATAR_ELEVENLABS_VOICE_ID
+  value: {{ .Values.services.aiService.ai.avatar.elevenLabs.voiceId | quote }}
+- name: AVATAR_ELEVENLABS_MODEL_ID
+  value: {{ .Values.services.aiService.ai.avatar.elevenLabs.modelId | quote }}
+- name: AVATAR_ELEVENLABS_OUTPUT_FORMAT
+  value: {{ .Values.services.aiService.ai.avatar.elevenLabs.outputFormat | quote }}
+- name: AVATAR_ELEVENLABS_REMOVE_BACKGROUND_NOISE
+  value: {{ .Values.services.aiService.ai.avatar.elevenLabs.removeBackgroundNoise | quote }}
+- name: AVATAR_ELEVENLABS_VOICE_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.elevenLabs.voiceCommand | quote }}
+- name: AVATAR_SARVAM_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.sarvamApiKeyKey }}
+      optional: true
+- name: AVATAR_SARVAM_BASE_URL
+  value: {{ .Values.services.aiService.ai.avatar.sarvam.baseUrl | quote }}
+- name: AVATAR_SARVAM_VOICE_CLONE_PATH
+  value: {{ .Values.services.aiService.ai.avatar.sarvam.voiceClonePath | quote }}
+- name: AVATAR_SARVAM_TTS_PATH
+  value: {{ .Values.services.aiService.ai.avatar.sarvam.ttsPath | quote }}
+- name: AVATAR_SARVAM_VOICE_ID
+  value: {{ .Values.services.aiService.ai.avatar.sarvam.voiceId | quote }}
+- name: AVATAR_SARVAM_MODEL_ID
+  value: {{ .Values.services.aiService.ai.avatar.sarvam.modelId | quote }}
+- name: AVATAR_SARVAM_OUTPUT_CODEC
+  value: {{ .Values.services.aiService.ai.avatar.sarvam.outputCodec | quote }}
+- name: AVATAR_SARVAM_SAMPLE_RATE
+  value: {{ .Values.services.aiService.ai.avatar.sarvam.sampleRate | quote }}
+- name: AVATAR_VOICE_FALLBACK_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.voiceFallbackCommand | quote }}
+- name: AVATAR_LIVEPORTRAIT_REPO
+  value: {{ .Values.services.aiService.ai.avatar.livePortrait.repo | quote }}
+- name: AVATAR_LIVEPORTRAIT_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.livePortrait.command | quote }}
+- name: AVATAR_ECHOMIMIC_REPO
+  value: {{ .Values.services.aiService.ai.avatar.echoMimic.repo | quote }}
+- name: AVATAR_ECHOMIMIC_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.echoMimic.command | quote }}
+- name: AVATAR_MUSETALK_REPO
+  value: {{ .Values.services.aiService.ai.avatar.museTalk.repo | quote }}
+- name: AVATAR_MUSETALK_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.museTalk.command | quote }}
+- name: AVATAR_LATENTSYNC_REPO
+  value: {{ .Values.services.aiService.ai.avatar.latentSync.repo | quote }}
+- name: AVATAR_LATENTSYNC_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.latentSync.command | quote }}
+- name: AVATAR_SYNC_LABS_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.aiService.name }}
+      key: {{ .Values.secrets.aiService.syncLabsApiKeyKey }}
+      optional: true
+- name: AVATAR_SYNC_LABS_BASE_URL
+  value: {{ .Values.services.aiService.ai.avatar.syncLabs.baseUrl | quote }}
+- name: AVATAR_SYNC_LABS_MODEL
+  value: {{ .Values.services.aiService.ai.avatar.syncLabs.model | quote }}
+- name: AVATAR_SYNC_LABS_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.syncLabs.command | quote }}
+- name: AVATAR_LIPSYNC_FALLBACK_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.lipSyncFallbackCommand | quote }}
+- name: AVATAR_FLUX_MODEL_ID
+  value: {{ .Values.services.aiService.ai.avatar.flux.modelId | quote }}
+- name: AVATAR_FLUX_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.flux.command | quote }}
+- name: AVATAR_STT_MODEL
+  value: {{ .Values.services.aiService.ai.avatar.stt.model | quote }}
+- name: AVATAR_STT_DEVICE
+  value: {{ .Values.services.aiService.ai.avatar.stt.device | quote }}
+- name: AVATAR_STT_COMPUTE_TYPE
+  value: {{ .Values.services.aiService.ai.avatar.stt.computeType | quote }}
+- name: AVATAR_CAPTION_ENGINE
+  value: {{ .Values.services.aiService.ai.avatar.captions.engine | quote }}
+- name: AVATAR_WHISPERX_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.captions.whisperxCommand | quote }}
+- name: AVATAR_BIREFNET_MODEL_ID
+  value: {{ .Values.services.aiService.ai.avatar.backgroundRemoval.modelId | quote }}
+- name: AVATAR_BIREFNET_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.backgroundRemoval.command | quote }}
+- name: AVATAR_REALESRGAN_EXECUTABLE
+  value: {{ .Values.services.aiService.ai.avatar.upscaling.executable | quote }}
+- name: AVATAR_REALESRGAN_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.upscaling.command | quote }}
+- name: AVATAR_REALESRGAN_MODEL
+  value: {{ .Values.services.aiService.ai.avatar.upscaling.model | quote }}
+- name: AVATAR_CODEFORMER_REPO
+  value: {{ .Values.services.aiService.ai.avatar.faceRestoration.repo | quote }}
+- name: AVATAR_CODEFORMER_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.faceRestoration.command | quote }}
+- name: AVATAR_VIDEO_BACKGROUND_REMOVAL_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.videoPostprocess.backgroundRemovalCommand | quote }}
+- name: AVATAR_VIDEO_UPSCALE_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.videoPostprocess.upscaleCommand | quote }}
+- name: AVATAR_VIDEO_FACE_RESTORE_COMMAND
+  value: {{ .Values.services.aiService.ai.avatar.videoPostprocess.faceRestoreCommand | quote }}
 {{- end -}}
 
 {{/* K8s Provisioning Logic (Specifically for Tenant Service) */}}
@@ -426,7 +673,7 @@ app.kubernetes.io/part-of: dalai-llama-backend
       name: {{ .Values.secrets.razorpay.name }}
       key: {{ .Values.secrets.razorpay.webhookSecretKey }}
 - name: RAZORPAY_MOCK_ENABLED
-  value: {{ .Values.services.billingService.razorpay.enabled | quote }}
+  value: {{ .Values.services.billingService.razorpay.mockEnabled | default false | quote }}
       
 {{- end }}
 {{- end -}}

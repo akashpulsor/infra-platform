@@ -4,7 +4,7 @@ keycloak:
 database:
   host: postgres.infra.svc.cluster.local
 
-replicaCount: 3
+replicaCount: 1
 theme:
   enabled: true
   name: dalaillama

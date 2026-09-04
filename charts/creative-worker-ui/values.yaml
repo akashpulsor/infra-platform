@@ -1,0 +1,35 @@
+image:
+  repository: akashtripathi/creative-worker-ui
+  tag: 0.1.1-editor-handoff
+  pullPolicy: IfNotPresent
+
+replicaCount: 0
+
+service:
+  port: 80
+
+istio:
+  enabled: true
+  hosts:
+    - copywriter.dalaillama.in
+    - editor.dalaillama.in
+    - operations.dalaillama.in
+  gatewayName: istio-system/central-gateway
+  pathPrefix: /
+
+env:
+  KEYCLOAK_URL: "https://auth.dalaillama.in"
+  KEYCLOAK_SERVER_URL: "https://auth.dalaillama.in"
+  KEYCLOAK_PROFILE: "server"
+  KEYCLOAK_REALM: "dalai-llama"
+  KEYCLOAK_CLIENT_ID: "copywriter-ui"
+  API_BASE_URL: "https://api.dalaillama.in/api/v1"
+  PLATFORM_URL: "https://platform.dalaillama.in"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

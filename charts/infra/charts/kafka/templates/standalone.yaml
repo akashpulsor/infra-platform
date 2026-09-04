@@ -8,18 +8,38 @@ metadata:
 data:
   create-topics.sh: |
     #!/bin/bash
-    set -e
+    set -euo pipefail
 
     echo "Waiting for Kafka to be ready..."
-    sleep 45
+    KAFKA_TOPICS="/opt/kafka/bin/kafka-topics.sh"
+    if [[ ! -x "$KAFKA_TOPICS" ]]; then
+      echo "Kafka topic CLI not found or not executable at $KAFKA_TOPICS" >&2
+      exit 1
+    fi
+
+    for attempt in $(seq 1 60); do
+      if "$KAFKA_TOPICS" --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+        break
+      fi
+      echo "Kafka is not ready yet (attempt $attempt/60)"
+      sleep 5
+    done
+
+    "$KAFKA_TOPICS" --bootstrap-server localhost:9092 --list >/dev/null
+    existing_topics="$("$KAFKA_TOPICS" --bootstrap-server localhost:9092 --list)"
 
     {{- range .Values.topics }}
-    echo "Creating topic: {{ .name }}"
-    kafka-topics --bootstrap-server localhost:9092 \
-      --create --if-not-exists \
-      --topic {{ .name }} \
-      --partitions {{ .partitions }} \
-      --replication-factor {{ .replicationFactor }} || true
+    if grep -Fxq "{{ .name }}" <<< "$existing_topics"; then
+      echo "Topic already exists: {{ .name }}"
+    else
+      echo "Creating topic: {{ .name }}"
+      "$KAFKA_TOPICS" --bootstrap-server localhost:9092 \
+        --create --if-not-exists \
+        --topic {{ .name }} \
+        --partitions {{ .partitions }} \
+        --replication-factor {{ .replicationFactor }}
+      existing_topics="$(printf '%s\n%s' "$existing_topics" "{{ .name }}")"
+    fi
     {{- end }}
 
     echo "All topics created successfully"
@@ -62,6 +82,8 @@ spec:
         app: kafka
       annotations:
         sidecar.istio.io/inject: "false"
+        checksum/topic-script: "v3-skip-existing"
+        checksum/topics: {{ toYaml .Values.topics | sha256sum | quote }}
         # Exclude Kafka ports from Istio mTLS - TCP protocols don't work well with mTLS
         traffic.sidecar.istio.io/excludeInboundPorts: "9092,9093"
     spec:
@@ -137,12 +159,7 @@ spec:
             - name: init-scripts
               mountPath: /scripts
           resources:
-            requests:
-              cpu: 50m
-              memory: 128Mi
-            limits:
-              cpu: 100m
-              memory: 256Mi
+            {{- toYaml .Values.topicCreator.resources | nindent 12 }}
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -159,7 +176,7 @@ metadata:
   labels:
     app: kafka
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ if .Values.global.localDev.exposeInfraLoadBalancer }}LoadBalancer{{ else }}{{ .Values.service.type }}{{ end }}
   ports:
     - port: {{ .Values.service.port }}
       targetPort: kafka

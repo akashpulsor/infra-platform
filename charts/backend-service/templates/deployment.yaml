@@ -1,5 +1,6 @@
 {{- range $serviceName, $serviceConfig := .Values.services }}
 {{- if $serviceConfig.enabled }}
+{{- $health := $serviceConfig.health | default dict }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -34,22 +35,36 @@ spec:
         {{- if eq $serviceName "tenantService" }}
         checksum/tenant-credentials-secret: {{ printf "%s:%s" $.Values.secrets.tenantServiceCredentials.name (required "secrets.tenantServiceCredentials.values.encryptionKey is required. Generate once with: openssl rand -base64 32" $.Values.secrets.tenantServiceCredentials.values.encryptionKey) | sha256sum }}
         {{- end }}
+        {{- if or (eq $serviceName "creatorService") (eq $serviceName "aiService") }}
+        checksum/creator-ai-secret: {{ printf "%s" (toJson $.Values.secrets.aiService) | sha256sum }}
+        {{- end }}
         {{- if eq $serviceName "creatorService" }}
-        checksum/creator-ai-secret: {{ printf "%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s" $.Values.secrets.aiService.name ($.Values.secrets.aiService.values.openaiApiKey | default "") ($.Values.secrets.aiService.values.geminiApiKey | default "") ($.Values.secrets.aiService.values.lumaApiKey | default "") ($.Values.secrets.aiService.values.runwayApiSecret | default "") ($.Values.secrets.aiService.values.decartApiKey | default "") ($.Values.secrets.aiService.values.googleCredentialsJson | default "") $.Values.secrets.aiService.openaiApiKeyKey $.Values.secrets.aiService.geminiApiKeyKey $.Values.secrets.aiService.lumaApiKeyKey $.Values.secrets.aiService.runwayApiSecretKey $.Values.secrets.aiService.decartApiKeyKey $.Values.secrets.aiService.googleCredentialsJsonKey | sha256sum }}
         checksum/creator-reddit-secret: {{ printf "%s:%s:%s:%s:%s" $.Values.secrets.reddit.name ($.Values.secrets.reddit.values.clientId | default "") ($.Values.secrets.reddit.values.clientSecret | default "") $.Values.secrets.reddit.clientIdKey $.Values.secrets.reddit.clientSecretKey | sha256sum }}
+        {{- end }}
+        {{- if eq $serviceName "billingService" }}
+        checksum/razorpay-secret: {{ printf "%s:%s:%s:%s:%s:%s:%s" $.Values.secrets.razorpay.name ($.Values.secrets.razorpay.values.keyId | default "") ($.Values.secrets.razorpay.values.keySecret | default "") ($.Values.secrets.razorpay.values.webhookSecret | default "") $.Values.secrets.razorpay.keyIdKey $.Values.secrets.razorpay.keySecretKey $.Values.secrets.razorpay.webhookSecretKey | sha256sum }}
         {{- end }}
         {{- if $serviceConfig.additionalPorts }}
         traffic.sidecar.istio.io/excludeInboundPorts: "{{ range $i, $p := $serviceConfig.additionalPorts }}{{ if $i }},{{ end }}{{ $p.targetPort }}{{ end }}"
         {{- end }}
     spec:
+      {{- if $serviceConfig.terminationGracePeriodSeconds }}
+      # Must exceed spring.lifecycle.timeout-per-shutdown-phase (application.yml) with margin, or
+      # Kubernetes SIGKILLs an in-flight request before Spring's own graceful drain finishes.
+      terminationGracePeriodSeconds: {{ $serviceConfig.terminationGracePeriodSeconds }}
+      {{- end }}
       serviceAccountName: {{ $serviceConfig.name }}
+      {{- if $serviceConfig.hostAliases }}
+      hostAliases:
+        {{- toYaml $serviceConfig.hostAliases | nindent 8 }}
+      {{- end }}
       {{- if $serviceConfig.securityContext }}
       securityContext:
         {{- toYaml $serviceConfig.securityContext | nindent 8 }}
       {{- end }}      
       containers:
         - name: {{ $serviceConfig.name }}
-          image: "{{ $.Values.global.image.registry }}/{{ $serviceConfig.image.repository }}:{{ $serviceConfig.image.tag }}"
+          image: "{{ $serviceConfig.image.registry | default $.Values.global.image.registry }}/{{ $serviceConfig.image.repository }}:{{ $serviceConfig.image.tag }}"
           imagePullPolicy: {{ $serviceConfig.image.pullPolicy | default $.Values.global.image.pullPolicy }}
           ports:
             - containerPort: {{ $serviceConfig.service.targetPort }}
@@ -104,6 +119,9 @@ spec:
             {{- if eq $serviceName "creatorService" }}
             {{- include "dalai-backend.creator-ai-integrations" $ | nindent 12 }}
             {{- end }}
+            {{- if eq $serviceName "llmGateway" }}
+            {{- include "dalai-backend.llm-gateway-integrations" $ | nindent 12 }}
+            {{- end }}
             {{- if eq $serviceName "pbxCoreService" }}
             {{- include "dalai-backend.pbx-core-integrations" $ | nindent 12 }}
             {{- end }}
@@ -117,19 +135,43 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            
+
+          {{- if $serviceConfig.preStopSleepSeconds }}
+          lifecycle:
+            preStop:
+              # Gives the Service/Istio endpoint removal time to propagate before this pod stops
+              # accepting connections -- without it, in-flight rolling restarts can route a few
+              # new requests to a pod that's already draining, which then hard-fail instead of
+              # landing on a healthy replica. Standard k8s zero-downtime pattern.
+              exec:
+                command: ["sh", "-c", "sleep {{ $serviceConfig.preStopSleepSeconds }}"]
+          {{- end }}
+          {{- if $health.startupPath }}
+          startupProbe:
+            httpGet:
+              path: {{ $health.startupPath }}
+              port: {{ $health.port | default $serviceConfig.service.targetPort }}
+            initialDelaySeconds: {{ $health.startupInitialDelaySeconds | default 20 }}
+            periodSeconds: {{ $health.startupPeriodSeconds | default 10 }}
+            timeoutSeconds: {{ $health.startupTimeoutSeconds | default 5 }}
+            failureThreshold: {{ $health.startupFailureThreshold | default 36 }}
+          {{- end }}
           livenessProbe:
             httpGet:
-              path: {{ $serviceConfig.health.livenessPath | default $serviceConfig.health.path | default "/actuator/health" }}
-              port: {{ $serviceConfig.health.port | default $serviceConfig.service.targetPort }}
-            initialDelaySeconds: 90
-            periodSeconds: 10
+              path: {{ $health.livenessPath | default $health.path | default "/actuator/health" }}
+              port: {{ $health.port | default $serviceConfig.service.targetPort }}
+            initialDelaySeconds: {{ $health.livenessInitialDelaySeconds | default 90 }}
+            periodSeconds: {{ $health.livenessPeriodSeconds | default 10 }}
+            timeoutSeconds: {{ $health.livenessTimeoutSeconds | default 5 }}
+            failureThreshold: {{ $health.livenessFailureThreshold | default 3 }}
           readinessProbe:
             httpGet:
-              path: {{ $serviceConfig.health.readinessPath | default $serviceConfig.health.path | default "/actuator/health" }}
-              port: {{ $serviceConfig.health.port | default $serviceConfig.service.targetPort }}
-            initialDelaySeconds: 60
-            periodSeconds: 5
+              path: {{ $health.readinessPath | default $health.path | default "/actuator/health" }}
+              port: {{ $health.port | default $serviceConfig.service.targetPort }}
+            initialDelaySeconds: {{ $health.readinessInitialDelaySeconds | default 60 }}
+            periodSeconds: {{ $health.readinessPeriodSeconds | default 5 }}
+            timeoutSeconds: {{ $health.readinessTimeoutSeconds | default 5 }}
+            failureThreshold: {{ $health.readinessFailureThreshold | default 3 }}
           resources:
             {{- toYaml $serviceConfig.resources | nindent 12 }}
 {{- end }}

@@ -12,3 +12,6 @@ values-dev-secret.yaml
 # env files
 .env
 .env.local
+
+# Claude Code local settings
+.claude/

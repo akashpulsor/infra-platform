@@ -13,7 +13,7 @@ metadata:
 spec:
   hosts:
     {{- range $entry.hosts }}
-    - {{ . }}
+    - {{ . | quote }}
     {{- end }}
   ports:
     {{- range $entry.ports }}
@@ -21,7 +21,7 @@ spec:
       name: {{ .name }}
       protocol: {{ .protocol }}
     {{- end }}
-  resolution: DNS
+  resolution: {{ $entry.resolution | default "DNS" }}
   location: MESH_EXTERNAL
 {{- end }}
 {{- end }}

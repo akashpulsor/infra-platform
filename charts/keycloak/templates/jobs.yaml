@@ -26,6 +26,7 @@ spec:
   template:
     metadata:
       annotations:
+        sidecar.istio.io/inject: "false"
         {{- if and .Values.istio.enabled .Values.istio.excludeOutboundPorts }}
         traffic.sidecar.istio.io/excludeOutboundPorts: {{ .Values.istio.excludeOutboundPorts | quote }}
         {{- end }}

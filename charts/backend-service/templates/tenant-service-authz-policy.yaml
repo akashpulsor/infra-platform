@@ -32,7 +32,11 @@ spec:
         - operation:
             paths: ["/api/v1/webhooks*"]
     # Allow service-specific API paths
-{{- range $path := $serviceConfig.apiPaths }}
+{{- range $pathEntry := $serviceConfig.apiPaths }}
+    {{- $path := $pathEntry }}
+    {{- if kindIs "map" $pathEntry }}
+    {{- $path = $pathEntry.path }}
+    {{- end }}
     - to:
         - operation:
             paths: ["{{ $path }}", "{{ $path }}/*"]

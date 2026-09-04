@@ -97,7 +97,15 @@ services:
     health: {} # This prevents the nil pointer error
     apiPaths:
       - /api/v1/tenants
-      - /api/v1/public
+      # Scoped to this controller's one real route (PublicTenantConfigController's only mapping is
+      # GET /api/v1/public/tenant-config/{slug}), not the bare /api/v1/public prefix this used to
+      # be -- confirmed live that broad form shadowed every OTHER service's own /v1/public/* routes
+      # in Envoy's merged route table (e.g. pre-production-service's /v1/public/projects/{token},
+      # the client-review page), silently misrouting them here instead, where this service has no
+      # matching controller and Spring's fallback answered with a plain-text 500 instead of a real
+      # 404. Exact same class of bug already fixed once for a different broad /v1/public entry --
+      # see pre-production-service's own apiPaths comment above.
+      - /api/v1/public/tenant-config
       - /ws
     internalApiPaths:
       - /api/v1/internal
@@ -105,7 +113,7 @@ services:
     replicaCount: 1
     image:
       repository: tenant-service
-      tag: "5.0.88"
+      tag: "5.0.89-creator-margin"
     service:
       port: 8080
       targetPort: 8080
@@ -230,7 +238,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.7"
+      tag: "5.0.96-project-spend-cap"
     service:
       port: 8080
       targetPort: 8080
@@ -264,16 +272,529 @@ services:
       CREATOR_KAFKA_BILLING_EVENTS_TOPIC: "creator.billing.events"
       BILLING_USAGE_MARGIN_PERCENT: "80"
       BILLING_CURRENCY_CONVERSION_RATES: "INR_INR=1,USD_INR=96"
+      # In-cluster tenant-service URL so the client-review pricing can read a creator's own
+      # marginPercent (falls back to the configured default if unset/unreachable).
+      SERVICES_TENANT_URL: "http://tenant-service.apps.svc.cluster.local:8080"
     billing:
       gracePeriodDays: 7
       lowBalanceThreshold: 500
       defaultCurrency: INR
     razorpay:
+      enabled: true
+
+  # --- LLM GATEWAY ---
+  llmGateway:
+    enabled: true
+    expose: true
+    name: llm-gateway
+    namespace: apps
+    health: {}
+    apiPaths:
+      # EXACT match, not prefix: llm-gateway serves only POST /v1/chat. As a prefix it greedily
+      # swallowed chat-service's /v1/chat-sessions, routing those requests here where llm-gateway's
+      # AuthorizationPolicy denied them ("RBAC: access denied" 403 on the shot-page chat).
+      - path: /v1/chat
+        exact: true
+      - /v1/estimate
+      - /v1/jobs
+      - /v1/models
+    internalApiPaths:
+      - /api/v1/internal
+      - /actuator
+    replicaCount: 1
+    # Video-generation calls can block for minutes -- give an in-flight request a real chance to
+    # finish on a rolling restart/scale-down instead of being SIGKILLed mid-dispatch (which would
+    # abandon a call whose provider cost may already be incurred). preStop lets the Service
+    # endpoint removal propagate before Spring's own graceful drain begins accepting no new
+    # connections; the grace period must exceed spring.lifecycle.timeout-per-shutdown-phase (210s).
+    terminationGracePeriodSeconds: 240
+    preStopSleepSeconds: 10
+    image:
+      repository: llm-gateway
+      tag: "0.1.52-format-logs"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: llm_gateway_db
+      username: llm_gateway_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    autoscaling:
       enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SERVER_PORT: "8080"
+      LLM_GATEWAY_DEFAULT_PROVIDER: "google"
+      LLM_GATEWAY_DEFAULT_MODEL: "gemini-2.5-flash"
+      LLM_GATEWAY_KAFKA_BILLING_TOPIC: "llm.billing.events"
+      LLM_GATEWAY_WALLET_GUARD_ENABLED: "true"
+      LLM_GATEWAY_MINIMUM_WALLET_BALANCE: "100"
+
+  # --- VIDEO GENERATION SERVICE ---
+  videoGenerationService:
+    enabled: true
+    expose: true
+    name: video-generation-service
+    namespace: apps
+    health: {}
+    # /v1/shots and /v1/projects were also claimed by pre-production-service (same host,
+    # same prefix) -- an Istio VirtualService collision with undefined winner, which is why
+    # GET /v1/projects intermittently 500'd with nothing in pre-production-service's own logs
+    # (the request was landing on this service instead). Frontend calls to
+    # video-generation-service only ever go through the prefixes listed below -- pick fresh,
+    # unclaimed prefixes for new endpoints (the prepare-scene flow uses /v1/scenes for exactly
+    # this reason).
+    apiPaths:
+      - /v1/prompts
+      - /v1/jobs
+      - /v1/exports
+      - /v1/scenes
+      - /v1/final-renders
+    internalApiPaths:
+      - /api/v1/internal
+      - /actuator
+    replicaCount: 1
+    # See llmGateway's own terminationGracePeriodSeconds/preStopSleepSeconds comment -- same
+    # reasoning applies here (approve() blocks on the same kind of long-running dispatch chain).
+    terminationGracePeriodSeconds: 240
+    preStopSleepSeconds: 10
+    image:
+      repository: video-generation-service
+      tag: "0.2.8-prepare-batch-logs"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: video_gen_db
+      username: video_gen_user
+    # Higher memory ceiling than the shared 768Mi default: FinalRenderService's ffmpeg subprocess
+    # runs OUTSIDE the JVM heap (native memory), and a big multi-shot concat can push a pod's
+    # total container memory well over 768Mi even when the Java heap is fine. Bump to 1.5Gi so
+    # a big project's final render doesn't OOMKill the pod mid-assembly.
+    resources:
+      limits:
+        cpu: 800m
+        memory: 1536Mi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SERVER_PORT: "8080"
+      LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
+      VIDEO_GEN_DEFAULT_MODEL: "seedance-v1"
+      VIDEO_GEN_COMPRESSION_MODEL: "gemini-2.5-flash"
+      VIDEO_GEN_EXPORT_BUCKET: "creator-assets"
+      VIDEO_GEN_EXPORT_PREFIX: "video-gen-exports"
+      # Presigned URLs handed to fal.ai and browsers sign against this hostname -- must be a
+      # route reachable from outside the cluster. See video-generation-service MinioConfig.
+      MINIO_PUBLIC_URL: "https://media.dalaillama.in"
+
+  # --- POST PRODUCTION SERVICE ---
+  postProductionService:
+    enabled: true
+    expose: true
+    name: post-production-service
+    namespace: apps
+    health: {}
+    apiPaths:
+      - /v1/post-production
+      # The standalone "dub / change-language" flow used by the creator-ui editor tab: upload a
+      # video + targetLanguage, poll the job, get back the dubbed (transcribe->translate->clone->
+      # synth->lip-sync->mux) result. Was never exposed at the gateway, so every call 404'd before
+      # reaching the service. Longer timeout + no retries for the same reason as pre-prod's
+      # /v1/shots below -- the create call blocks on a long provider chain and is non-idempotent.
+      - path: /v1/dubbing
+        timeout: 90s
+        retries: false
+    internalApiPaths:
+      - /api/v1/internal
+      - /actuator
+    replicaCount: 1
+    # Same reasoning as llmGateway/videoGenerationService -- dialogue-sync dispatch blocks for
+    # the same kind of long-running provider call chain.
+    terminationGracePeriodSeconds: 240
+    preStopSleepSeconds: 10
+    image:
+      repository: post-production-service
+      tag: "0.1.4-minio-fix"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: post_production_db
+      username: post_production_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SERVER_PORT: "8080"
+      LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
+      VIDEO_GEN_BASE_URL: "http://video-generation-service.apps.svc.cluster.local:8080"
+      PRE_PRODUCTION_SERVICE_BASE_URL: "http://pre-production-service.apps.svc.cluster.local:8080"
+      POST_PROD_BUCKET: "creator-assets"
+      POST_PROD_OUTPUT_PREFIX: "post-production-clips"
+      # Presigned URLs handed to fal.ai (dubbing/lip-sync source URLs) and browsers sign against
+      # this hostname -- must be reachable from outside the cluster. See post-production-service
+      # MinioConfig.
+      MINIO_PUBLIC_URL: "https://media.dalaillama.in"
+
+  # --- PRE PRODUCTION SERVICE ---
+  preProductionService:
+    enabled: true
+    expose: true
+    name: pre-production-service
+    namespace: apps
+    health: {}
+    # Master-data/reference endpoints (aspect-ratios, dialogue-languages, shot-types,
+    # video-feature-flags) and the public client-review path were never added here -- every
+    # dropdown backed by one of them silently 404'd at the gateway, before ever reaching the
+    # service (confirmed live: GET /v1/aspect-ratios returned 404 despite the controller and real
+    # seeded data both being correct).
+    apiPaths:
+      # /v1/projects covers export-pdf, which now downloads and embeds each shot's real generated
+      # images server-side before uploading -- same 30s-default-timeout problem as /v1/shots below,
+      # confirmed live (upstream timeout on export-pdf once shots actually had real images to embed).
+      - path: /v1/projects
+        timeout: 90s
+        retries: false
+      - /v1/cast-profiles
+      # /v1/shots covers both fast reads and slow AI-generation POSTs (shot images, camera/lighting
+      # plans) -- the default 30s route timeout plus Istio's retries block's hardcoded 10s
+      # perTryTimeout was killing real image-generation calls mid-flight (confirmed live: browser
+      # saw 504, llm-gateway logged a broken-pipe from pre-production-service disconnecting early)
+      # even though every app-level client timeout here is already 120s. retries disabled too --
+      # auto-retrying a non-idempotent generate call on timeout risks duplicate generations.
+      - path: /v1/shots
+        timeout: 90s
+        retries: false
+      - /v1/aspect-ratios
+      - /v1/dialogue-languages
+      - /v1/shot-types
+      - /v1/video-feature-flags
+      # ProjectLockService.lock() (both the creator's own lock and the client's public lock reached
+      # through this path) ingests script + screenplay + cast + one chat-service call per shot,
+      # sequentially, before even creating the chat session -- easily past the default 30s route
+      # timeout for any project with more than a few shots. Same fix as /v1/shots and /v1/projects.
+      # Scoped to /v1/public/projects specifically (PublicProjectController's real prefix) -- the
+      # bare /v1/public used here before was broad enough to prefix-match and shadow OTHER
+      # services' own /v1/public/* routes (e.g. creative-planning-service's
+      # /v1/public/project-requirements/{token}) in Envoy's merged route table, silently
+      # misrouting them here instead and producing a generic 500 with zero trace on either the
+      # intended service's logs (confirmed live: the brief share link 500'd, PublicProjectController
+      # has no matching endpoint, this service's own generic exception handler answered instead).
+      - path: /v1/public/projects
+        timeout: 90s
+        retries: false
+    internalApiPaths:
+      - /api/v1/internal
+      - /actuator
+    replicaCount: 1
+    # Same reasoning as videoGenerationService -- shot dispatch blocks on video-generation-service's
+    # own long-running dispatch chain.
+    terminationGracePeriodSeconds: 240
+    preStopSleepSeconds: 10
+    image:
+      repository: pre-production-service
+      tag: "0.1.59-prepare-logs"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: pre_production_db
+      username: pre_production_user
+    # OOMKilled (exit 137) observed live on a routine rollout at the shared-default 768Mi limit --
+    # this service is the one backend that also does PDF export (PDFBox font-cache build on
+    # startup) on top of the usual Hibernate/HikariCP/Redis footprint every other service here
+    # carries, so the shared default was tighter for it specifically than for its siblings.
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 384Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SERVER_PORT: "8080"
+      LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
+      VIDEO_GEN_BASE_URL: "http://video-generation-service.apps.svc.cluster.local:8080"
+      PRE_PROD_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
+      CRITIC_SERVICE_BASE_URL: "http://critic-service.apps.svc.cluster.local:8080"
+      MINIO_PUBLIC_URL: "https://media.dalaillama.in"
+
+  # --- CRITIC SERVICE ---
+  criticService:
+    enabled: true
+    expose: true
+    name: critic-service
+    namespace: apps
+    health: {}
+    apiPaths:
+      - /v1/critiques
+      - /v1/marketing-plan-critiques
+    internalApiPaths:
+      - /api/v1/internal
+      - /actuator
+    replicaCount: 1
+    terminationGracePeriodSeconds: 120
+    preStopSleepSeconds: 10
+    image:
+      repository: critic-service
+      tag: "0.1.2-gemini-embedding-001"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: critic_db
+      username: critic_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SERVER_PORT: "8080"
+      LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
+      CRITIC_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
+
+  # --- CREATIVE PLANNING SERVICE ---
+  creativePlanningService:
+    enabled: true
+    expose: true
+    name: creative-planning-service
+    namespace: apps
+    health: {}
+    apiPaths:
+      - /v1/brand-context
+      - /v1/brands
+      - /v1/products
+      - /v1/campaign-sessions
+      - /v1/locked-ideas
+      - /v1/project-ideas
+      - /v1/project-requirements
+      - /v1/public/project-requirements
+      - /v1/marketing-plans
+    internalApiPaths:
+      - /api/v1/internal
+      - /actuator
+    replicaCount: 1
+    terminationGracePeriodSeconds: 120
+    preStopSleepSeconds: 10
+    image:
+      repository: creative-planning-service
+      tag: "0.1.17-margin-recompute"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: creative_planning_db
+      username: creative_planning_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SERVER_PORT: "8080"
+      LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
+      CREATIVE_PLANNING_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
+      CREATIVE_PLANNING_BUCKET: "creator-assets"
+      CHAT_SERVICE_BASE_URL: "http://chat-service.apps.svc.cluster.local:8080"
+      MINIO_PUBLIC_URL: "https://media.dalaillama.in"
+      BILLING_SERVICE_BASE_URL: "http://billing-service.apps.svc.cluster.local:8080"
+
+  # --- TREND INTELLIGENCE SERVICE ---
+  trendIntelligenceService:
+    enabled: true
+    expose: true
+    name: trend-intelligence-service
+    namespace: apps
+    health: {}
+    apiPaths:
+      - /v1/trend-reports
+    internalApiPaths:
+      - /api/v1/internal
+      - /actuator
+    replicaCount: 1
+    terminationGracePeriodSeconds: 120
+    preStopSleepSeconds: 10
+    image:
+      repository: trend-intelligence-service
+      tag: "0.1.0"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: trend_intelligence_db
+      username: trend_intelligence_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SERVER_PORT: "8080"
+      LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
+      TREND_INTELLIGENCE_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
+
+  # --- CHAT SERVICE ---
+  chatService:
+    enabled: true
+    expose: true
+    name: chat-service
+    namespace: apps
+    health: {}
+    apiPaths:
+      - /v1/chat-sessions
+    internalApiPaths:
+      - /api/v1/internal
+      - /actuator
+    replicaCount: 1
+    terminationGracePeriodSeconds: 120
+    preStopSleepSeconds: 10
+    image:
+      repository: chat-service
+      tag: "0.1.4-gemini-embedding-001"
+    service:
+      port: 8080
+      targetPort: 8080
+    database:
+      name: chat_db
+      username: chat_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 768Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilization: 50
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SHOW_SQL: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      CORS_MAX_AGE: "86400"
+      SERVER_PORT: "8080"
+      LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
+      CHAT_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
+      CHAT_DEFAULT_EMBEDDING_MODEL: "gemini-embedding-001"
+      TREND_INTELLIGENCE_BASE_URL: "http://trend-intelligence-service.apps.svc.cluster.local:8080"
+      CREATIVE_PLANNING_BASE_URL: "http://creative-planning-service.apps.svc.cluster.local:8080"
 
   # --- CREATOR SERVICE ---
   creatorService:
-    enabled: true
+    enabled: false
     expose: true
     name: creator-service
     namespace: apps
@@ -291,7 +812,7 @@ services:
     replicaCount: 1
     image:
       repository: creator-service
-      tag: "0.1.819"
+      tag: "0.1.820-review-paywall"
     service:
       port: 8080
       targetPort: 8080
@@ -425,7 +946,11 @@ services:
 
   # --- pbxCore SERVICE ---
   pbxCoreService:
-    enabled: true
+    # Confirmed unused by creator-service or any creator-flow service (only an unused
+    # PBX_CORE_URL env var was ever injected into other pods by the shared service-urls
+    # template) -- disabled rather than deleted so it's a one-line revert if the PBX/telecom
+    # product surface (admin-ui/agents-ui/supervisor-ui) needs it back.
+    enabled: false
     expose: true
     name: pbx-core
     namespace: apps
@@ -497,7 +1022,7 @@ services:
 
   # --- AI SERVICE (Python/FastAPI) ---
   aiService:
-    enabled: true
+    enabled: false
     expose: true
     name: ai-service
     namespace: apps
@@ -546,6 +1071,124 @@ services:
       debug: "true"
       authEnabled: "true"
       authAllowUnsafeDevTokens: "false"
+      avatar:
+        allowTestFallback: "false"
+        backgroundRemoval:
+          command: ""
+          modelId: ZhengPeng7/BiRefNet
+        captions:
+          engine: faster_whisper
+          whisperxCommand: ""
+        cosyVoice:
+          command: ""
+          modelDir: ""
+          repo: ""
+        downloadTimeoutSeconds: "300"
+        echoMimic:
+          command: ""
+          repo: ""
+        elevenLabs:
+          baseUrl: https://api.elevenlabs.io
+          modelId: eleven_v3
+          outputFormat: mp3_44100_128
+          removeBackgroundNoise: "true"
+          voiceCommand: python "scripts/run_elevenlabs_voice_clone.py" --text-file
+            "{text_file}" --prompt-wav "{prompt_wav}" --output-audio "{output_audio}"
+            --voice-id "{proprietary_voice_id}" --voice-name "{voice_clone_name}"
+            --base-url "{elevenlabs_base_url}" --model-id "{elevenlabs_model_id}"
+            --timeout "{proprietary_api_timeout_seconds}"
+          voiceId: ""
+        faceRestoration:
+          command: ""
+          repo: ""
+        fal:
+          chatterboxEndpoint: fal-ai/chatterbox/text-to-speech/multilingual
+          echoMimicEndpoint: fal-ai/echomimic-v3
+          echoMimicUsdPerSecond: "0.20"
+          elevenLabsTtsEndpoint: fal-ai/elevenlabs/tts/eleven-v3
+          happyHorse720pUsdPerSecond: "0.14"
+          happyHorse1080pUsdPerSecond: "0.18"
+          happyHorseEndpoint: alibaba/happy-horse/v1.1/image-to-video
+          heygenAvatar4Endpoint: fal-ai/heygen/avatar4/image-to-video
+          heygenAvatar4UsdPerSecond: "0.10"
+          lipSyncEndpoint: fal-ai/latentsync
+          livePortraitEndpoint: fal-ai/live-portrait
+          mediaExpirationSeconds: "3600"
+          museTalkEndpoint: fal-ai/musetalk
+          storeIo: "false"
+          ttsEndpoint: fal-ai/minimax/speech-02-hd
+          videoEditEndpoint: fal-ai/kling-video/o1/standard/video-to-video/edit
+          videoEditUsdPerSecond: "0.126"
+          voiceEndpoint: fal-ai/minimax/voice-clone
+        flux:
+          command: ""
+          modelId: black-forest-labs/FLUX.1-dev
+        generationEnabled: "true"
+        generationRunnerPath: /generate
+        generationRunnerUrl: http://host.docker.internal:8610
+        generationTimeoutSeconds: "600"
+        gpuProfile: rtx_4060_8gb
+        imageModel: gemini_storyboard
+        imageRunnerPath: /image
+        latentSync:
+          command: ""
+          repo: ""
+        lightingModel: ic_lightning
+        lipSyncFallbackCommand: python "scripts/run_sync_labs_lipsync.py" --input-video
+          "{avatar_video}" --audio "{audio}" --output-video "{lip_synced_video}" --model
+          "{sync_labs_model}" --base-url "{sync_labs_base_url}" --timeout "{proprietary_api_timeout_seconds}"
+        lipSyncModel: fal_latentsync
+        lipSyncRunnerPath: /lip-sync
+        livePortrait:
+          command: python "scripts/run_liveportrait_scene.py" --repo "{model_root}/LivePortrait"
+            --source-video "{source_video}" --audio "{audio}" --output-video "{output_video}"
+            --duration "{duration_seconds}"
+          repo: ""
+        localRuntimeEnabled: "true"
+        modelRoot: /models/avatar
+        museTalk:
+          command: python "scripts/run_musetalk_lipsync.py" --repo "{model_root}/MuseTalk"
+            --input-video "{avatar_video}" --audio "{audio}" --output-video "{lip_synced_video}"
+          repo: ""
+        postprocessRunnerPath: /postprocess-image
+        proprietaryApiTimeoutSeconds: "900"
+        sarvam:
+          baseUrl: https://api.sarvam.ai
+          modelId: bulbul:v3
+          outputCodec: wav
+          sampleRate: "48000"
+          ttsPath: /text-to-speech
+          voiceClonePath: ""
+          voiceId: ""
+        stageTimeoutSeconds: "1200"
+        stt:
+          computeType: int8
+          device: cpu
+          model: small
+        sttRunnerPath: /stt
+        syncLabs:
+          baseUrl: https://api.sync.so
+          command: python "scripts/run_sync_labs_lipsync.py" --input-video "{avatar_video}"
+            --audio "{audio}" --output-video "{lip_synced_video}" --model "{sync_labs_model}"
+            --base-url "{sync_labs_base_url}" --timeout "{proprietary_api_timeout_seconds}"
+          model: lipsync-2-pro
+        talkingModel: source_video
+        upscaling:
+          command: ""
+          executable: ""
+          model: realesrgan-x4plus
+        videoModel: ltx_video
+        videoPostprocess:
+          backgroundRemovalCommand: ""
+          faceRestoreCommand: ""
+          upscaleCommand: ""
+        voiceFallbackCommand: python "scripts/run_elevenlabs_voice_clone.py" --text-file
+          "{text_file}" --prompt-wav "{prompt_wav}" --output-audio "{output_audio}"
+          --voice-id "{proprietary_voice_id}" --voice-name "{voice_clone_name}" --base-url
+          "{elevenlabs_base_url}" --model-id "{elevenlabs_model_id}" --timeout "{proprietary_api_timeout_seconds}"
+        voiceModel: fal_minimax_voice_clone
+        voiceRunnerPath: /voice
+        workRoot: /tmp/avatar
       defaultSttProvider: "deepgram"
       defaultTtsProvider: "deepgram"
       defaultLlmProvider: "openai"
@@ -658,8 +1301,15 @@ secrets:
     geminiApiKeyKey: gemini-api-key
     lumaApiKeyKey: luma-api-key
     runwayApiSecretKey: runway-api-secret
+    seedanceApiKeyKey: seedance-api-key
+    ominiApiKeyKey: omini-api-key
+    googleVeoApiKeyKey: google-veo-api-key
     decartApiKeyKey: decart-api-key
     deepgramApiKeyKey: deepgram-api-key
+    elevenLabsApiKeyKey: elevenlabs-api-key
+    sarvamApiKeyKey: sarvam-api-key
+    syncLabsApiKeyKey: synclabs-api-key
+    falApiKeyKey: fal-api-key
     googleApiKeyKey: google-api-key
     googleCredentialsJsonKey: google-credentials-json
     googleCredentialsJsonPathKey: google-credentials-json-path

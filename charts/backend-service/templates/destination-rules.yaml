@@ -1,5 +1,25 @@
 # templates/destination-rules.yaml
 {{- if .Values.istio.enabled }}
+{{- $destinationRule := .Values.istio.destinationRule | default dict }}
+{{- if or (not (hasKey $destinationRule "enabled")) $destinationRule.enabled }}
+{{- range $serviceName, $serviceConfig := .Values.services }}
+{{- if and $serviceConfig.enabled $serviceConfig.expose $serviceConfig.apiPaths }}
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: {{ $serviceConfig.name }}
+  namespace: {{ $serviceConfig.namespace }}
+  labels:
+    {{- include "dalai-backend.labels" $ | nindent 4 }}
+spec:
+  host: {{ $serviceConfig.name }}.{{ $serviceConfig.namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: {{ $destinationRule.tlsMode | default "DISABLE" | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- if .Values.serviceEntries }}
 {{- range $name, $entry := .Values.serviceEntries }}
 ---

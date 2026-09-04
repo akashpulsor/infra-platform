@@ -14,9 +14,10 @@ spec:
   backoffLimit: 3
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
       labels:
         app: keycloak-bootstrap
-        sidecar.istio.io/inject: "false"
     spec:
       restartPolicy: OnFailure
       containers:
@@ -28,7 +29,7 @@ spec:
               set -e
 
               KCADM=/opt/keycloak/bin/kcadm.sh
-              SERVER="http://keycloak.apps.svc.cluster.local:8080"
+              SERVER="{{ .Values.keycloak.adminUrl | default "http://keycloak.apps.svc.cluster.local:80" }}"
               REALM="dalai-llama"
               DOMAIN="dalaillama.in"
 
@@ -71,7 +72,7 @@ spec:
               # 3. CREATE REALM ROLES
               # ═══════════════════════════════════════════════════════════
               echo "▶ Step 3: Creating realm roles..."
-              for ROLE in ADMIN SUPERVISOR AGENT CREATOR; do
+              for ROLE in ADMIN SUPERVISOR AGENT CREATOR CREATOR_COPYWRITER CREATOR_EDITOR CREATOR_OPS; do
                 if $KCADM get roles -r $REALM --fields name 2>/dev/null | grep -q "\"$ROLE\""; then
                   echo "  ✓ Role $ROLE already exists"
                 else
@@ -130,6 +131,18 @@ spec:
               create_public_client "creator-ui" \
                 '["https://creator.'$DOMAIN'/*","https://creator.'$DOMAIN'/auth/callback","http://localhost:5181/*","http://localhost:5181/auth/callback","http://localhost:5182/*","http://localhost:5182/auth/callback"]' \
                 "Creator UI"
+
+              create_public_client "copywriter-ui" \
+                '["https://copywriter.'$DOMAIN'/*","https://copywriter.'$DOMAIN'/auth/callback","http://localhost:5183/*","http://localhost:5183/auth/callback"]' \
+                "Copywriter UI"
+
+              create_public_client "editor-ui" \
+                '["https://editor.'$DOMAIN'/*","https://editor.'$DOMAIN'/auth/callback","http://localhost:5184/*","http://localhost:5184/auth/callback"]' \
+                "Editor UI"
+
+              create_public_client "operations-ui" \
+                '["https://operations.'$DOMAIN'/*","https://operations.'$DOMAIN'/auth/callback","https://ops.'$DOMAIN'/*","https://ops.'$DOMAIN'/auth/callback","http://localhost:5185/*","http://localhost:5185/auth/callback"]' \
+                "Operations UI"
 
               create_public_client "admin-ui" \
                 '["https://admin-*.'$DOMAIN'/*","http://localhost:5174/*","http://localhost:3000/*"]' \
@@ -190,7 +203,7 @@ spec:
                   $KCADM set-password -r $REALM --username $USERNAME --new-password "$PASSWORD"
                   echo "  ✓ Created user: $USERNAME ($EMAIL)"
                 fi
-                $KCADM add-roles -r $REALM --uusername $USERNAME --rolename $ROLE 2>/dev/null || true
+                $KCADM add-roles -r $REALM --username $USERNAME --rolename $ROLE 2>/dev/null || true
                 echo "  ✓ $USERNAME → $ROLE"
               }
 

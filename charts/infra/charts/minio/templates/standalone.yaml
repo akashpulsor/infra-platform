@@ -94,7 +94,7 @@ metadata:
   labels:
     app: minio
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ if .Values.global.localDev.exposeInfraLoadBalancer }}LoadBalancer{{ else }}{{ .Values.service.type }}{{ end }}
   ports:
     - name: api
       port: {{ .Values.service.ports.api }}

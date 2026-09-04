@@ -154,7 +154,7 @@ metadata:
   labels:
     app: postgres
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ if .Values.global.localDev.exposeInfraLoadBalancer }}LoadBalancer{{ else }}{{ .Values.service.type }}{{ end }}
   ports:
     - port: {{ .Values.service.port }}
       targetPort: postgres

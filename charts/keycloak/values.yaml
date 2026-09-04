@@ -7,20 +7,9 @@ replicaCount: 1
 
 keycloak:
   hostname: ""
-  realmName: dalai-llama
-  appsNamespace: apps
-auth:
-  adminUser: admin
 
 
 
-
-theme:
-  enabled: false
-  name: dalaillama
-  mode: configmap
-  configMapName: keycloak-theme-config
-  initImage: ""
 
 database:
   enabled: true
@@ -74,8 +63,8 @@ jobs:
   # Realm import job - imports realm configuration on first install
   realmImport:
     enabled: true
-    # Run as a post-install hook so Helm does not try to patch the immutable Job on upgrades.
-    useHelmHook: true
+    # When false, create a normal Job so Helm does not wait on it during install/upgrade.
+    useHelmHook: false
     # Run the import hook on upgrades too. Usually not needed because import uses --override=false.
     runOnUpgrade: false
     # ConfigMap containing realm JSON files
@@ -101,14 +90,6 @@ jobs:
     schedule: "0 2 * * *"  # Daily at 2 AM
     backoffLimit: 1
     ttlSecondsAfterFinished: 300
-
-  # Realm config job - applies realm attributes (e.g. include sub in token)
-  # Runs on every install/upgrade to ensure realm settings are correct.
-  realmConfig:
-    enabled: true
-    waitForKeycloak: true
-    backoffLimit: 5
-    ttlSecondsAfterFinished: 600
 
     # Custom batch job template
   custom:

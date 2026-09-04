@@ -216,14 +216,8 @@ spec:
                 path: login/resources/css/login.css
               - key: dalaillama.css
                 path: login/resources/css/dalaillama.css
-              - key: login.ftl
-                path: login/login.ftl
-              - key: register.ftl
-                path: login/register.ftl
-              - key: forgot-password.ftl
-                path: login/forgot-password.ftl
-              - key: reset-password.ftl
-                path: login/reset-password.ftl
+              - key: phone-country-code.js
+                path: login/resources/js/phone-country-code.js
               - key: login-messages-en.properties
                 path: login/messages/messages_en.properties
               - key: email-theme.properties
