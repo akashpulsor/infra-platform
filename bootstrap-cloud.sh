@@ -769,17 +769,43 @@ install_observability() {
   kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/prometheus.yaml
   kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/grafana.yaml
 
+  # Jaeger instead of Zipkin: Kiali's tracing integration only supports
+  # "jaeger" or "tempo" as a provider (verified against Kiali's config
+  # source), so Zipkin traces could never surface inside Kiali's own
+  # password-protected UI. Jaeger's addon also stands up a Service literally
+  # named "zipkin" on :9411 that accepts Zipkin-format spans into the same
+  # collector -- and the default IstioOperator profile (used by
+  # install_istio() above) already points
+  # meshConfig.defaultConfig.tracing.zipkin.address at that exact
+  # "zipkin.istio-system:9411" address -- so sidecars keep sending spans with
+  # zero mesh config changes, they just land in Jaeger's storage instead.
+  kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/jaeger.yaml
+
   # Patch Kiali's addon manifest before applying it:
   #   - auth.strategy: anonymous -> login (see ensure_kiali_login_auth)
   #   - server.web_root: /kiali -> / and add web_fqdn/web_schema/web_port,
   #     since it's served at its own dedicated host (monitor.$DOMAIN) rather
   #     than under a shared host's /kiali path -- without this Kiali
   #     generates broken links/redirects for its external URL.
+  #   - external_services.tracing: enabled + provider: jaeger, pointed at the
+  #     "tracing" Service (grpc-query :16685) Jaeger's addon creates, so
+  #     traces show up inside Kiali's own login-gated UI instead of needing a
+  #     separate, unauthenticated tracing UI exposed on its own.
   local kiali_manifest="$GENERATED_DIR/kiali.generated.yaml"
   curl -fsSL https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/kiali.yaml \
     | awk -v host="monitor.$DOMAIN" '
         /^      strategy: anonymous$/ { sub(/anonymous/, "login") }
         /^      web_root: \/kiali$/ { sub(/\/kiali$/, "/") }
+        /^      tracing:$/ { in_tracing=1 }
+        in_tracing && /^        enabled: false$/ {
+          sub(/enabled: false/, "enabled: true")
+          print
+          print "        provider: jaeger"
+          print "        in_cluster_url: \"http://tracing.istio-system:16685/jaeger\""
+          print "        use_grpc: true"
+          in_tracing=0
+          next
+        }
         { print }
         /^      port: 20001$/ {
           print "      web_fqdn: " host
@@ -790,22 +816,12 @@ install_observability() {
   kubectl apply -f "$kiali_manifest"
   ensure_kiali_login_auth
 
-  # Zipkin lives under samples/addons/extras/ (not the main addons/ dir) as of
-  # this Istio release. Its manifest also creates a Service named "tracing"
-  # in istio-system, and the default IstioOperator profile (used by
-  # install_istio() above) already points
-  # meshConfig.defaultConfig.tracing.zipkin.address at
-  # "zipkin.istio-system:9411" -- so sidecars start sending spans here with
-  # no extra mesh config once this is applied.
-  kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/extras/zipkin.yaml
-
   kubectl rollout status deployment/prometheus -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
   kubectl rollout status deployment/grafana -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
   kubectl rollout status deployment/kiali -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
-  kubectl rollout status deployment/zipkin -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
+  kubectl rollout status deployment/jaeger -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
 
-  info "Kiali: https://monitor.$DOMAIN (once deploy_gateway/wait_for_certificates run) -- credentials in $GENERATED_DIR/kiali-admin-credentials.txt if freshly generated."
-  info "Kiali's own Distributed Tracing panel still ships with external_services.tracing.enabled=false in this addon (unverified how to correctly wire it to Zipkin's non-Jaeger-compatible query API for this Kiali version, so left untouched rather than guessed). Zipkin's own UI shows traces regardless: kubectl port-forward svc/zipkin -n istio-system 9411:9411"
+  info "Kiali (metrics + service graph + traces): https://monitor.$DOMAIN (once deploy_gateway/wait_for_certificates run) -- credentials in $GENERATED_DIR/kiali-admin-credentials.txt if freshly generated."
 }
 
 wait_for_certificates() {
