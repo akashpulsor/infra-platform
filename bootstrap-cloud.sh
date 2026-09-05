@@ -850,10 +850,20 @@ install_observability() {
   kubectl apply -f "$kiali_manifest"
   ensure_kiali_login_auth
 
+  # Grafana Faro (browser RUM) receiver for creator-ui, forwarding traces
+  # into the Jaeger deployed above. See alloy-faro-receiver.yaml for why
+  # (faro.receiver only supports logs/traces outputs, and there's no Loki
+  # deployed yet, so Faro's own JS-error/console-log capture has nowhere to
+  # go for now -- traces + web vitals correlate into Jaeger/Kiali).
+  if [[ -f "$REPO_PATH/alloy-faro-receiver.yaml" ]]; then
+    kubectl apply -f "$REPO_PATH/alloy-faro-receiver.yaml"
+  fi
+
   kubectl rollout status deployment/prometheus -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
   kubectl rollout status deployment/grafana -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
   kubectl rollout status deployment/kiali -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
   kubectl rollout status deployment/jaeger -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
+  kubectl rollout status deployment/alloy-faro -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
 
   info "Kiali (metrics + service graph + traces): https://monitor.$DOMAIN (once deploy_gateway/wait_for_certificates run) -- credentials in $GENERATED_DIR/kiali-admin-credentials.txt if freshly generated."
 }

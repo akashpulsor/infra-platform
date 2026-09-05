@@ -25,11 +25,15 @@ spec:
     - match:
         - uri:
             prefix: {{ $path.path | default "/" | quote }}
+      {{- if hasKey $path "rewrite" }}
+      rewrite:
+        uri: {{ $path.rewrite | quote }}
+      {{- end }}
       route:
         - destination:
-            host: {{ printf "%s.%s.svc.cluster.local" $svc.serviceName ($svc.namespace | default $.Release.Namespace) | quote }}
+            host: {{ printf "%s.%s.svc.cluster.local" ($path.serviceName | default $svc.serviceName) ($svc.namespace | default $.Release.Namespace) | quote }}
             port:
-              number: {{ $svc.servicePort }}
+              number: {{ $path.servicePort | default $svc.servicePort }}
   {{- end }}
   {{- else }}
     - match:

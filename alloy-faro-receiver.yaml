@@ -1,0 +1,116 @@
+# Grafana Alloy running only a faro.receiver, collecting Grafana Faro Web SDK
+# telemetry from creator-ui (see apps/creator-ui/src/faro.js) and forwarding
+# traces to the Jaeger addon already deployed by bootstrap-cloud.sh's
+# install_observability(). Faro's logs/errors have nowhere to go yet (no
+# Loki deployed) so that output is intentionally left unconfigured -- Alloy
+# just drops those signals rather than erroring.
+#
+# Exposed publicly at https://monitor.$DOMAIN/faro (see charts/gateway
+# values.yaml's ingress.services.monitor.paths), since a browser sending
+# telemetry can't do an interactive login first. cors_allowed_origins is
+# scoped to the actual creator-ui origin(s) rather than left wide open.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-faro-receiver-config
+  namespace: istio-system
+  labels:
+    app: alloy-faro
+data:
+  config.alloy: |
+    faro.receiver "default" {
+      server {
+        listen_address       = "0.0.0.0"
+        listen_port           = 12347
+        cors_allowed_origins  = [
+          "https://creator.dalaillama.in",
+          "https://dalaillama.in",
+        ]
+      }
+
+      output {
+        traces = [otelcol.exporter.otlp.jaeger.input]
+      }
+    }
+
+    otelcol.exporter.otlp "jaeger" {
+      client {
+        endpoint = "jaeger-collector.istio-system.svc.cluster.local:4317"
+        tls {
+          insecure = true
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy-faro
+  namespace: istio-system
+  labels:
+    app: alloy-faro
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alloy-faro
+  template:
+    metadata:
+      labels:
+        app: alloy-faro
+    spec:
+      containers:
+        - name: alloy
+          image: grafana/alloy:v1.19.2
+          # `alloy run [<FLAG>...] <PATH_NAME>` -- flags must precede the
+          # positional config path argument.
+          args:
+            - run
+            - --server.http.listen-addr=0.0.0.0:12345
+            - /etc/alloy/config.alloy
+          ports:
+            - name: faro-http
+              containerPort: 12347
+            - name: alloy-ui
+              containerPort: 12345
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alloy
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 12345
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/ready
+              port: 12345
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: config
+          configMap:
+            name: alloy-faro-receiver-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy-faro
+  namespace: istio-system
+  labels:
+    app: alloy-faro
+spec:
+  selector:
+    app: alloy-faro
+  ports:
+    - name: faro-http
+      port: 12347
+      targetPort: 12347

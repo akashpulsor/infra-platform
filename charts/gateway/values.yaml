@@ -121,6 +121,17 @@ ingress:
       tlsSecretName: monitor-dalaillama-in-tls
 
       paths:
+        # Grafana Faro (browser RUM) ingestion, unauthenticated by necessity
+        # (a browser can't do an interactive login before sending telemetry).
+        # Must come before the "/" catch-all below -- Istio matches http
+        # routes in listed order, first match wins. Alloy's faro.receiver
+        # hardcodes its listen path to "/collect" (not configurable), so the
+        # "/faro" prefix is stripped via rewrite before forwarding.
+        - path: /faro
+          pathType: Prefix
+          serviceName: alloy-faro
+          servicePort: 12347
+          rewrite: ""
         - path: /
           pathType: Prefix
 istio:
