@@ -25,11 +25,11 @@ spec:
     - match:
         - uri:
             prefix: {{ $path.path | default "/" | quote }}
-      {{- if $path.stripPrefixRegex }}
+      {{- if $path.rewriteRegex }}
       rewrite:
         uriRegexRewrite:
-          match: {{ $path.stripPrefixRegex | quote }}
-          rewrite: ""
+          match: {{ $path.rewriteRegex.match | quote }}
+          rewrite: {{ $path.rewriteRegex.rewrite | quote }}
       {{- end }}
       route:
         - destination:

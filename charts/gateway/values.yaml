@@ -131,12 +131,17 @@ ingress:
           pathType: Prefix
           serviceName: alloy-faro
           servicePort: 12347
-          # Istio's admission webhook treats rewrite.uri: "" as unset (can't
-          # tell empty string from absent), rejecting it with "rewrite must
-          # specify at least one of URI, UriRegexRewrite, or authority" --
-          # uriRegexRewrite doesn't have that ambiguity since its presence as
-          # a message is what's checked, not its inner string's emptiness.
-          stripPrefixRegex: "^/faro"
+          # Istio's own validation (validateURIRegexRewrite in
+          # pkg/config/validation/validation.go) requires BOTH Match and
+          # Rewrite to be non-empty strings -- rewrite.uri: "" is rejected as
+          # unset, and uriRegexRewrite.rewrite: "" is rejected outright
+          # ("UriRegexRewrite requires both Rewrite and Match fields to be
+          # specified"). Can't just replace the matched prefix with nothing;
+          # capture everything after "/faro" and rewrite to just that group
+          # instead, e.g. "/faro/collect" -> "/collect".
+          rewriteRegex:
+            match: "^/faro(/.*)$"
+            rewrite: '\1'
         - path: /
           pathType: Prefix
 istio:
