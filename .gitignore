@@ -15,3 +15,7 @@ values-dev-secret.yaml
 
 # Claude Code local settings
 .claude/
+
+# bootstrap-cloud.sh run logs and generated secrets/manifests (server-local)
+deploymentlogs/
+.generated/

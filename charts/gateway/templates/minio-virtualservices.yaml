@@ -1,7 +1,7 @@
 {{- if .Values.istio.enabled }}
 {{- $gatewayRef := .Values.istio.gatewayRef | default (printf "%s/%s" .Values.istio.namespace .Values.istio.gatewayName) -}}
 {{- $services := .Values.ingress.services | default dict -}}
-{{- range $name := list "minio-api" "minio-console" }}
+{{- range $name := list "minio-api" "minio-console" "monitor" }}
 {{- $svc := index $services $name -}}
 {{- if and $svc $svc.enabled $svc.host $svc.serviceName $svc.servicePort }}
 ---
@@ -13,7 +13,7 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ $.Chart.Name | quote }}
     app.kubernetes.io/instance: {{ $.Release.Name | quote }}
-    app.kubernetes.io/component: "minio-routing"
+    app.kubernetes.io/component: {{ printf "%s-routing" $name | quote }}
 spec:
   hosts:
     - {{ $svc.host | quote }}

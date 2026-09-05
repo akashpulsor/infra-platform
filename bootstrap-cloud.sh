@@ -27,7 +27,7 @@ K3S_INSTALL="${K3S_INSTALL:-auto}" # auto | true | false
 INSTALL_TOOLS="${INSTALL_TOOLS:-true}"
 INSTALL_CERT_MANAGER="${INSTALL_CERT_MANAGER:-true}"
 INSTALL_ISTIO="${INSTALL_ISTIO:-true}"
-INSTALL_OBSERVABILITY="${INSTALL_OBSERVABILITY:-false}"
+INSTALL_OBSERVABILITY="${INSTALL_OBSERVABILITY:-true}"
 MANAGE_CLOUDFLARE_DNS="${MANAGE_CLOUDFLARE_DNS:-true}"
 PROMPT_CLOUDFLARE_TOKEN="${PROMPT_CLOUDFLARE_TOKEN:-true}"
 WAIT_FOR_CERTS="${WAIT_FOR_CERTS:-true}"
@@ -44,8 +44,11 @@ CLOUDFLARE_ZONE_NAME="${CLOUDFLARE_ZONE_NAME:-$DOMAIN}"
 CLOUDFLARE_PROXIED="${CLOUDFLARE_PROXIED:-false}"
 CLOUDFLARE_TOKEN_VALIDATED="false"
 PUBLIC_IP="${PUBLIC_IP:-}"
-DNS_RECORDS="${DNS_RECORDS:-@ api auth creator media console *}"
+DNS_RECORDS="${DNS_RECORDS:-@ api auth creator media console monitor *}"
 TENANT_CRED_ENCRYPTION_KEY="${TENANT_CRED_ENCRYPTION_KEY:-}"
+
+KIALI_ADMIN_USERNAME="${KIALI_ADMIN_USERNAME:-admin}"
+KIALI_ADMIN_PASSWORD="${KIALI_ADMIN_PASSWORD:-}"
 
 GENERATED_DIR="$REPO_PATH/.generated/cloud"
 GENERATED_BACKEND_VALUES="$GENERATED_DIR/backend-secrets.generated.yaml"
@@ -91,8 +94,9 @@ setup_logging() {
   # the terminal) so a failure -- including one caused by a dropped SSH
   # session, which loses terminal scrollback -- can still be diagnosed from
   # disk, and so the exact state of a run that self-healed a stuck Helm
-  # release (see reconcile_stuck_helm_release) is on record.
-  local log_dir="$GENERATED_DIR/logs"
+  # release (see reconcile_stuck_helm_release) is on record. Kept as its own
+  # top-level directory (not under .generated/) so it's easy to find.
+  local log_dir="$REPO_PATH/deploymentlogs"
   mkdir -p "$log_dir"
   LOG_FILE="$log_dir/bootstrap-$(date -u +%Y%m%dT%H%M%SZ).log"
   exec > >(tee -a "$LOG_FILE") 2>&1
@@ -720,13 +724,88 @@ deploy_ui() {
   kubectl rollout status deployment/creator-ui -n apps --timeout="$ROLLOUT_TIMEOUT"
 }
 
+ensure_kiali_login_auth() {
+  # Kiali's addon manifest ships with auth.strategy: anonymous -- fine for a
+  # kubectl port-forward, not for exposing it on the public internet at
+  # https://monitor.$DOMAIN (kept generic rather than "kiali.$DOMAIN" so the
+  # public hostname/TLS cert -- visible in public Certificate Transparency
+  # logs -- doesn't broadcast which specific tool is running). Kiali's
+  # built-in "login" strategy gates the UI
+  # behind a username/password backed by a Secret named "kiali" in its own
+  # namespace (username/passphrase keys); Kiali watches that Secret and picks
+  # up rotations without a pod restart.
+  local namespace="istio-system"
+
+  if kubectl get secret kiali -n "$namespace" >/dev/null 2>&1; then
+    info "Kiali admin credentials already exist (secret 'kiali' in $namespace); leaving them as-is."
+    return 0
+  fi
+
+  if [[ -z "$KIALI_ADMIN_PASSWORD" ]]; then
+    KIALI_ADMIN_PASSWORD="$(openssl rand -base64 18)"
+    mkdir -p "$GENERATED_DIR"
+    local cred_file="$GENERATED_DIR/kiali-admin-credentials.txt"
+    printf 'username: %s\npassword: %s\n' "$KIALI_ADMIN_USERNAME" "$KIALI_ADMIN_PASSWORD" > "$cred_file"
+    chmod 600 "$cred_file"
+    # Deliberately not printed to stdout/log: this run's whole output is
+    # persisted to deploymentlogs/, and a generated secret shouldn't sit in a
+    # plaintext log file.
+    info "Generated a Kiali admin password and saved it to $cred_file (chmod 600, not logged)."
+  fi
+
+  kubectl create secret generic kiali \
+    -n "$namespace" \
+    --from-literal=username="$KIALI_ADMIN_USERNAME" \
+    --from-literal=passphrase="$KIALI_ADMIN_PASSWORD" \
+    --dry-run=client -o yaml | kubectl apply -f -
+}
+
 install_observability() {
   [[ "$INSTALL_OBSERVABILITY" == "true" ]] || return 0
   log "Installing Istio observability addons"
+  need_cmd awk
+  mkdir -p "$GENERATED_DIR"
+
   kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/prometheus.yaml
   kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/grafana.yaml
-  kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/kiali.yaml
-  kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/jaeger.yaml
+
+  # Patch Kiali's addon manifest before applying it:
+  #   - auth.strategy: anonymous -> login (see ensure_kiali_login_auth)
+  #   - server.web_root: /kiali -> / and add web_fqdn/web_schema/web_port,
+  #     since it's served at its own dedicated host (monitor.$DOMAIN) rather
+  #     than under a shared host's /kiali path -- without this Kiali
+  #     generates broken links/redirects for its external URL.
+  local kiali_manifest="$GENERATED_DIR/kiali.generated.yaml"
+  curl -fsSL https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/kiali.yaml \
+    | awk -v host="monitor.$DOMAIN" '
+        /^      strategy: anonymous$/ { sub(/anonymous/, "login") }
+        /^      web_root: \/kiali$/ { sub(/\/kiali$/, "/") }
+        { print }
+        /^      port: 20001$/ {
+          print "      web_fqdn: " host
+          print "      web_schema: https"
+          print "      web_port: 443"
+        }
+      ' > "$kiali_manifest"
+  kubectl apply -f "$kiali_manifest"
+  ensure_kiali_login_auth
+
+  # Zipkin lives under samples/addons/extras/ (not the main addons/ dir) as of
+  # this Istio release. Its manifest also creates a Service named "tracing"
+  # in istio-system, and the default IstioOperator profile (used by
+  # install_istio() above) already points
+  # meshConfig.defaultConfig.tracing.zipkin.address at
+  # "zipkin.istio-system:9411" -- so sidecars start sending spans here with
+  # no extra mesh config once this is applied.
+  kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/extras/zipkin.yaml
+
+  kubectl rollout status deployment/prometheus -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
+  kubectl rollout status deployment/grafana -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
+  kubectl rollout status deployment/kiali -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
+  kubectl rollout status deployment/zipkin -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
+
+  info "Kiali: https://monitor.$DOMAIN (once deploy_gateway/wait_for_certificates run) -- credentials in $GENERATED_DIR/kiali-admin-credentials.txt if freshly generated."
+  info "Kiali's own Distributed Tracing panel still ships with external_services.tracing.enabled=false in this addon (unverified how to correctly wire it to Zipkin's non-Jaeger-compatible query API for this Kiali version, so left untouched rather than guessed). Zipkin's own UI shows traces regardless: kubectl port-forward svc/zipkin -n istio-system 9411:9411"
 }
 
 wait_for_certificates() {

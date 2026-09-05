@@ -102,7 +102,27 @@ ingress:
 
       paths:
         - path: /
-          pathType: Prefix      
+          pathType: Prefix
+
+    monitor:
+      # Kiali's UI, at a deliberately generic hostname/cert name rather than
+      # "kiali.dalaillama.in" -- the public TLS cert's SAN is visible in
+      # public Certificate Transparency logs regardless of auth, so it
+      # shouldn't broadcast which specific tool is running.
+      # Password-protected via Kiali's own "login" auth strategy (see
+      # bootstrap-cloud.sh's install_observability/ensure_kiali_login_auth) --
+      # not just network obscurity. Only created when INSTALL_OBSERVABILITY=true
+      # actually deploys the kiali Service into istio-system.
+      enabled: true
+      namespace: istio-system
+      host: monitor.dalaillama.in
+      serviceName: kiali
+      servicePort: 20001
+      tlsSecretName: monitor-dalaillama-in-tls
+
+      paths:
+        - path: /
+          pathType: Prefix
 istio:
   enabled: true
   namespace: istio-system
@@ -118,6 +138,7 @@ istio:
     - dashboard.dalaillama.in
     - media.dalaillama.in
     - console.dalaillama.in
+    - monitor.dalaillama.in
   tls:
     enabled: true
     httpsRedirect: true
@@ -148,3 +169,6 @@ istio:
       - secretName: console-dalaillama-in-tls
         hosts:
           - console.dalaillama.in
+      - secretName: monitor-dalaillama-in-tls
+        hosts:
+          - monitor.dalaillama.in
