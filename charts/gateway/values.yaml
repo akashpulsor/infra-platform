@@ -131,7 +131,12 @@ ingress:
           pathType: Prefix
           serviceName: alloy-faro
           servicePort: 12347
-          rewrite: ""
+          # Istio's admission webhook treats rewrite.uri: "" as unset (can't
+          # tell empty string from absent), rejecting it with "rewrite must
+          # specify at least one of URI, UriRegexRewrite, or authority" --
+          # uriRegexRewrite doesn't have that ambiguity since its presence as
+          # a message is what's checked, not its inner string's emptiness.
+          stripPrefixRegex: "^/faro"
         - path: /
           pathType: Prefix
 istio:
