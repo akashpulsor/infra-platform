@@ -44,7 +44,7 @@ CLOUDFLARE_ZONE_NAME="${CLOUDFLARE_ZONE_NAME:-$DOMAIN}"
 CLOUDFLARE_PROXIED="${CLOUDFLARE_PROXIED:-false}"
 CLOUDFLARE_TOKEN_VALIDATED="false"
 PUBLIC_IP="${PUBLIC_IP:-}"
-DNS_RECORDS="${DNS_RECORDS:-@ api auth platform dashboard creator media console *}"
+DNS_RECORDS="${DNS_RECORDS:-@ api auth creator media console *}"
 TENANT_CRED_ENCRYPTION_KEY="${TENANT_CRED_ENCRYPTION_KEY:-}"
 
 GENERATED_DIR="$REPO_PATH/.generated/cloud"
@@ -339,6 +339,47 @@ install_cert_manager() {
     --dry-run=client -o yaml | kubectl apply -f -
 
   info "Cloudflare token secret is ready in namespace cert-manager"
+
+  apply_cloudflare_cluster_issuer
+}
+
+apply_cloudflare_cluster_issuer() {
+  # charts/gateway's Certificate/Ingress resources reference this ClusterIssuer by name
+  # (issuerRef / cert-manager.io/cluster-issuer: letsencrypt-prod) -- without it, deploy_gateway()
+  # creates Certificate objects that can never be satisfied and wait_for_certificates() hangs for
+  # the full HELM_TIMEOUT before failing.
+  log "Applying Cloudflare ClusterIssuer"
+  mkdir -p "$GENERATED_DIR"
+  local template_path="$REPO_PATH/cloudflare-clusterissuer.yaml"
+  local generated_path="$GENERATED_DIR/cloudflare-clusterissuer.generated.yaml"
+
+  if [[ -f "$template_path" ]]; then
+    sed "s/admin@dalaillama.in/${ACME_EMAIL}/g" "$template_path" > "$generated_path"
+  else
+    cat > "$generated_path" <<EOF
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    email: $ACME_EMAIL
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      - selector:
+          dnsZones:
+            - "$DOMAIN"
+        dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token-secret
+              key: api-token
+EOF
+  fi
+
+  kubectl apply -f "$generated_path"
 }
 
 install_istio() {
@@ -510,19 +551,14 @@ deploy_backend() {
 deploy_ui() {
   [[ "$SKIP_UI" == "true" ]] && return 0
 
+  # Only creator-ui is live for this client right now. platform-ui, dashboard-ui,
+  # creative-worker-ui, and tenant-ui charts all still exist under charts/ and can be added here
+  # the same way once they're actually needed.
   log "Deploying UIs"
-  helm upgrade --install platform-ui "$REPO_PATH/charts/platform-ui" \
-    -n apps -f "$REPO_PATH/charts/platform-ui/values.yaml" --wait --timeout "$HELM_TIMEOUT"
-  helm upgrade --install dashboard-ui "$REPO_PATH/charts/dashboard-ui" \
-    -n apps -f "$REPO_PATH/charts/dashboard-ui/values.yaml" --wait --timeout "$HELM_TIMEOUT"
   helm upgrade --install creator-ui "$REPO_PATH/charts/creator-ui" \
     -n apps -f "$REPO_PATH/charts/creator-ui/values.yaml" --wait --timeout "$HELM_TIMEOUT"
-  helm upgrade --install creative-worker-ui "$REPO_PATH/charts/creative-worker-ui" \
-    -n apps -f "$REPO_PATH/charts/creative-worker-ui/values.yaml" --wait --timeout "$HELM_TIMEOUT"
 
-  for deployment in platform-ui dashboard-ui creator-ui creative-worker-ui; do
-    kubectl rollout status "deployment/$deployment" -n apps --timeout="$ROLLOUT_TIMEOUT"
-  done
+  kubectl rollout status deployment/creator-ui -n apps --timeout="$ROLLOUT_TIMEOUT"
 }
 
 install_observability() {
@@ -579,8 +615,6 @@ summary() {
   echo "  https://auth.$DOMAIN/admin/"
   echo "  https://api.$DOMAIN/api/v1"
   echo "  https://creator.$DOMAIN"
-  echo "  https://dashboard.$DOMAIN"
-  echo "  https://platform.$DOMAIN"
 }
 
 main() {
