@@ -40,6 +40,8 @@ spec:
               value: {{ .Values.env.API_BASE_URL | quote }}
             - name: GA_MEASUREMENT_ID
               value: {{ .Values.env.GA_MEASUREMENT_ID | quote }}
+            - name: FARO_COLLECTOR_URL
+              value: {{ .Values.env.FARO_COLLECTOR_URL | quote }}
             {{- if .Values.razorpay.enabled }}
             - name: RAZORPAY_KEY_ID
               valueFrom:
