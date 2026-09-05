@@ -13,7 +13,7 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     {{- range $host := $cert.hosts }}
-    - {{ $host }}
+    - {{ $host | quote }}
     {{- end }}
 {{- end }}
 {{- end }}
