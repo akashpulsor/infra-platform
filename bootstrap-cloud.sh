@@ -79,9 +79,26 @@ on_error() {
   echo "Useful diagnostics:" >&2
   echo "  kubectl get pods -A" >&2
   echo "  helm list -A" >&2
+  if [[ -n "${LOG_FILE:-}" ]]; then
+    echo "Full log of this run: $LOG_FILE" >&2
+  fi
   exit "$exit_code"
 }
 trap 'on_error $LINENO' ERR
+
+setup_logging() {
+  # Every run's full output is captured to a timestamped file (in addition to
+  # the terminal) so a failure -- including one caused by a dropped SSH
+  # session, which loses terminal scrollback -- can still be diagnosed from
+  # disk, and so the exact state of a run that self-healed a stuck Helm
+  # release (see reconcile_stuck_helm_release) is on record.
+  local log_dir="$GENERATED_DIR/logs"
+  mkdir -p "$log_dir"
+  LOG_FILE="$log_dir/bootstrap-$(date -u +%Y%m%dT%H%M%SZ).log"
+  exec > >(tee -a "$LOG_FILE") 2>&1
+  ln -sf "$LOG_FILE" "$log_dir/latest.log" 2>/dev/null || true
+  echo "Logging this run to: $LOG_FILE"
+}
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || fail "Required command '$1' not found"
@@ -376,6 +393,7 @@ install_cert_manager() {
   log "Installing cert-manager"
   helm repo add jetstack https://charts.jetstack.io >/dev/null 2>&1 || true
   helm repo update jetstack
+  reconcile_stuck_helm_release cert-manager cert-manager
   helm upgrade --install cert-manager jetstack/cert-manager \
     -n cert-manager \
     --set installCRDs=true \
@@ -511,6 +529,40 @@ helm_release_exists() {
   helm status "$release" -n "$namespace" >/dev/null 2>&1
 }
 
+reconcile_stuck_helm_release() {
+  # If a previous run's SSH/network connection dropped mid `helm upgrade
+  # --install`, Helm can be left believing that operation is still running:
+  # the release sits in pending-install/pending-upgrade/pending-rollback and
+  # every subsequent `helm upgrade --install` for it fails immediately with
+  # "another operation (install/upgrade/rollback) is in progress", even
+  # though nothing is actually running anymore. Detect and clear that before
+  # attempting the real install/upgrade, so a rerun is self-healing instead
+  # of requiring a manual `helm uninstall`/`helm rollback`.
+  local release="$1"
+  local namespace="$2"
+  local status
+  status="$(helm status "$release" -n "$namespace" -o json 2>/dev/null | jq -r '.info.status // empty' 2>/dev/null || true)"
+  [[ -n "$status" ]] || return 0
+
+  case "$status" in
+    pending-install)
+      warn "Helm release '$release' in namespace '$namespace' is stuck in status 'pending-install' (likely an interrupted first install, e.g. a dropped connection mid-run). It has no successful revision to fall back to, so removing it now to let this run install cleanly."
+      helm uninstall "$release" -n "$namespace" >/dev/null 2>&1 || true
+      ;;
+    pending-upgrade|pending-rollback)
+      local last_deployed
+      last_deployed="$(helm history "$release" -n "$namespace" -o json 2>/dev/null | jq -r '[.[] | select(.status == "deployed")] | sort_by(.revision) | last | .revision // empty' 2>/dev/null || true)"
+      if [[ -n "$last_deployed" ]]; then
+        warn "Helm release '$release' in namespace '$namespace' is stuck in status '$status' (likely an interrupted upgrade); rolling back to its last successful revision ($last_deployed) so this run can upgrade it cleanly."
+        helm rollback "$release" "$last_deployed" -n "$namespace" --wait --timeout "$HELM_TIMEOUT" >/dev/null 2>&1 || true
+      else
+        warn "Helm release '$release' in namespace '$namespace' is stuck in status '$status' with no successful revision on record; removing it now to let this run install cleanly."
+        helm uninstall "$release" -n "$namespace" >/dev/null 2>&1 || true
+      fi
+      ;;
+  esac
+}
+
 namespace_has_infra_data_volumes() {
   local namespace="$1"
   local count
@@ -561,6 +613,7 @@ deploy_infra() {
   log "Deploying infra"
   helm_dependency_build_if_needed "$REPO_PATH/charts/infra"
   reconcile_orphaned_infra_hook_secrets
+  reconcile_stuck_helm_release infra infra
   helm upgrade --install infra "$REPO_PATH/charts/infra" \
     -n infra \
     -f "$REPO_PATH/charts/infra/values.yaml" \
@@ -575,6 +628,7 @@ deploy_infra() {
 
 deploy_gateway() {
   log "Deploying public gateway"
+  reconcile_stuck_helm_release gateway istio-system
   helm upgrade --install gateway "$REPO_PATH/charts/gateway" \
     -n istio-system \
     -f "$REPO_PATH/charts/gateway/values.yaml" \
@@ -586,6 +640,7 @@ deploy_gateway() {
 deploy_keycloak() {
   log "Deploying Keycloak"
   cleanup_jobs
+  reconcile_stuck_helm_release keycloak apps
 
   if ! helm upgrade --install keycloak "$REPO_PATH/charts/keycloak" \
     -n apps \
@@ -619,6 +674,7 @@ deploy_backend() {
   cleanup_jobs
 
   mapfile -t optional_args < <(patch_optional_backend_services)
+  reconcile_stuck_helm_release backend apps
 
   if ! helm upgrade --install backend "$REPO_PATH/charts/backend-service" \
     -n apps \
@@ -657,6 +713,7 @@ deploy_ui() {
   # creative-worker-ui, and tenant-ui charts all still exist under charts/ and can be added here
   # the same way once they're actually needed.
   log "Deploying UIs"
+  reconcile_stuck_helm_release creator-ui apps
   helm upgrade --install creator-ui "$REPO_PATH/charts/creator-ui" \
     -n apps -f "$REPO_PATH/charts/creator-ui/values.yaml" --wait --timeout "$HELM_TIMEOUT"
 
@@ -717,10 +774,13 @@ summary() {
   echo "  https://auth.$DOMAIN/admin/"
   echo "  https://api.$DOMAIN/api/v1"
   echo "  https://creator.$DOMAIN"
+  echo
+  echo "Full log of this run: $LOG_FILE"
 }
 
 main() {
   cd "$REPO_PATH"
+  setup_logging
   ensure_repo_files
   install_tools
   prepare_cloudflare
