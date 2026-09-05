@@ -690,7 +690,7 @@ deploy_backend() {
     --timeout "$HELM_TIMEOUT"; then
     warn "Backend Helm hooks failed. Printing logs and marking release deployed after rollout if core deployments are healthy."
     print_job_logs apps keycloak-bootstrap
-    for deployment in tenant-service billing-service creator-service; do
+    for deployment in tenant-service billing-service product-service; do
       kubectl rollout status "deployment/$deployment" -n apps --timeout="$ROLLOUT_TIMEOUT"
     done
     cleanup_jobs
@@ -705,7 +705,7 @@ deploy_backend() {
       --timeout "$HELM_TIMEOUT"
   fi
 
-  for deployment in tenant-service billing-service creator-service; do
+  for deployment in tenant-service billing-service product-service; do
     kubectl rollout status "deployment/$deployment" -n apps --timeout="$ROLLOUT_TIMEOUT"
   done
 }
