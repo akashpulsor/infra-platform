@@ -218,21 +218,28 @@ urlencode() {
   jq -nr --arg value "$1" '$value|@uri'
 }
 
+cloudflare_api_raw() {
+  local method="$1"
+  local path="$2"
+  local body="${3:-}"
+  if [[ -n "$body" ]]; then
+    curl -sS -X "$method" "https://api.cloudflare.com/client/v4$path" \
+      -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+      -H "Content-Type: application/json" \
+      --data "$body"
+  else
+    curl -sS -X "$method" "https://api.cloudflare.com/client/v4$path" \
+      -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+      -H "Content-Type: application/json"
+  fi
+}
+
 cloudflare_api() {
   local method="$1"
   local path="$2"
   local body="${3:-}"
   local response
-  if [[ -n "$body" ]]; then
-    response="$(curl -sS -X "$method" "https://api.cloudflare.com/client/v4$path" \
-      -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-      -H "Content-Type: application/json" \
-      --data "$body")" || fail "Cloudflare API request failed: $method $path"
-  else
-    response="$(curl -sS -X "$method" "https://api.cloudflare.com/client/v4$path" \
-      -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-      -H "Content-Type: application/json")" || fail "Cloudflare API request failed: $method $path"
-  fi
+  response="$(cloudflare_api_raw "$method" "$path" "$body")" || fail "Cloudflare API request failed: $method $path"
 
   local success errors
   success="$(printf '%s' "$response" | jq -r '.success // false' 2>/dev/null || echo false)"
@@ -281,6 +288,46 @@ ensure_cloudflare_zone_id() {
   info "Resolved Cloudflare zone $CLOUDFLARE_ZONE_NAME -> $CLOUDFLARE_ZONE_ID"
 }
 
+upsert_cloudflare_dns_record() {
+  # A hostname can be claimed by a Cloudflare Worker route/custom domain, which
+  # owns DNS for that host and rejects normal record writes with error 81062
+  # ("A DNS record managed by Workers already exists on that host"). That is not
+  # a script bug or a duplicate-run issue -- it means the hostname already
+  # resolves via the Worker, so treat it as a skip instead of a fatal error.
+  local fqdn="$1"
+  local body="$2"
+  local id="$3"
+  local method path response success error_code errors
+
+  if [[ -n "$id" ]]; then
+    method="PUT"
+    path="/zones/$CLOUDFLARE_ZONE_ID/dns_records/$id"
+  else
+    method="POST"
+    path="/zones/$CLOUDFLARE_ZONE_ID/dns_records"
+  fi
+
+  response="$(cloudflare_api_raw "$method" "$path" "$body")" || fail "Cloudflare API request failed: $method $path"
+  success="$(printf '%s' "$response" | jq -r '.success // false' 2>/dev/null || echo false)"
+  if [[ "$success" == "true" ]]; then
+    if [[ -n "$id" ]]; then
+      info "Updated $fqdn"
+    else
+      info "Created $fqdn"
+    fi
+    return 0
+  fi
+
+  error_code="$(printf '%s' "$response" | jq -r '.errors[0].code // empty' 2>/dev/null || true)"
+  if [[ "$error_code" == "81062" ]]; then
+    warn "$fqdn is managed by a Cloudflare Worker route/custom domain; skipping (it already resolves via Workers)."
+    return 0
+  fi
+
+  errors="$(printf '%s' "$response" | jq -r '[.errors[]? | "\(.code): \(.message)"] | join("; ")' 2>/dev/null || true)"
+  fail "Cloudflare API error for $method $path: ${errors:-$response}"
+}
+
 upsert_cloudflare_dns_records() {
   [[ "$MANAGE_CLOUDFLARE_DNS" == "true" ]] || return 0
 
@@ -308,13 +355,7 @@ upsert_cloudflare_dns_records() {
       --argjson proxied "$CLOUDFLARE_PROXIED" \
       '{type:$type,name:$name,content:$content,ttl:1,proxied:$proxied}')"
 
-    if [[ -n "$id" ]]; then
-      cloudflare_api PUT "/zones/$CLOUDFLARE_ZONE_ID/dns_records/$id" "$body" >/dev/null
-      info "Updated $fqdn"
-    else
-      cloudflare_api POST "/zones/$CLOUDFLARE_ZONE_ID/dns_records" "$body" >/dev/null
-      info "Created $fqdn"
-    fi
+    upsert_cloudflare_dns_record "$fqdn" "$body" "$id"
   done
 }
 
