@@ -888,17 +888,21 @@ verify_public_routes() {
   [[ "$VERIFY_PUBLIC_ROUTES" == "true" ]] || return 0
 
   log "Verifying public routes"
-  local auth_code creator_code public_code
+  local auth_code protected_code public_code
   auth_code="$(curl -fsS -o /dev/null -w '%{http_code}' "https://auth.$DOMAIN/realms/dalai-llama/.well-known/openid-configuration" || true)"
-  creator_code="$(curl -sS -o /dev/null -w '%{http_code}' "https://api.$DOMAIN/api/v1/creator/categories" || true)"
+  # creator-service is decommissioned (see charts/backend-service/values.yaml,
+  # not routed in charts/gateway/values.yaml) -- /api/v1/creator/* 404s at the
+  # gateway with no matching route. tenant-service's /api/v1/tenants is the
+  # live, JWT-protected route to probe instead.
+  protected_code="$(curl -sS -o /dev/null -w '%{http_code}' "https://api.$DOMAIN/api/v1/tenants" || true)"
   public_code="$(curl -sS -o /dev/null -w '%{http_code}' "https://api.$DOMAIN/api/v1/public/tenant-config/bootstrap-check" || true)"
 
   [[ "$auth_code" == "200" ]] || fail "Keycloak public discovery check failed: HTTP $auth_code"
-  [[ "$creator_code" == "401" || "$creator_code" == "403" ]] || fail "Creator protected route expected 401/403, got HTTP $creator_code"
+  [[ "$protected_code" == "401" || "$protected_code" == "403" ]] || fail "Tenant protected route expected 401/403, got HTTP $protected_code"
   [[ "$public_code" == "404" || "$public_code" == "200" ]] || fail "Tenant public route expected 404/200, got HTTP $public_code"
 
   info "auth.$DOMAIN discovery: HTTP $auth_code"
-  info "api.$DOMAIN creator protected route: HTTP $creator_code"
+  info "api.$DOMAIN tenant protected route: HTTP $protected_code"
   info "api.$DOMAIN tenant public route: HTTP $public_code"
 }
 
