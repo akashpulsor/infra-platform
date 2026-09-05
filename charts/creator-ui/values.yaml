@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.238-video-model-dropdown
+  tag: 0.1.239-faro-rum
   pullPolicy: IfNotPresent
 
 replicaCount: 1
@@ -28,6 +28,10 @@ env:
   CREATOR_APP_URL: "https://creator.dalaillama.in"
   API_BASE_URL: "https://api.dalaillama.in/api/v1"
   GA_MEASUREMENT_ID: "G-YVWC0J9JC3"
+  # Grafana Faro (browser RUM) receiver -- see alloy-faro-receiver.yaml and
+  # apps/creator-ui/src/faro.js. Traces + web vitals only for now (no Loki
+  # deployed yet, so JS-error/console-log capture has nowhere to go).
+  FARO_COLLECTOR_URL: "https://monitor.dalaillama.in/faro/collect"
 
 # The browser only needs Razorpay's public key ID. The private key and webhook
 # secret stay exclusively on billing-service.
