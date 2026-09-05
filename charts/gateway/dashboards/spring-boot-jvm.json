@@ -1,0 +1,116 @@
+{
+  "id": null,
+  "uid": "spring-boot-jvm",
+  "title": "Spring Boot Backend (JVM & HTTP)",
+  "tags": ["spring-boot", "jvm", "backend"],
+  "timezone": "",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "pod",
+        "type": "query",
+        "label": "Service pod",
+        "query": "label_values(jvm_memory_used_bytes, kubernetes_pod_name)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "HTTP request rate",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_requests_seconds_count{kubernetes_pod_name=~\"$pod\"}[5m])) by (kubernetes_pod_name, status)",
+          "legendFormat": "{{kubernetes_pod_name}} [{{status}}]"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "HTTP request duration (p95)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{kubernetes_pod_name=~\"$pod\"}[5m])) by (le, kubernetes_pod_name, uri))",
+          "legendFormat": "{{kubernetes_pod_name}} {{uri}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "JVM heap used",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(jvm_memory_used_bytes{area=\"heap\", kubernetes_pod_name=~\"$pod\"}) by (kubernetes_pod_name)",
+          "legendFormat": "{{kubernetes_pod_name}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "JVM GC pause time",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{kubernetes_pod_name=~\"$pod\"}[5m])) by (kubernetes_pod_name)",
+          "legendFormat": "{{kubernetes_pod_name}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Process CPU usage",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "min": 0 }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "avg(process_cpu_usage{kubernetes_pod_name=~\"$pod\"}) by (kubernetes_pod_name)",
+          "legendFormat": "{{kubernetes_pod_name}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "HikariCP active connections",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(hikaricp_connections_active{kubernetes_pod_name=~\"$pod\"}) by (kubernetes_pod_name)",
+          "legendFormat": "{{kubernetes_pod_name}} active"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(hikaricp_connections_pending{kubernetes_pod_name=~\"$pod\"}) by (kubernetes_pod_name)",
+          "legendFormat": "{{kubernetes_pod_name}} pending"
+        }
+      ]
+    }
+  ]
+}

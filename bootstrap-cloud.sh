@@ -764,10 +764,44 @@ install_observability() {
   [[ "$INSTALL_OBSERVABILITY" == "true" ]] || return 0
   log "Installing Istio observability addons"
   need_cmd awk
+  need_cmd jq
   mkdir -p "$GENERATED_DIR"
 
   kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/prometheus.yaml
-  kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/grafana.yaml
+
+  # Patch Grafana's addon manifest to add a real backend dashboard (JVM heap/
+  # GC, HTTP request rate+latency, HikariCP pool) sourced from the
+  # /actuator/prometheus metrics charts/backend-service's Deployments already
+  # expose via prometheus.io/scrape annotations -- real data, not a blank
+  # panel. Inserted as a new key into the existing
+  # istio-services-grafana-dashboards ConfigMap (already mounted and
+  # registered as a dashboard provider path by this same addon), so no
+  # Deployment/volume changes are needed. The value is produced with jq
+  # (already a dependency) rather than hand-escaped, and inserted via `sed r`
+  # rather than `awk -v` -- awk's -v assignment interprets backslash escapes
+  # in its argument, which corrupts a pre-escaped JSON string.
+  local grafana_manifest="$GENERATED_DIR/grafana.generated.yaml"
+  local dashboard_insert="$GENERATED_DIR/spring-boot-jvm-dashboard.insert.yaml"
+  local dashboard_json="$REPO_PATH/charts/gateway/dashboards/spring-boot-jvm.json"
+  if [[ -f "$dashboard_json" ]]; then
+    printf '  spring-boot-jvm-dashboard.json: %s\n' \
+      "$(jq -c . "$dashboard_json" | jq -Rs .)" > "$dashboard_insert"
+    curl -fsSL https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/grafana.yaml \
+      | awk '
+          /istio-workload-dashboard\.json:/ { seen_workload=1 }
+          seen_workload && /^kind: ConfigMap$/ && !inserted {
+            print "__INSERT_SPRING_BOOT_DASHBOARD__"
+            inserted=1
+          }
+          { print }
+        ' \
+      | sed -e "/__INSERT_SPRING_BOOT_DASHBOARD__/r $dashboard_insert" -e '/__INSERT_SPRING_BOOT_DASHBOARD__/d' \
+      > "$grafana_manifest"
+  else
+    warn "charts/gateway/dashboards/spring-boot-jvm.json not found; deploying Grafana without the custom backend dashboard."
+    curl -fsSL https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/grafana.yaml > "$grafana_manifest"
+  fi
+  kubectl apply -f "$grafana_manifest"
 
   # Jaeger instead of Zipkin: Kiali's tracing integration only supports
   # "jaeger" or "tempo" as a provider (verified against Kiali's config
