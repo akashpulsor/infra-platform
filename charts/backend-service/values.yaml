@@ -228,6 +228,19 @@ services:
     name: billing-service
     namespace: apps
     health:
+      # No service in this chart sets startupPath, so every service relies on
+      # the default liveness window alone (90s initialDelaySeconds + 3 *
+      # 10s periodSeconds = 120s total) with no startup grace period. Under
+      # node CPU/memory contention this service's JVM boot has been observed
+      # taking minutes (not seconds) between trivial startup log lines, so it
+      # gets killed by the liveness probe before Spring Boot ever finishes
+      # starting. A startupProbe defers liveness/readiness evaluation until
+      # this passes, giving it up to ~17 minutes (20s + 100*10s) to boot
+      # before being considered failed.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
       livenessPath: /actuator/health/liveness
       readinessPath: /actuator/health/readiness
     apiPaths:
