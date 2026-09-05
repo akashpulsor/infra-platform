@@ -338,6 +338,13 @@ upsert_cloudflare_dns_records() {
 
   log "Upserting Cloudflare A records for $DOMAIN -> $PUBLIC_IP"
   local record fqdn fqdn_query id body
+
+  # DNS_RECORDS is intentionally unquoted below to split on whitespace, but that
+  # also means a literal "*" entry is a pathname-expansion glob: run from the
+  # repo directory it silently expands to every file/dir there (this previously
+  # created bogus A records named after files like bootstrap-cloud.sh). Disable
+  # globbing for this loop so "*" stays a literal token.
+  set -f
   for record in $DNS_RECORDS; do
     case "$record" in
       @) fqdn="$DOMAIN" ;;
@@ -357,6 +364,7 @@ upsert_cloudflare_dns_records() {
 
     upsert_cloudflare_dns_record "$fqdn" "$body" "$id"
   done
+  set +f
 }
 
 install_cert_manager() {
@@ -497,9 +505,62 @@ print_job_logs() {
   done
 }
 
+helm_release_exists() {
+  local release="$1"
+  local namespace="$2"
+  helm status "$release" -n "$namespace" >/dev/null 2>&1
+}
+
+namespace_has_infra_data_volumes() {
+  local namespace="$1"
+  local count
+  count="$(kubectl get pvc -n "$namespace" --no-headers 2>/dev/null | wc -l | tr -d ' ')"
+  [[ "${count:-0}" -gt 0 ]]
+}
+
+reconcile_orphaned_infra_hook_secrets() {
+  # charts/infra/templates/secrets.yaml creates postgres-secret/redis-secret/
+  # minio-secret as pre-install,pre-upgrade hooks with
+  # hook-delete-policy=before-hook-creation. That policy only deletes a hook
+  # resource left over from a *tracked previous revision* of this same
+  # release. If the "infra" release was ever uninstalled (Helm doesn't delete
+  # hook resources on uninstall) or never finished installing, these Secrets
+  # can be left behind with no owning release, so a fresh `helm install` hits
+  # AlreadyExists trying to create them again.
+  #
+  # Distinguish fresh install from failover before touching anything:
+  #   - live "infra" release present            -> normal upgrade, do nothing.
+  #   - no release AND no infra PVCs             -> fresh install: nothing of
+  #     value can be orphaned yet, safe to clear the stale secrets so the
+  #     chart's hook can recreate them from values-secret.yaml.
+  #   - no release BUT infra PVCs already exist  -> looks like a failover onto
+  #     a cluster that already has postgres/redis/minio data; do NOT delete
+  #     secrets automatically since a password mismatch with existing data
+  #     needs a human to look at it. Fail with clear guidance instead.
+  local namespace="infra"
+  helm_release_exists infra "$namespace" && return 0
+
+  local orphaned=()
+  local secret
+  for secret in postgres-secret redis-secret minio-secret; do
+    kubectl get secret "$secret" -n "$namespace" >/dev/null 2>&1 && orphaned+=("$secret")
+  done
+  [[ "${#orphaned[@]}" -gt 0 ]] || return 0
+
+  if namespace_has_infra_data_volumes "$namespace"; then
+    fail "Secrets ${orphaned[*]} exist in namespace '$namespace' with no owning Helm release, and PVCs already exist there too (looks like a failover onto a cluster with existing data, not a fresh install). Refusing to auto-recreate these secrets since that could desync credentials from existing data. Inspect 'kubectl get pvc -n $namespace' and the secret contents, then resolve manually (e.g. restore the previous release's Secret values) before rerunning."
+  fi
+
+  warn "Fresh install detected: secrets ${orphaned[*]} exist in namespace '$namespace' with no owning Helm release and no data volumes (leftover from an earlier aborted/uninstalled run). Removing them so the infra chart's pre-install hook can recreate them from values-secret.yaml."
+  for secret in "${orphaned[@]}"; do
+    kubectl delete secret "$secret" -n "$namespace" >/dev/null
+  done
+}
+
 deploy_infra() {
   log "Deploying infra"
   helm_dependency_build_if_needed "$REPO_PATH/charts/infra"
+  reconcile_orphaned_infra_hook_secrets
   helm upgrade --install infra "$REPO_PATH/charts/infra" \
     -n infra \
     -f "$REPO_PATH/charts/infra/values.yaml" \
