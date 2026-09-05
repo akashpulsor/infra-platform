@@ -46,6 +46,24 @@ postgres:
     - username: chat_user
       password: ""
       database: chat_db
+    - username: llm_gateway_user
+      password: ""
+      database: llm_gateway_db
+    - username: video_gen_user
+      password: ""
+      database: video_gen_db
+    - username: post_production_user
+      password: ""
+      database: post_production_db
+    - username: pre_production_user
+      password: ""
+      database: pre_production_db
+    - username: critic_user
+      password: ""
+      database: critic_db
+    - username: creative_planning_user
+      password: ""
+      database: creative_planning_db
   databases:
     - tenant_db
     - product_db
@@ -56,6 +74,12 @@ postgres:
     - keycloak_db
     - trend_intelligence_db
     - chat_db
+    - llm_gateway_db
+    - video_gen_db
+    - post_production_db
+    - pre_production_db
+    - critic_db
+    - creative_planning_db
 
   persistence:
     # Matches the live PVC size in this cluster -- the local-path storage class here can't
