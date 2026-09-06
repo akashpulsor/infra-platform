@@ -47,9 +47,6 @@ PUBLIC_IP="${PUBLIC_IP:-}"
 DNS_RECORDS="${DNS_RECORDS:-@ api auth creator media console monitor *}"
 TENANT_CRED_ENCRYPTION_KEY="${TENANT_CRED_ENCRYPTION_KEY:-}"
 
-KIALI_ADMIN_USERNAME="${KIALI_ADMIN_USERNAME:-admin}"
-KIALI_ADMIN_PASSWORD="${KIALI_ADMIN_PASSWORD:-}"
-
 GENERATED_DIR="$REPO_PATH/.generated/cloud"
 GENERATED_BACKEND_VALUES="$GENERATED_DIR/backend-secrets.generated.yaml"
 
@@ -724,42 +721,6 @@ deploy_ui() {
   kubectl rollout status deployment/creator-ui -n apps --timeout="$ROLLOUT_TIMEOUT"
 }
 
-ensure_kiali_login_auth() {
-  # Kiali's addon manifest ships with auth.strategy: anonymous -- fine for a
-  # kubectl port-forward, not for exposing it on the public internet at
-  # https://monitor.$DOMAIN (kept generic rather than "kiali.$DOMAIN" so the
-  # public hostname/TLS cert -- visible in public Certificate Transparency
-  # logs -- doesn't broadcast which specific tool is running). Kiali's
-  # built-in "login" strategy gates the UI
-  # behind a username/password backed by a Secret named "kiali" in its own
-  # namespace (username/passphrase keys); Kiali watches that Secret and picks
-  # up rotations without a pod restart.
-  local namespace="istio-system"
-
-  if kubectl get secret kiali -n "$namespace" >/dev/null 2>&1; then
-    info "Kiali admin credentials already exist (secret 'kiali' in $namespace); leaving them as-is."
-    return 0
-  fi
-
-  if [[ -z "$KIALI_ADMIN_PASSWORD" ]]; then
-    KIALI_ADMIN_PASSWORD="$(openssl rand -base64 18)"
-    mkdir -p "$GENERATED_DIR"
-    local cred_file="$GENERATED_DIR/kiali-admin-credentials.txt"
-    printf 'username: %s\npassword: %s\n' "$KIALI_ADMIN_USERNAME" "$KIALI_ADMIN_PASSWORD" > "$cred_file"
-    chmod 600 "$cred_file"
-    # Deliberately not printed to stdout/log: this run's whole output is
-    # persisted to deploymentlogs/, and a generated secret shouldn't sit in a
-    # plaintext log file.
-    info "Generated a Kiali admin password and saved it to $cred_file (chmod 600, not logged)."
-  fi
-
-  kubectl create secret generic kiali \
-    -n "$namespace" \
-    --from-literal=username="$KIALI_ADMIN_USERNAME" \
-    --from-literal=passphrase="$KIALI_ADMIN_PASSWORD" \
-    --dry-run=client -o yaml | kubectl apply -f -
-}
-
 install_observability() {
   [[ "$INSTALL_OBSERVABILITY" == "true" ]] || return 0
   log "Installing Istio observability addons"
@@ -816,19 +777,25 @@ install_observability() {
   kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/jaeger.yaml
 
   # Patch Kiali's addon manifest before applying it:
-  #   - auth.strategy: anonymous -> login (see ensure_kiali_login_auth)
+  #   - auth.strategy stays "anonymous" -- Kiali removed the built-in
+  #     username/password "login" strategy (confirmed via pod logs: quay.io/
+  #     kiali/kiali:v2.12 crash-loops with "FTL invalid authentication
+  #     strategy [login]"). Kiali 2.x only accepts anonymous/openid/
+  #     openshift/header, and openid would need a dedicated Keycloak client
+  #     registration; anonymous is the option that actually starts without
+  #     more infra, so this endpoint isn't password-gated by Kiali itself --
+  #     rely on the generic hostname (below) for obscurity in the meantime.
   #   - server.web_root: /kiali -> / and add web_fqdn/web_schema/web_port,
   #     since it's served at its own dedicated host (monitor.$DOMAIN) rather
   #     than under a shared host's /kiali path -- without this Kiali
   #     generates broken links/redirects for its external URL.
   #   - external_services.tracing: enabled + provider: jaeger, pointed at the
   #     "tracing" Service (grpc-query :16685) Jaeger's addon creates, so
-  #     traces show up inside Kiali's own login-gated UI instead of needing a
-  #     separate, unauthenticated tracing UI exposed on its own.
+  #     traces show up inside Kiali's own UI instead of needing a separate
+  #     tracing UI exposed on its own.
   local kiali_manifest="$GENERATED_DIR/kiali.generated.yaml"
   curl -fsSL https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/kiali.yaml \
     | awk -v host="monitor.$DOMAIN" '
-        /^      strategy: anonymous$/ { sub(/anonymous/, "login") }
         /^      web_root: \/kiali$/ { sub(/\/kiali$/, "/") }
         /^      tracing:$/ { in_tracing=1 }
         in_tracing && /^        enabled: false$/ {
@@ -848,7 +815,6 @@ install_observability() {
         }
       ' > "$kiali_manifest"
   kubectl apply -f "$kiali_manifest"
-  ensure_kiali_login_auth
 
   # Grafana Faro (browser RUM) receiver for creator-ui, forwarding traces
   # into the Jaeger deployed above. See alloy-faro-receiver.yaml for why
@@ -865,7 +831,7 @@ install_observability() {
   kubectl rollout status deployment/jaeger -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
   kubectl rollout status deployment/alloy-faro -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
 
-  info "Kiali (metrics + service graph + traces): https://monitor.$DOMAIN (once deploy_gateway/wait_for_certificates run) -- credentials in $GENERATED_DIR/kiali-admin-credentials.txt if freshly generated."
+  info "Kiali (metrics + service graph + traces): https://monitor.$DOMAIN (once deploy_gateway/wait_for_certificates run) -- anonymous access, not password-gated (see install_observability comments)."
 }
 
 wait_for_certificates() {
