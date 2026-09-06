@@ -199,6 +199,42 @@ spec:
               echo ""
 
               # ═══════════════════════════════════════════════════════════
+              # 6b. CREATE platform-api IN THE MASTER REALM TOO
+              # ═══════════════════════════════════════════════════════════
+              # tenant-service's KeycloakRealmServiceImpl (and any other orchestrator-style
+              # admin client) authenticates against $REALM master (keycloak.admin.realm
+              # defaults to "master", see tenant-service/application.yml) using client_id
+              # platform-api -- a DIFFERENT client identity than the one created above inside
+              # $REALM. Without this, tenant-service's Keycloak admin client can never obtain
+              # a token at all, surfacing as a 502 ("Failed to fetch platform user") on every
+              # call that touches Keycloak. Granted roles on the "$REALM-realm" client mirror
+              # what grantOrchestratorRolesOnNewRealm() in tenant-service expects.
+              echo "▶ Step 5b: Creating platform-api in master realm (orchestrator identity)..."
+              if $KCADM get clients -r master -q clientId=platform-api --fields clientId 2>/dev/null | grep -q "platform-api"; then
+                echo "  ✓ platform-api already exists in master"
+              else
+                $KCADM create clients -r master \
+                  -s clientId=platform-api \
+                  -s name="Platform API (orchestrator, master realm)" \
+                  -s enabled=true \
+                  -s publicClient=false \
+                  -s serviceAccountsEnabled=true \
+                  -s standardFlowEnabled=false \
+                  -s directAccessGrantsEnabled=true
+                echo "  ✓ Created client: platform-api (master)"
+              fi
+
+              MASTER_PLATFORM_API_UUID=$($KCADM get clients -r master -q clientId=platform-api --fields id --format csv --noquotes 2>/dev/null | tail -1 | tr -d '\r')
+              $KCADM update clients/$MASTER_PLATFORM_API_UUID -r master -s secret="$PLATFORM_API_SECRET_DESIRED"
+
+              MGMT_CLIENT="$REALM-realm"
+              for ROLE in manage-users manage-realm manage-clients; do
+                $KCADM add-roles -r master --uusername service-account-platform-api --cclientid "$MGMT_CLIENT" --rolename $ROLE 2>/dev/null || true
+              done
+              echo "  ✓ platform-api (master) granted manage-users/manage-realm/manage-clients on $MGMT_CLIENT"
+              echo ""
+
+              # ═══════════════════════════════════════════════════════════
               # 7. CREATE DEFAULT USERS
               # ═══════════════════════════════════════════════════════════
               echo "▶ Step 6: Ensuring default users exist..."
