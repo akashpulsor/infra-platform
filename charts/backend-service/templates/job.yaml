@@ -178,9 +178,16 @@ spec:
                 echo "  ✓ Created client: platform-api"
               fi
 
+              # Force the client's secret to match keycloak-client-secret (the value every
+              # backend service already has injected via KEYCLOAK_CLIENT_SECRET) instead of
+              # trusting whatever Keycloak randomly generated on creation. Without this, a
+              # fresh realm (e.g. after a server rebuild) silently mints a different secret
+              # than what's already deployed to every service, breaking all Keycloak admin-API
+              # calls (like fetching a user by ID) until someone notices and manually syncs it.
               PLATFORM_API_UUID=$($KCADM get clients -r $REALM -q clientId=platform-api --fields id --format csv --noquotes 2>/dev/null | tail -1 | tr -d '\r')
-              PLATFORM_API_SECRET=$($KCADM get clients/$PLATFORM_API_UUID/client-secret -r $REALM 2>/dev/null | grep -o '"value" *: *"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//')
-              echo "  ✓ platform-api secret: $PLATFORM_API_SECRET"
+              $KCADM update clients/$PLATFORM_API_UUID -r $REALM -s secret="$PLATFORM_API_SECRET_DESIRED"
+              PLATFORM_API_SECRET="$PLATFORM_API_SECRET_DESIRED"
+              echo "  ✓ platform-api secret set to match keycloak-client-secret"
               echo ""
 
               # ═══════════════════════════════════════════════════════════
@@ -257,3 +264,8 @@ spec:
                 secretKeyRef:
                   name: keycloak-admin-secret
                   key: password
+            - name: PLATFORM_API_SECRET_DESIRED
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloak.clientSecretName }}
+                  key: {{ .Values.keycloak.clientSecretKey }}
