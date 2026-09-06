@@ -178,6 +178,14 @@ ensure_k3s_or_existing_cluster() {
   $SUDO chown "$(id -u):$(id -g)" "$HOME/.kube/config"
   export KUBECONFIG="$HOME/.kube/config"
 
+  # The node object can take a moment to register after k3s starts; `kubectl wait --all`
+  # errors immediately with "no matching resources found" if none exist yet instead of
+  # waiting for one to appear, so poll for its existence first.
+  for _ in $(seq 1 30); do
+    [[ -n "$(kubectl get nodes --no-headers 2>/dev/null)" ]] && break
+    sleep 2
+  done
+
   kubectl wait --for=condition=Ready nodes --all --timeout="$ROLLOUT_TIMEOUT"
 }
 
