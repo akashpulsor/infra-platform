@@ -187,6 +187,14 @@ spec:
               PLATFORM_API_UUID=$($KCADM get clients -r $REALM -q clientId=platform-api --fields id --format csv --noquotes 2>/dev/null | tail -1 | tr -d '\r')
               $KCADM update clients/$PLATFORM_API_UUID -r $REALM -s secret="$PLATFORM_API_SECRET_DESIRED"
               PLATFORM_API_SECRET="$PLATFORM_API_SECRET_DESIRED"
+
+              # A fresh client's service account gets zero realm-management permissions by
+              # default. Backend services use platform-api to call Keycloak's admin API
+              # (e.g. fetch a user by ID) -- without this grant, every such call fails
+              # authorization and surfaces as a 502 further up the stack. This was previously
+              # an undocumented manual step, invisible until the realm had to be recreated.
+              $KCADM add-roles -r $REALM --uusername service-account-platform-api --cclientid realm-management --rolename manage-users 2>/dev/null || true
+              echo "  ✓ platform-api service account granted realm-management:manage-users"
               echo "  ✓ platform-api secret set to match keycloak-client-secret"
               echo ""
 
