@@ -389,7 +389,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.8-prepare-batch-logs"
+      tag: "0.2.9-resolution-param"
     service:
       port: 8080
       targetPort: 8080
@@ -554,7 +554,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.1.60-shot-design-ready"
+      tag: "0.1.61-manual-shot-crud"
     service:
       port: 8080
       targetPort: 8080
