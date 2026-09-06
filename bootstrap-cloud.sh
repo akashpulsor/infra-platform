@@ -797,6 +797,11 @@ install_observability() {
   #     since it's served at its own dedicated host (monitor.$DOMAIN) rather
   #     than under a shared host's /kiali path -- without this Kiali
   #     generates broken links/redirects for its external URL.
+  #   - liveness/readiness/startup probe paths: /kiali/healthz -> /healthz,
+  #     to match the web_root change above. Without this the probes keep
+  #     hitting the old /kiali/healthz path, get 404s against the app now
+  #     serving at web_root "/", and kubelet kills+restarts the container
+  #     forever even though Kiali itself started and is healthy.
   #   - external_services.tracing: enabled + provider: jaeger, pointed at the
   #     "tracing" Service (grpc-query :16685) Jaeger's addon creates, so
   #     traces show up inside Kiali's own UI instead of needing a separate
@@ -805,6 +810,7 @@ install_observability() {
   curl -fsSL https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/kiali.yaml \
     | awk -v host="monitor.$DOMAIN" '
         /^      web_root: \/kiali$/ { sub(/\/kiali$/, "/") }
+        /path: \/kiali\/healthz$/ { sub(/\/kiali\/healthz$/, "/healthz") }
         /^      tracing:$/ { in_tracing=1 }
         in_tracing && /^        enabled: false$/ {
           sub(/enabled: false/, "enabled: true")
