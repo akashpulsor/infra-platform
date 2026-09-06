@@ -26,7 +26,7 @@ data:
 
       "sslRequired": "external",
 
-      "registrationAllowed": false,
+      "registrationAllowed": true,
 
       "loginWithEmailAllowed": true,
 
