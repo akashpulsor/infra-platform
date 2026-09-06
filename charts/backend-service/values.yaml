@@ -554,7 +554,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.1.59-prepare-logs"
+      tag: "0.1.60-shot-design-ready"
     service:
       port: 8080
       targetPort: 8080
