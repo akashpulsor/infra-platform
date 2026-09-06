@@ -65,7 +65,10 @@ spec:
                   -s resetPasswordAllowed=true \
                   -s loginWithEmailAllowed=true \
                   -s loginTheme=dalaillama \
-                  -s emailTheme=dalaillama
+                  -s emailTheme=dalaillama \
+                  -s accessTokenLifespan=3600 \
+                  -s ssoSessionIdleTimeout=1800 \
+                  -s ssoSessionMaxLifespan=36000
                 echo "  ✓ Created realm: $REALM"
               fi
               echo ""
