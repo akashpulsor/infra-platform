@@ -44,7 +44,7 @@ VALUES_FILE="${SCRIPT_DIR}/charts/backend-service/values.yaml"
 SERVICES=(
     "tenant-service:5.0.89-creator-margin"
     "product-service:5.0.91"
-    "billing-service:5.0.96-project-spend-cap"
+    "billing-service:5.0.97-webhook-signature-verify"
     "llm-gateway:0.1.52-format-logs"
     "video-generation-service:0.2.9-resolution-param"
     "post-production-service:0.1.4-minio-fix"

@@ -251,7 +251,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.96-project-spend-cap"
+      tag: "5.0.97-webhook-signature-verify"
     service:
       port: 8080
       targetPort: 8080
