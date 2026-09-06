@@ -1,3 +1,13 @@
+# NOTE: this realm-import Job (keycloak chart) is NOT the platform's real
+# bootstrap path -- charts/backend-service/templates/job.yaml's
+# "keycloak-bootstrap" Job is what actually creates/manages the live
+# "dalai-llama" realm and its clients (creator-ui, platform-api, etc.),
+# running on every `helm upgrade backend`. This ConfigMap's realm import
+# targets the same realm name for consistency but --override=false makes it
+# a harmless no-op once that realm exists. If you're fixing realm settings
+# (registration, themes, etc.), fix them in backend-service's job.yaml, not
+# here -- this file was mistakenly treated as the source of truth once
+# already (see git history) and it wasted a long debugging session.
 apiVersion: v1
 
 kind: ConfigMap
@@ -16,7 +26,7 @@ data:
 
     {
 
-      "realm": "platform",
+      "realm": "dalai-llama",
 
       "enabled": true,
 
@@ -52,7 +62,21 @@ data:
 
       "ssoSessionIdleTimeout": 1800,
 
-      "ssoSessionMaxLifespan": 36000
+      "ssoSessionMaxLifespan": 36000,
+
+      "clients": [
+        {
+          "clientId": "creator-ui",
+          "name": "Creator UI",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": true,
+          "standardFlowEnabled": true,
+          "directAccessGrantsEnabled": false,
+          "redirectUris": ["https://creator.dalaillama.in/*"],
+          "webOrigins": ["https://creator.dalaillama.in"]
+        }
+      ]
 
     }
 

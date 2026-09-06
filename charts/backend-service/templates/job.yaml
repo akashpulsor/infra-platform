@@ -61,9 +61,11 @@ spec:
                   -s realm=$REALM \
                   -s enabled=true \
                   -s displayName="Dalai LLAMA Platform" \
-                  -s registrationAllowed=false \
+                  -s registrationAllowed=true \
                   -s resetPasswordAllowed=true \
-                  -s loginWithEmailAllowed=true
+                  -s loginWithEmailAllowed=true \
+                  -s loginTheme=dalaillama \
+                  -s emailTheme=dalaillama
                 echo "  ✓ Created realm: $REALM"
               fi
               echo ""
