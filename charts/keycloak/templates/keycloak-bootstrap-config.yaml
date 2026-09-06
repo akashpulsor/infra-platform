@@ -26,6 +26,10 @@ data:
 
       "sslRequired": "external",
 
+      "loginTheme": "dalaillama",
+
+      "emailTheme": "dalaillama",
+
       "registrationAllowed": true,
 
       "loginWithEmailAllowed": true,

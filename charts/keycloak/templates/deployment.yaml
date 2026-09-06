@@ -92,9 +92,6 @@ spec:
 
             - name: KC_SPI_THEME_STATIC_MAX_AGE
               value: "-1"
-
-            - name: KC_SPI_THEME_DEFAULT
-              value: {{ $themeName | quote }}
             {{- end }}
 
             # ==========================
