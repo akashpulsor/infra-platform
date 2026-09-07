@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.245-mg-image-download
+  tag: 0.1.246-image-upload
   pullPolicy: IfNotPresent
 
 replicaCount: 1
