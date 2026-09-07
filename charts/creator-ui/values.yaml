@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.242-wallet-polling
+  tag: 0.1.243-async-shot-list
   pullPolicy: IfNotPresent
 
 replicaCount: 1
