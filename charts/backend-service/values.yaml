@@ -554,7 +554,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.1.66-image-replace"
+      tag: "0.1.67-video-page-fixes"
     service:
       port: 8080
       targetPort: 8080
