@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.243-async-shot-list
+  tag: 0.1.244-session-hinglish
   pullPolicy: IfNotPresent
 
 replicaCount: 1

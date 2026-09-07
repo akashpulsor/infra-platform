@@ -324,7 +324,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.1.53-async-worker"
+      tag: "0.1.55-internal-models"
     service:
       port: 8080
       targetPort: 8080
@@ -389,7 +389,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.9-resolution-param"
+      tag: "0.2.10-internal-models"
     service:
       port: 8080
       targetPort: 8080
@@ -554,7 +554,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.1.62-async-shot-list"
+      tag: "0.1.63-idempotency-race"
     service:
       port: 8080
       targetPort: 8080
