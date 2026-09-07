@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.1.55-internal-models"
     "video-generation-service:0.2.10-internal-models"
     "post-production-service:0.1.4-minio-fix"
-    "pre-production-service:0.1.67-video-page-fixes"
+    "pre-production-service:0.1.68-mg-video-dispatch"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.17-margin-recompute"
     "trend-intelligence-service:0.1.0"

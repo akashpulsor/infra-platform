@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.248-video-page-fixes
+  tag: 0.1.249-mg-video-dispatch
   pullPolicy: IfNotPresent
 
 replicaCount: 1
