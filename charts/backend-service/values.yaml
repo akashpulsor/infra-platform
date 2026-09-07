@@ -324,7 +324,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.1.55-internal-models"
+      tag: "0.1.56-builtin-voices"
     service:
       port: 8080
       targetPort: 8080
@@ -389,7 +389,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.10-internal-models"
+      tag: "0.2.11-builtin-voices"
     service:
       port: 8080
       targetPort: 8080
@@ -554,7 +554,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.1.68-mg-video-dispatch"
+      tag: "0.1.69-builtin-voices"
     service:
       port: 8080
       targetPort: 8080
