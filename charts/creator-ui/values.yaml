@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.246-image-upload
+  tag: 0.1.247-scoped-image-kinds
   pullPolicy: IfNotPresent
 
 replicaCount: 1
