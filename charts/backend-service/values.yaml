@@ -311,6 +311,7 @@ services:
       - /v1/estimate
       - /v1/jobs
       - /v1/models
+      - /v1/voices
     internalApiPaths:
       - /api/v1/internal
       - /actuator
