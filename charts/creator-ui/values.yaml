@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.252-voice-routing-tts-model
+  tag: 0.1.253-two-identity-flows
   pullPolicy: IfNotPresent
 
 replicaCount: 1
