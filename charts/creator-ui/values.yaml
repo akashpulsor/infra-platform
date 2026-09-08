@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.253-two-identity-flows
+  tag: 0.1.254-text-detect-apply-pill
   pullPolicy: IfNotPresent
 
 replicaCount: 1
