@@ -380,6 +380,10 @@ services:
       - /v1/exports
       - /v1/scenes
       - /v1/final-renders
+      # /v1/dubbing is already owned by post-production-service (see its own apiPaths comment for
+      # the "was never exposed, 404'd at the gateway" history) -- use a fresh, unclaimed prefix
+      # for the per-shot voice test-preview flow that lives here instead.
+      - /v1/voice-tests
     internalApiPaths:
       - /api/v1/internal
       - /actuator
@@ -390,7 +394,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.13-language-code"
+      tag: "0.2.14-test-voice"
     service:
       port: 8080
       targetPort: 8080
