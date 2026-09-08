@@ -560,7 +560,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.1.75-legacy-text-backfill"
+      tag: "0.1.76-editable-shot-plan"
     service:
       port: 8080
       targetPort: 8080
