@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.254-text-detect-apply-pill
+  tag: 0.1.256-legacy-text-backfill
   pullPolicy: IfNotPresent
 
 replicaCount: 1

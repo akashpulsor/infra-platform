@@ -325,7 +325,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.1.58-per-image-text-lang"
+      tag: "0.1.59-hindi-voice-sync"
     service:
       port: 8080
       targetPort: 8080
@@ -531,6 +531,7 @@ services:
       - /v1/dialogue-languages
       - /v1/shot-types
       - /v1/video-feature-flags
+      - /v1/genders
       # ProjectLockService.lock() (both the creator's own lock and the client's public lock reached
       # through this path) ingests script + screenplay + cast + one chat-service call per shot,
       # sequentially, before even creating the chat session -- easily past the default 30s route
@@ -555,7 +556,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.1.73-text-detect-lang-edit"
+      tag: "0.1.75-legacy-text-backfill"
     service:
       port: 8080
       targetPort: 8080
