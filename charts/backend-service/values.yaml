@@ -325,7 +325,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.1.59-hindi-voice-sync"
+      tag: "0.1.60-voice-sync-dedupe"
     service:
       port: 8080
       targetPort: 8080
