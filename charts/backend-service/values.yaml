@@ -22,13 +22,11 @@ global:
         value: "https://.*\\.dalaillama\\.in"
       - type: prefix
         value: "http://localhost"
-
 istio:
   enabled: true
   rateLimit:
     enabled: true
-    publicRequestsPerMinute: 30   # /api/v1/public/* — prevents slug enumeration
-
+    publicRequestsPerMinute: 30 # /api/v1/public/* — prevents slug enumeration
 # =============================================================================
 # INFRASTRUCTURE SETTINGS (Keycloak, etc.)
 # =============================================================================
@@ -45,7 +43,6 @@ keycloak:
   adminPasswordKey: password
   clientSecretName: keycloak-client-secret
   clientSecretKey: client-secret
-
 infra_secrets:
   postgres:
     name: postgres-secret
@@ -57,7 +54,6 @@ infra_secrets:
     name: backend-minio-secret
     rootUserKey: minio-root-user
     rootPasswordKey: minio-root-password
-
 minio:
   buckets:
     recordings: call-recordings
@@ -67,7 +63,6 @@ minio:
     cdr: cdr-archives
     creatorAssets: creator-assets
     creatorExports: creator-exports
-
 serviceEntries:
   epsilon-greeter:
     hosts:
@@ -83,7 +78,6 @@ serviceEntries:
       - number: 443
         name: https
         protocol: TLS
-
 # =============================================================================
 # MICROSERVICES CONFIGURATION
 # =============================================================================
@@ -135,8 +129,8 @@ services:
     # RTP fork target — RTPEngine (same server) → ai-service (inside cluster)
     # hostPort exposes 5555 directly on the node. Same-server: use 127.0.0.1
     aiService:
-      rtpExternalHost: "127.0.0.1"   # Same server — RTPEngine → localhost:5555 → ai-service container
-      rtpExternalPort: 5555           # hostPort (same as container port)
+      rtpExternalHost: "127.0.0.1" # Same server — RTPEngine → localhost:5555 → ai-service container
+      rtpExternalPort: 5555 # hostPort (same as container port)
     resources:
       limits:
         cpu: 500m
@@ -163,7 +157,6 @@ services:
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
       SERVER_PORT: "8080"
-
   # --- PRODUCT SERVICE ---
   productService:
     enabled: true
@@ -220,7 +213,6 @@ services:
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
-
   # --- BILLING SERVICE ---
   billingService:
     enabled: true
@@ -294,7 +286,6 @@ services:
       defaultCurrency: INR
     razorpay:
       enabled: true
-
   # --- LLM GATEWAY ---
   llmGateway:
     enabled: true
@@ -325,7 +316,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.1.60-voice-sync-dedupe"
+      tag: "0.2.16-clone-fix"
     service:
       port: 8080
       targetPort: 8080
@@ -359,7 +350,6 @@ services:
       LLM_GATEWAY_KAFKA_BILLING_TOPIC: "llm.billing.events"
       LLM_GATEWAY_WALLET_GUARD_ENABLED: "true"
       LLM_GATEWAY_MINIMUM_WALLET_BALANCE: "100"
-
   # --- VIDEO GENERATION SERVICE ---
   videoGenerationService:
     enabled: true
@@ -394,7 +384,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.14-test-voice"
+      tag: "0.2.16-clone-fix"
     service:
       port: 8080
       targetPort: 8080
@@ -435,7 +425,6 @@ services:
       # Presigned URLs handed to fal.ai and browsers sign against this hostname -- must be a
       # route reachable from outside the cluster. See video-generation-service MinioConfig.
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
-
   # --- POST PRODUCTION SERVICE ---
   postProductionService:
     enabled: true
@@ -501,7 +490,6 @@ services:
       # this hostname -- must be reachable from outside the cluster. See post-production-service
       # MinioConfig.
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
-
   # --- PRE PRODUCTION SERVICE ---
   preProductionService:
     enabled: true
@@ -560,7 +548,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.1.76-editable-shot-plan"
+      tag: "0.2.16-clone-fix"
     service:
       port: 8080
       targetPort: 8080
@@ -598,7 +586,6 @@ services:
       PRE_PROD_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
       CRITIC_SERVICE_BASE_URL: "http://critic-service.apps.svc.cluster.local:8080"
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
-
   # --- CRITIC SERVICE ---
   criticService:
     enabled: true
@@ -648,7 +635,6 @@ services:
       SERVER_PORT: "8080"
       LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
       CRITIC_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
-
   # --- CREATIVE PLANNING SERVICE ---
   creativePlanningService:
     enabled: true
@@ -709,7 +695,6 @@ services:
       CHAT_SERVICE_BASE_URL: "http://chat-service.apps.svc.cluster.local:8080"
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       BILLING_SERVICE_BASE_URL: "http://billing-service.apps.svc.cluster.local:8080"
-
   # --- TREND INTELLIGENCE SERVICE ---
   trendIntelligenceService:
     enabled: true
@@ -758,7 +743,6 @@ services:
       SERVER_PORT: "8080"
       LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
       TREND_INTELLIGENCE_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
-
   # --- CHAT SERVICE ---
   chatService:
     enabled: true
@@ -810,7 +794,6 @@ services:
       CHAT_DEFAULT_EMBEDDING_MODEL: "gemini-embedding-001"
       TREND_INTELLIGENCE_BASE_URL: "http://trend-intelligence-service.apps.svc.cluster.local:8080"
       CREATIVE_PLANNING_BASE_URL: "http://creative-planning-service.apps.svc.cluster.local:8080"
-
   # --- CREATOR SERVICE ---
   creatorService:
     enabled: false
@@ -962,7 +945,6 @@ services:
       CREATOR_WEEKLY_IDEA_SCHEDULER_INITIAL_DELAY_MS: "60000"
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       MINIO_SIGNED_URL_TTL_SECONDS: "3600"
-
   # --- pbxCore SERVICE ---
   pbxCoreService:
     # Confirmed unused by creator-service or any creator-flow service (only an unused
@@ -1007,7 +989,7 @@ services:
       username: pbx_user
     resources:
       limits:
-        cpu: 1000m       # also bump from 500m — too tight for STOMP + ESL listener
+        cpu: 1000m # also bump from 500m — too tight for STOMP + ESL listener
         memory: 2Gi
       requests:
         cpu: 200m
@@ -1038,7 +1020,6 @@ services:
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       WEBSOCKET_BROKER: "redis"
       TRUSTED_NETWORKS: "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
-
   # --- AI SERVICE (Python/FastAPI) ---
   aiService:
     enabled: false
@@ -1111,11 +1092,7 @@ services:
           modelId: eleven_v3
           outputFormat: mp3_44100_128
           removeBackgroundNoise: "true"
-          voiceCommand: python "scripts/run_elevenlabs_voice_clone.py" --text-file
-            "{text_file}" --prompt-wav "{prompt_wav}" --output-audio "{output_audio}"
-            --voice-id "{proprietary_voice_id}" --voice-name "{voice_clone_name}"
-            --base-url "{elevenlabs_base_url}" --model-id "{elevenlabs_model_id}"
-            --timeout "{proprietary_api_timeout_seconds}"
+          voiceCommand: python "scripts/run_elevenlabs_voice_clone.py" --text-file "{text_file}" --prompt-wav "{prompt_wav}" --output-audio "{output_audio}" --voice-id "{proprietary_voice_id}" --voice-name "{voice_clone_name}" --base-url "{elevenlabs_base_url}" --model-id "{elevenlabs_model_id}" --timeout "{proprietary_api_timeout_seconds}"
           voiceId: ""
         faceRestoration:
           command: ""
@@ -1153,21 +1130,16 @@ services:
           command: ""
           repo: ""
         lightingModel: ic_lightning
-        lipSyncFallbackCommand: python "scripts/run_sync_labs_lipsync.py" --input-video
-          "{avatar_video}" --audio "{audio}" --output-video "{lip_synced_video}" --model
-          "{sync_labs_model}" --base-url "{sync_labs_base_url}" --timeout "{proprietary_api_timeout_seconds}"
+        lipSyncFallbackCommand: python "scripts/run_sync_labs_lipsync.py" --input-video "{avatar_video}" --audio "{audio}" --output-video "{lip_synced_video}" --model "{sync_labs_model}" --base-url "{sync_labs_base_url}" --timeout "{proprietary_api_timeout_seconds}"
         lipSyncModel: fal_latentsync
         lipSyncRunnerPath: /lip-sync
         livePortrait:
-          command: python "scripts/run_liveportrait_scene.py" --repo "{model_root}/LivePortrait"
-            --source-video "{source_video}" --audio "{audio}" --output-video "{output_video}"
-            --duration "{duration_seconds}"
+          command: python "scripts/run_liveportrait_scene.py" --repo "{model_root}/LivePortrait" --source-video "{source_video}" --audio "{audio}" --output-video "{output_video}" --duration "{duration_seconds}"
           repo: ""
         localRuntimeEnabled: "true"
         modelRoot: /models/avatar
         museTalk:
-          command: python "scripts/run_musetalk_lipsync.py" --repo "{model_root}/MuseTalk"
-            --input-video "{avatar_video}" --audio "{audio}" --output-video "{lip_synced_video}"
+          command: python "scripts/run_musetalk_lipsync.py" --repo "{model_root}/MuseTalk" --input-video "{avatar_video}" --audio "{audio}" --output-video "{lip_synced_video}"
           repo: ""
         postprocessRunnerPath: /postprocess-image
         proprietaryApiTimeoutSeconds: "900"
@@ -1187,9 +1159,7 @@ services:
         sttRunnerPath: /stt
         syncLabs:
           baseUrl: https://api.sync.so
-          command: python "scripts/run_sync_labs_lipsync.py" --input-video "{avatar_video}"
-            --audio "{audio}" --output-video "{lip_synced_video}" --model "{sync_labs_model}"
-            --base-url "{sync_labs_base_url}" --timeout "{proprietary_api_timeout_seconds}"
+          command: python "scripts/run_sync_labs_lipsync.py" --input-video "{avatar_video}" --audio "{audio}" --output-video "{lip_synced_video}" --model "{sync_labs_model}" --base-url "{sync_labs_base_url}" --timeout "{proprietary_api_timeout_seconds}"
           model: lipsync-2-pro
         talkingModel: source_video
         upscaling:
@@ -1201,10 +1171,7 @@ services:
           backgroundRemovalCommand: ""
           faceRestoreCommand: ""
           upscaleCommand: ""
-        voiceFallbackCommand: python "scripts/run_elevenlabs_voice_clone.py" --text-file
-          "{text_file}" --prompt-wav "{prompt_wav}" --output-audio "{output_audio}"
-          --voice-id "{proprietary_voice_id}" --voice-name "{voice_clone_name}" --base-url
-          "{elevenlabs_base_url}" --model-id "{elevenlabs_model_id}" --timeout "{proprietary_api_timeout_seconds}"
+        voiceFallbackCommand: python "scripts/run_elevenlabs_voice_clone.py" --text-file "{text_file}" --prompt-wav "{prompt_wav}" --output-audio "{output_audio}" --voice-id "{proprietary_voice_id}" --voice-name "{voice_clone_name}" --base-url "{elevenlabs_base_url}" --model-id "{elevenlabs_model_id}" --timeout "{proprietary_api_timeout_seconds}"
         voiceModel: fal_minimax_voice_clone
         voiceRunnerPath: /voice
         workRoot: /tmp/avatar
@@ -1272,7 +1239,6 @@ services:
       SIP_WSS_URL: "wss://sip.dalaillama.in:7443"
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       WEBSOCKET_BROKER: "redis"
-
 # =============================================================================
 # SECRETS MAPPING & VALUES
 # =============================================================================
@@ -1283,7 +1249,6 @@ secrets:
     values:
       # Base64-encoded 32-byte key. Example: openssl rand -base64 32
       encryptionKey: ""
-
   didww:
     name: dalai-backend-didww
     apiKeyKey: api-key
@@ -1291,13 +1256,11 @@ secrets:
     values:
       apiKey: ""
       webhookSecret: ""
-
   redis:
     name: backend-redis-secret
     passwordKey: redis-password
     values:
       password: ""
-
   minio:
     name: backend-minio-secret
     rootUserKey: minio-root-user
@@ -1305,7 +1268,6 @@ secrets:
     values:
       rootUser: ""
       rootPassword: ""
-
   pbxCore:
     name: pbx-core-telecom-secret
     freeswitchEslPasswordKey: freeswitch-esl-password
@@ -1313,7 +1275,6 @@ secrets:
     values:
       freeswitchEslPassword: ""
       coturnSecret: ""
-
   aiService:
     name: ai-service-secrets
     openaiApiKeyKey: openai-api-key
@@ -1341,7 +1302,6 @@ secrets:
       deepgramApiKey: ""
       googleApiKey: ""
       googleCredentialsJson: ""
-
   reddit:
     name: reddit-secrets
     clientIdKey: reddit-client-id
@@ -1349,7 +1309,6 @@ secrets:
     values:
       clientId: ""
       clientSecret: ""
-
   razorpay:
     name: dalai-backend-razorpay
     keyIdKey: key-id
