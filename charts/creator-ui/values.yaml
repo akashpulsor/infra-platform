@@ -1,23 +1,18 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.260-editable-shot-plan
+  tag: 0.1.261-clone-fix
   pullPolicy: IfNotPresent
-
 replicaCount: 1
-
 service:
   port: 80
-
 istio:
   enabled: true
   host: creator.dalaillama.in
   gatewayName: istio-system/central-gateway
   pathPrefix: /
-
 keycloak:
   issuerUrl: "https://auth.dalaillama.in/realms/dalai-llama"
   jwksUri: "https://auth.dalaillama.in/realms/dalai-llama/protocol/openid-connect/certs"
-
 env:
   KEYCLOAK_URL: "https://auth.dalaillama.in"
   KEYCLOAK_SERVER_URL: "https://auth.dalaillama.in"
@@ -32,14 +27,12 @@ env:
   # apps/creator-ui/src/faro.js. Traces + web vitals only for now (no Loki
   # deployed yet, so JS-error/console-log capture has nowhere to go).
   FARO_COLLECTOR_URL: "https://monitor.dalaillama.in/faro/collect"
-
 # The browser only needs Razorpay's public key ID. The private key and webhook
 # secret stay exclusively on billing-service.
 razorpay:
   enabled: true
   existingSecret: dalai-backend-razorpay
   keyIdKey: key-id
-
 resources:
   requests:
     cpu: 50m
