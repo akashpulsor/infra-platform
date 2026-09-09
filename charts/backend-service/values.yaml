@@ -28,11 +28,14 @@ istio:
     enabled: true
     publicRequestsPerMinute: 30 # /api/v1/public/* — prevents slug enumeration
 # =============================================================================
+
 # INFRASTRUCTURE SETTINGS (Keycloak, etc.)
+
 # =============================================================================
 keycloak:
   issuerUrl: https://auth.dalaillama.in/realms/dalai-llama
   # Use internal cluster URL for Istio/Spring to fetch JWKS keys.
+
   # issuer claim in token remains external; jwksUri is just where to fetch signing keys.
   jwksUri: http://keycloak.apps.svc.cluster.local:80/realms/dalai-llama/protocol/openid-connect/certs
   adminUrl: http://keycloak.apps.svc.cluster.local:80
@@ -79,7 +82,9 @@ serviceEntries:
         name: https
         protocol: TLS
 # =============================================================================
+
 # MICROSERVICES CONFIGURATION
+
 # =============================================================================
 services:
   # --- TENANT SERVICE ---
@@ -92,12 +97,19 @@ services:
     apiPaths:
       - /api/v1/tenants
       # Scoped to this controller's one real route (PublicTenantConfigController's only mapping is
+
       # GET /api/v1/public/tenant-config/{slug}), not the bare /api/v1/public prefix this used to
+
       # be -- confirmed live that broad form shadowed every OTHER service's own /v1/public/* routes
+
       # in Envoy's merged route table (e.g. pre-production-service's /v1/public/projects/{token},
+
       # the client-review page), silently misrouting them here instead, where this service has no
+
       # matching controller and Spring's fallback answered with a plain-text 500 instead of a real
+
       # 404. Exact same class of bug already fixed once for a different broad /v1/public entry --
+
       # see pre-production-service's own apiPaths comment above.
       - /api/v1/public/tenant-config
       - /ws
@@ -115,6 +127,7 @@ services:
       name: tenant_db
       username: tenant_user
     # Provisioning & K8s Orchestration
+
     kubernetes:
       namespace: dalai-llama
       trustCerts: "true"
@@ -127,6 +140,7 @@ services:
     credentials:
       ttlHours: 72
     # RTP fork target — RTPEngine (same server) → ai-service (inside cluster)
+
     # hostPort exposes 5555 directly on the node. Same-server: use 127.0.0.1
     aiService:
       rtpExternalHost: "127.0.0.1" # Same server — RTPEngine → localhost:5555 → ai-service container
@@ -158,6 +172,7 @@ services:
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
       SERVER_PORT: "8080"
   # --- PRODUCT SERVICE ---
+
   productService:
     enabled: true
     expose: true
@@ -214,6 +229,7 @@ services:
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
   # --- BILLING SERVICE ---
+
   billingService:
     enabled: true
     expose: true
@@ -221,13 +237,21 @@ services:
     namespace: apps
     health:
       # No service in this chart sets startupPath, so every service relies on
+
       # the default liveness window alone (90s initialDelaySeconds + 3 *
+
       # 10s periodSeconds = 120s total) with no startup grace period. Under
+
       # node CPU/memory contention this service's JVM boot has been observed
+
       # taking minutes (not seconds) between trivial startup log lines, so it
+
       # gets killed by the liveness probe before Spring Boot ever finishes
+
       # starting. A startupProbe defers liveness/readiness evaluation until
+
       # this passes, giving it up to ~17 minutes (20s + 100*10s) to boot
+
       # before being considered failed.
       startupPath: /actuator/health/liveness
       startupInitialDelaySeconds: 20
@@ -278,6 +302,7 @@ services:
       BILLING_USAGE_MARGIN_PERCENT: "80"
       BILLING_CURRENCY_CONVERSION_RATES: "INR_INR=1,USD_INR=96"
       # In-cluster tenant-service URL so the client-review pricing can read a creator's own
+
       # marginPercent (falls back to the configured default if unset/unreachable).
       SERVICES_TENANT_URL: "http://tenant-service.apps.svc.cluster.local:8080"
     billing:
@@ -287,6 +312,7 @@ services:
     razorpay:
       enabled: true
   # --- LLM GATEWAY ---
+
   llmGateway:
     enabled: true
     expose: true
@@ -295,7 +321,9 @@ services:
     health: {}
     apiPaths:
       # EXACT match, not prefix: llm-gateway serves only POST /v1/chat. As a prefix it greedily
+
       # swallowed chat-service's /v1/chat-sessions, routing those requests here where llm-gateway's
+
       # AuthorizationPolicy denied them ("RBAC: access denied" 403 on the shot-page chat).
       - path: /v1/chat
         exact: true
@@ -308,9 +336,13 @@ services:
       - /actuator
     replicaCount: 1
     # Video-generation calls can block for minutes -- give an in-flight request a real chance to
+
     # finish on a rolling restart/scale-down instead of being SIGKILLed mid-dispatch (which would
+
     # abandon a call whose provider cost may already be incurred). preStop lets the Service
+
     # endpoint removal propagate before Spring's own graceful drain begins accepting no new
+
     # connections; the grace period must exceed spring.lifecycle.timeout-per-shutdown-phase (210s).
     terminationGracePeriodSeconds: 240
     preStopSleepSeconds: 10
@@ -351,6 +383,7 @@ services:
       LLM_GATEWAY_WALLET_GUARD_ENABLED: "true"
       LLM_GATEWAY_MINIMUM_WALLET_BALANCE: "100"
   # --- VIDEO GENERATION SERVICE ---
+
   videoGenerationService:
     enabled: true
     expose: true
@@ -358,11 +391,17 @@ services:
     namespace: apps
     health: {}
     # /v1/shots and /v1/projects were also claimed by pre-production-service (same host,
+
     # same prefix) -- an Istio VirtualService collision with undefined winner, which is why
+
     # GET /v1/projects intermittently 500'd with nothing in pre-production-service's own logs
+
     # (the request was landing on this service instead). Frontend calls to
+
     # video-generation-service only ever go through the prefixes listed below -- pick fresh,
+
     # unclaimed prefixes for new endpoints (the prepare-scene flow uses /v1/scenes for exactly
+
     # this reason).
     apiPaths:
       - /v1/prompts
@@ -371,20 +410,23 @@ services:
       - /v1/scenes
       - /v1/final-renders
       # /v1/dubbing is already owned by post-production-service (see its own apiPaths comment for
+
       # the "was never exposed, 404'd at the gateway" history) -- use a fresh, unclaimed prefix
+
       # for the per-shot voice test-preview flow that lives here instead.
-      - /v1/clone/*
+      - /v1/clone
     internalApiPaths:
       - /api/v1/internal
       - /actuator
     replicaCount: 1
     # See llmGateway's own terminationGracePeriodSeconds/preStopSleepSeconds comment -- same
+
     # reasoning applies here (approve() blocks on the same kind of long-running dispatch chain).
     terminationGracePeriodSeconds: 240
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.17-clone-all"
+      tag: "0.2.18-clone-all"
     service:
       port: 8080
       targetPort: 8080
@@ -392,8 +434,11 @@ services:
       name: video_gen_db
       username: video_gen_user
     # Higher memory ceiling than the shared 768Mi default: FinalRenderService's ffmpeg subprocess
+
     # runs OUTSIDE the JVM heap (native memory), and a big multi-shot concat can push a pod's
+
     # total container memory well over 768Mi even when the Java heap is fine. Bump to 1.5Gi so
+
     # a big project's final render doesn't OOMKill the pod mid-assembly.
     resources:
       limits:
@@ -423,9 +468,11 @@ services:
       VIDEO_GEN_EXPORT_BUCKET: "creator-assets"
       VIDEO_GEN_EXPORT_PREFIX: "video-gen-exports"
       # Presigned URLs handed to fal.ai and browsers sign against this hostname -- must be a
+
       # route reachable from outside the cluster. See video-generation-service MinioConfig.
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
   # --- POST PRODUCTION SERVICE ---
+
   postProductionService:
     enabled: true
     expose: true
@@ -435,9 +482,13 @@ services:
     apiPaths:
       - /v1/post-production
       # The standalone "dub / change-language" flow used by the creator-ui editor tab: upload a
+
       # video + targetLanguage, poll the job, get back the dubbed (transcribe->translate->clone->
+
       # synth->lip-sync->mux) result. Was never exposed at the gateway, so every call 404'd before
+
       # reaching the service. Longer timeout + no retries for the same reason as pre-prod's
+
       # /v1/shots below -- the create call blocks on a long provider chain and is non-idempotent.
       - path: /v1/dubbing
         timeout: 90s
@@ -447,6 +498,7 @@ services:
       - /actuator
     replicaCount: 1
     # Same reasoning as llmGateway/videoGenerationService -- dialogue-sync dispatch blocks for
+
     # the same kind of long-running provider call chain.
     terminationGracePeriodSeconds: 240
     preStopSleepSeconds: 10
@@ -487,10 +539,13 @@ services:
       POST_PROD_BUCKET: "creator-assets"
       POST_PROD_OUTPUT_PREFIX: "post-production-clips"
       # Presigned URLs handed to fal.ai (dubbing/lip-sync source URLs) and browsers sign against
+
       # this hostname -- must be reachable from outside the cluster. See post-production-service
+
       # MinioConfig.
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
   # --- PRE PRODUCTION SERVICE ---
+
   preProductionService:
     enabled: true
     expose: true
@@ -498,23 +553,34 @@ services:
     namespace: apps
     health: {}
     # Master-data/reference endpoints (aspect-ratios, dialogue-languages, shot-types,
+
     # video-feature-flags) and the public client-review path were never added here -- every
+
     # dropdown backed by one of them silently 404'd at the gateway, before ever reaching the
+
     # service (confirmed live: GET /v1/aspect-ratios returned 404 despite the controller and real
+
     # seeded data both being correct).
     apiPaths:
       # /v1/projects covers export-pdf, which now downloads and embeds each shot's real generated
+
       # images server-side before uploading -- same 30s-default-timeout problem as /v1/shots below,
+
       # confirmed live (upstream timeout on export-pdf once shots actually had real images to embed).
       - path: /v1/projects
         timeout: 90s
         retries: false
       - /v1/cast-profiles
       # /v1/shots covers both fast reads and slow AI-generation POSTs (shot images, camera/lighting
+
       # plans) -- the default 30s route timeout plus Istio's retries block's hardcoded 10s
+
       # perTryTimeout was killing real image-generation calls mid-flight (confirmed live: browser
+
       # saw 504, llm-gateway logged a broken-pipe from pre-production-service disconnecting early)
+
       # even though every app-level client timeout here is already 120s. retries disabled too --
+
       # auto-retrying a non-idempotent generate call on timeout risks duplicate generations.
       - path: /v1/shots
         timeout: 90s
@@ -525,15 +591,25 @@ services:
       - /v1/video-feature-flags
       - /v1/genders
       # ProjectLockService.lock() (both the creator's own lock and the client's public lock reached
+
       # through this path) ingests script + screenplay + cast + one chat-service call per shot,
+
       # sequentially, before even creating the chat session -- easily past the default 30s route
+
       # timeout for any project with more than a few shots. Same fix as /v1/shots and /v1/projects.
+
       # Scoped to /v1/public/projects specifically (PublicProjectController's real prefix) -- the
+
       # bare /v1/public used here before was broad enough to prefix-match and shadow OTHER
+
       # services' own /v1/public/* routes (e.g. creative-planning-service's
+
       # /v1/public/project-requirements/{token}) in Envoy's merged route table, silently
+
       # misrouting them here instead and producing a generic 500 with zero trace on either the
+
       # intended service's logs (confirmed live: the brief share link 500'd, PublicProjectController
+
       # has no matching endpoint, this service's own generic exception handler answered instead).
       - path: /v1/public/projects
         timeout: 90s
@@ -543,6 +619,7 @@ services:
       - /actuator
     replicaCount: 1
     # Same reasoning as videoGenerationService -- shot dispatch blocks on video-generation-service's
+
     # own long-running dispatch chain.
     terminationGracePeriodSeconds: 240
     preStopSleepSeconds: 10
@@ -556,8 +633,11 @@ services:
       name: pre_production_db
       username: pre_production_user
     # OOMKilled (exit 137) observed live on a routine rollout at the shared-default 768Mi limit --
+
     # this service is the one backend that also does PDF export (PDFBox font-cache build on
+
     # startup) on top of the usual Hibernate/HikariCP/Redis footprint every other service here
+
     # carries, so the shared default was tighter for it specifically than for its siblings.
     resources:
       limits:
@@ -587,6 +667,7 @@ services:
       CRITIC_SERVICE_BASE_URL: "http://critic-service.apps.svc.cluster.local:8080"
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
   # --- CRITIC SERVICE ---
+
   criticService:
     enabled: true
     expose: true
@@ -636,6 +717,7 @@ services:
       LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
       CRITIC_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
   # --- CREATIVE PLANNING SERVICE ---
+
   creativePlanningService:
     enabled: true
     expose: true
@@ -696,6 +778,7 @@ services:
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       BILLING_SERVICE_BASE_URL: "http://billing-service.apps.svc.cluster.local:8080"
   # --- TREND INTELLIGENCE SERVICE ---
+
   trendIntelligenceService:
     enabled: true
     expose: true
@@ -744,6 +827,7 @@ services:
       LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
       TREND_INTELLIGENCE_DEFAULT_TEXT_MODEL: "gemini-2.5-flash"
   # --- CHAT SERVICE ---
+
   chatService:
     enabled: true
     expose: true
@@ -795,6 +879,7 @@ services:
       TREND_INTELLIGENCE_BASE_URL: "http://trend-intelligence-service.apps.svc.cluster.local:8080"
       CREATIVE_PLANNING_BASE_URL: "http://creative-planning-service.apps.svc.cluster.local:8080"
   # --- CREATOR SERVICE ---
+
   creatorService:
     enabled: false
     expose: true
@@ -946,10 +1031,14 @@ services:
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       MINIO_SIGNED_URL_TTL_SECONDS: "3600"
   # --- pbxCore SERVICE ---
+
   pbxCoreService:
     # Confirmed unused by creator-service or any creator-flow service (only an unused
+
     # PBX_CORE_URL env var was ever injected into other pods by the shared service-urls
+
     # template) -- disabled rather than deleted so it's a one-line revert if the PBX/telecom
+
     # product surface (admin-ui/agents-ui/supervisor-ui) needs it back.
     enabled: false
     expose: true
@@ -1021,6 +1110,7 @@ services:
       WEBSOCKET_BROKER: "redis"
       TRUSTED_NETWORKS: "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
   # --- AI SERVICE (Python/FastAPI) ---
+
   aiService:
     enabled: false
     expose: true
@@ -1030,6 +1120,7 @@ services:
       - /api/v1/ai
     replicaCount: 1
     # Recreate strategy required: hostPort 5555 can only be held by one pod at a time.
+
     # RollingUpdate deadlocks because old pod holds the port → new pod can't schedule.
     strategy:
       type: Recreate
@@ -1044,7 +1135,9 @@ services:
       port: 8601
       targetPort: 8601
     # RTP UDP port for voice-brain real-time audio.
+
     # RTPEngine is OUTSIDE the cluster → hostPort bypasses Istio/kube-proxy entirely.
+
     # RTPEngine sends to udp:<nodeIP>:5555 → goes directly into the container.
     additionalPorts:
       - name: rtp-udp
@@ -1240,7 +1333,9 @@ services:
       MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       WEBSOCKET_BROKER: "redis"
 # =============================================================================
+
 # SECRETS MAPPING & VALUES
+
 # =============================================================================
 secrets:
   tenantServiceCredentials:
