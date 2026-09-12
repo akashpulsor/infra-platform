@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.264-fixed-voice-tts-issue
+  tag: 0.1.265-fixed-voice-tts-issue
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
