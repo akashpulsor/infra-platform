@@ -348,7 +348,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.16-clone-fix"
+      tag: "0.2.17-fixed-voice-tts-issue"
     service:
       port: 8080
       targetPort: 8080
@@ -454,6 +454,9 @@ services:
       targetCPUUtilization: 50
     env:
       SPRING_PROFILES_ACTIVE: prod
+      # 1.5Gi cgroup includes the JVM plus ffmpeg. Keep ~1Gi for native memory, subprocesses,
+      # direct buffers, thread stacks, and Istio rather than accepting the Docker image's 75% heap.
+      JAVA_OPTS: "-XX:MaxRAMPercentage=35.0 -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=128m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp -XX:+ExitOnOutOfMemoryError"
       SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
@@ -625,7 +628,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.16-clone-fix"
+      tag: "0.2.17-fixed-voice-tts-issue"
     service:
       port: 8080
       targetPort: 8080
@@ -653,6 +656,9 @@ services:
       targetCPUUtilization: 50
     env:
       SPRING_PROFILES_ACTIVE: prod
+      # The 1Gi limit must cover the heap and PDFBox/font-cache/native memory. The image default
+      # of 75% left only 256Mi outside the heap and had already caused an OOMKill on rollout.
+      JAVA_OPTS: "-XX:MaxRAMPercentage=40.0 -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=128m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp -XX:+ExitOnOutOfMemoryError"
       SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
