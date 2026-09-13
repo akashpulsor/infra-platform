@@ -267,7 +267,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.101-billing-subscription-flow"
+      tag: "5.0.102-prepare-batch"
     service:
       port: 8080
       targetPort: 8080
@@ -348,7 +348,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.17-fixed-voice-tts-issue"
+      tag: "0.2.18-prepare-batch"
     service:
       port: 8080
       targetPort: 8080
