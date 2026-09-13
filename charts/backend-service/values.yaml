@@ -188,7 +188,7 @@ services:
     replicaCount: 1
     image:
       repository: product-service
-      tag: "5.0.93-billing-subscription-flow"
+      tag: "5.0.94-billing-subscription-flow"
     service:
       port: 8080
       targetPort: 8080
@@ -267,7 +267,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.99-billing-subscription-flow"
+      tag: "5.0.100-billing-subscription-flow"
     service:
       port: 8080
       targetPort: 8080
@@ -507,7 +507,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.6-billing-subscription-flow"
+      tag: "0.1.7-billing-subscription-flow"
     service:
       port: 8080
       targetPort: 8080
@@ -628,7 +628,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.18-billing-subscription-flow"
+      tag: "0.2.19-billing-subscription-flow"
     service:
       port: 8080
       targetPort: 8080
