@@ -348,7 +348,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.21-no-phoneme"
+      tag: "0.2.22-english-prompt"
     service:
       port: 8080
       targetPort: 8080
@@ -434,7 +434,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.25-foley-from-bundle"
+      tag: "0.2.26-tagged-refs"
     service:
       port: 8080
       targetPort: 8080
