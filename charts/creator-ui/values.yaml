@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.274-prepare-batch
+  tag: 0.1.275-full-shot-plan
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
