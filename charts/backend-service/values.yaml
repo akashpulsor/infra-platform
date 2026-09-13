@@ -426,7 +426,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.19-clone-subscription-flow"
+      tag: "0.2.20-clone-subscription-flow"
     service:
       port: 8080
       targetPort: 8080
