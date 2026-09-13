@@ -426,7 +426,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.18-clone-all"
+      tag: "0.2.19-clone-subscription-flow"
     service:
       port: 8080
       targetPort: 8080
@@ -628,7 +628,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.20-billing-subscription-flow"
+      tag: "0.2.21-clone-subscription-flow"
     service:
       port: 8080
       targetPort: 8080
