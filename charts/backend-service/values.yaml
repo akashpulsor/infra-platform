@@ -348,7 +348,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.22-english-prompt"
+      tag: "0.2.23-cost-and-dialogue"
     service:
       port: 8080
       targetPort: 8080
@@ -434,7 +434,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.26-tagged-refs"
+      tag: "0.2.27-cost-and-dialogue"
     service:
       port: 8080
       targetPort: 8080
