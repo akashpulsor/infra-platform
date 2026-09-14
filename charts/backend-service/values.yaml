@@ -93,7 +93,20 @@ services:
     expose: true
     name: tenant-service
     namespace: apps
-    health: {} # This prevents the nil pointer error
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     apiPaths:
       - /api/v1/tenants
       # Scoped to this controller's one real route (PublicTenantConfigController's only mapping is
@@ -178,7 +191,20 @@ services:
     expose: true
     name: product-service
     namespace: apps
-    health: {}
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     apiPaths:
       - /api/v1/products
       - /api/v1/did
@@ -236,7 +262,7 @@ services:
     name: billing-service
     namespace: apps
     health:
-      # No service in this chart sets startupPath, so every service relies on
+      # Without a startupPath a service relies on
 
       # the default liveness window alone (90s initialDelaySeconds + 3 *
 
@@ -318,7 +344,20 @@ services:
     expose: true
     name: llm-gateway
     namespace: apps
-    health: {}
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     apiPaths:
       # EXACT match, not prefix: llm-gateway serves only POST /v1/chat. As a prefix it greedily
 
@@ -389,7 +428,20 @@ services:
     expose: true
     name: video-generation-service
     namespace: apps
-    health: {}
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     # /v1/shots and /v1/projects were also claimed by pre-production-service (same host,
 
     # same prefix) -- an Istio VirtualService collision with undefined winner, which is why
@@ -489,7 +541,20 @@ services:
     expose: true
     name: post-production-service
     namespace: apps
-    health: {}
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     apiPaths:
       - /v1/post-production
       # The standalone "dub / change-language" flow used by the creator-ui editor tab: upload a
@@ -562,7 +627,20 @@ services:
     expose: true
     name: pre-production-service
     namespace: apps
-    health: {}
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     # Master-data/reference endpoints (aspect-ratios, dialogue-languages, shot-types,
 
     # video-feature-flags) and the public client-review path were never added here -- every
@@ -687,7 +765,20 @@ services:
     expose: true
     name: critic-service
     namespace: apps
-    health: {}
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     apiPaths:
       - /v1/critiques
       - /v1/marketing-plan-critiques
@@ -737,7 +828,20 @@ services:
     expose: true
     name: creative-planning-service
     namespace: apps
-    health: {}
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     apiPaths:
       - /v1/brand-context
       - /v1/brands
@@ -798,7 +902,20 @@ services:
     expose: true
     name: trend-intelligence-service
     namespace: apps
-    health: {}
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     apiPaths:
       - /v1/trend-reports
     internalApiPaths:
@@ -847,7 +964,20 @@ services:
     expose: true
     name: chat-service
     namespace: apps
-    health: {}
+    health:
+      # A 500m CPU limit throttles JVM boot hard: tenant-service was measured spending
+      # 225s stalled on quota to consume 69s of CPU, taking 103s to start against a
+      # liveness deadline of 90s + 3*10s = 120s. It loses that race roughly half the
+      # time and is killed mid-boot. The startupProbe defers liveness and readiness
+      # until the app is genuinely up; the split health groups stop a transient
+      # Postgres or Redis blip from restarting the container when it should only be
+      # marked unready.
+      startupPath: /actuator/health/liveness
+      startupInitialDelaySeconds: 20
+      startupPeriodSeconds: 10
+      startupFailureThreshold: 100
+      livenessPath: /actuator/health/liveness
+      readinessPath: /actuator/health/readiness
     apiPaths:
       - /v1/chat-sessions
     internalApiPaths:
