@@ -494,7 +494,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.37-internal-cancel"
+      tag: "0.2.38-prompt-history"
     service:
       port: 8080
       targetPort: 8080

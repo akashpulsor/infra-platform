@@ -46,7 +46,7 @@ SERVICES=(
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.108-subscribe-order"
     "llm-gateway:0.2.32-internal-cancel"
-    "video-generation-service:0.2.37-internal-cancel"
+    "video-generation-service:0.2.38-prompt-history"
     "post-production-service:0.1.10-internal-llm-chain"
     "pre-production-service:0.2.25-publish-preview"
     "critic-service:0.1.2-gemini-embedding-001"
