@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.291-wallet-grouping
+  tag: 0.1.292-wallet-tags
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
