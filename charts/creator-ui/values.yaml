@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.290-review-canvas
+  tag: 0.1.291-wallet-grouping
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
