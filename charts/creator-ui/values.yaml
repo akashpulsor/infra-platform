@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.277-clone-subscription-flow
+  tag: 0.1.278-prepare-batch
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
