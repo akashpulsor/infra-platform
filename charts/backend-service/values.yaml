@@ -465,7 +465,18 @@ services:
     # this reason).
     apiPaths:
       - /v1/prompts
-      - /v1/jobs
+      # approve() dispatches the shot to the provider and blocks until the video comes back --
+
+      # minutes, not seconds -- so on the 30s default it answered 504 "upstream request timeout"
+
+      # while the render carried on behind it. The default 3 retries made that worse than slow:
+
+      # approve is not idempotent, so each per-try timeout re-dispatched the same shot and billed
+
+      # it again. Same treatment as /v1/scenes below, for the same reason.
+      - path: /v1/jobs
+        timeout: 600s
+        retries: false
       - /v1/exports
       # prepare-batch composes every shot in the project in one sequential request, and each shot
       # makes several real llm-gateway calls (model recommendation, prompt format incl. phoneme
@@ -722,7 +733,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.25-publish-preview"
+      tag: "0.2.26-prose-sound-design"
     service:
       port: 8080
       targetPort: 8080
