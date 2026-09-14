@@ -486,7 +486,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.35-music-mix"
+      tag: "0.2.36-shot-videos"
     service:
       port: 8080
       targetPort: 8080
@@ -580,7 +580,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.9-real-model-slugs"
+      tag: "0.1.10-internal-llm-chain"
     service:
       port: 8080
       targetPort: 8080
