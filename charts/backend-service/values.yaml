@@ -214,7 +214,7 @@ services:
     replicaCount: 1
     image:
       repository: product-service
-      tag: "5.0.96-subscribe-checkout"
+      tag: "5.0.97-subscribe-order"
     service:
       port: 8080
       targetPort: 8080
@@ -293,7 +293,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.107-charge-breakdown"
+      tag: "5.0.108-subscribe-order"
     service:
       port: 8080
       targetPort: 8080
