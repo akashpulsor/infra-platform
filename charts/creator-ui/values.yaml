@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.279-currency
+  tag: 0.1.281-subscription-gating
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
