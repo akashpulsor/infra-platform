@@ -367,7 +367,15 @@ services:
       - path: /v1/chat
         exact: true
       - /v1/estimate
-      - /v1/jobs
+      # /v1/jobs deliberately absent. video-generation-service claims the same prefix and owns
+
+      # the only job routes a browser calls -- approve, reject and cancel on a generated shot.
+
+      # With both services claiming it llm-gateway won, and those three answered
+
+      # "No static resource v1/jobs/<id>/approve" as a 500. Nothing public needs llm-gateway's
+
+      # own /v1/jobs: every in-cluster caller reaches it through /api/v1/internal/**.
       - /v1/models
       - /v1/voices
     internalApiPaths:
