@@ -47,12 +47,12 @@ SERVICES=(
     "billing-service:5.0.108-subscribe-order"
     "llm-gateway:0.2.32-internal-cancel"
     "video-generation-service:0.2.40-recover-clips"
-    "post-production-service:0.1.10-internal-llm-chain"
+    "post-production-service:0.1.11-project-tracing"
     "pre-production-service:0.2.26-prose-sound-design"
     "critic-service:0.1.2-gemini-embedding-001"
-    "creative-planning-service:0.1.17-margin-recompute"
+    "creative-planning-service:0.1.18-project-tracing"
     "trend-intelligence-service:0.1.0"
-    "chat-service:0.1.4-gemini-embedding-001"
+    "chat-service:0.1.5-project-tracing"
 )
 
 DRY_RUN=false
