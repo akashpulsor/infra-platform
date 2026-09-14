@@ -434,7 +434,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.28-prepare-batch"
+      tag: "0.2.29-prepare-batch"
     service:
       port: 8080
       targetPort: 8080
