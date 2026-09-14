@@ -214,7 +214,7 @@ services:
     replicaCount: 1
     image:
       repository: product-service
-      tag: "5.0.97-subscribe-order"
+      tag: "5.0.98-honest-payment-error"
     service:
       port: 8080
       targetPort: 8080
@@ -387,7 +387,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.31-task-key"
+      tag: "0.2.32-internal-cancel"
     service:
       port: 8080
       targetPort: 8080
@@ -486,7 +486,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.36-shot-videos"
+      tag: "0.2.37-internal-cancel"
     service:
       port: 8080
       targetPort: 8080
