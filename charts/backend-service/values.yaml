@@ -188,7 +188,7 @@ services:
     replicaCount: 1
     image:
       repository: product-service
-      tag: "5.0.95-billing-subscription-flow"
+      tag: "5.0.96-subscribe-checkout"
     service:
       port: 8080
       targetPort: 8080
@@ -267,7 +267,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.103-currency-rates"
+      tag: "5.0.107-charge-breakdown"
     service:
       port: 8080
       targetPort: 8080
@@ -348,7 +348,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.25-prepare-batch-rate"
+      tag: "0.2.31-task-key"
     service:
       port: 8080
       targetPort: 8080
@@ -434,7 +434,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.30-currency-and-rates"
+      tag: "0.2.35-music-mix"
     service:
       port: 8080
       targetPort: 8080
@@ -515,7 +515,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.8-billing-subscription-flow"
+      tag: "0.1.9-real-model-slugs"
     service:
       port: 8080
       targetPort: 8080
@@ -636,7 +636,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.23-capture-format"
+      tag: "0.2.24-english-descriptions"
     service:
       port: 8080
       targetPort: 8080
