@@ -714,7 +714,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.24-english-descriptions"
+      tag: "0.2.25-publish-preview"
     service:
       port: 8080
       targetPort: 8080
