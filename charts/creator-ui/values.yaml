@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.292-wallet-tags
+  tag: 0.1.293-reject-rewrite
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
