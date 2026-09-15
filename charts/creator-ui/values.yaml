@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.301-mg-dialogue
+  tag: 0.1.302-clip-repair
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
