@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.297-fit-advice
+  tag: 0.1.298-regenerate
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
