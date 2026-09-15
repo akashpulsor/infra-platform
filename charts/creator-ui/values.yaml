@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.310-shot-length
+  tag: 0.1.311-dub-edit
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
