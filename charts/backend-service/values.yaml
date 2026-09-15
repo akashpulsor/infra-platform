@@ -293,7 +293,7 @@ services:
     replicaCount: 1
     image:
       repository: billing-service
-      tag: "5.0.108-subscribe-order"
+      tag: "5.0.109-quote-with-margin"
     service:
       port: 8080
       targetPort: 8080
@@ -395,7 +395,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.32-internal-cancel"
+      tag: "0.2.34-dialogue-retime"
     service:
       port: 8080
       targetPort: 8080
@@ -505,7 +505,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.40-recover-clips"
+      tag: "0.2.46-dialogue-fit"
     service:
       port: 8080
       targetPort: 8080
@@ -547,6 +547,17 @@ services:
       LLM_GATEWAY_BASE_URL: "http://llm-gateway.apps.svc.cluster.local:8080"
       VIDEO_GEN_DEFAULT_MODEL: "seedance-v1"
       VIDEO_GEN_COMPRESSION_MODEL: "gemini-2.5-flash"
+      # The longest clip a shot may be extended to so its line is not cut off. NOT a provider
+      # limit: fal.ai's alibaba/wan-3.0-prime documents duration as a free parameter defaulting to
+      # 5s with no stated maximum, so this is our own ceiling on how far a shot may grow to fit its
+      # dialogue. It was 10, which made shot-01-005 (12.6s of narration) and shot-01-008 (12.2s)
+      # impossible to satisfy -- they were refused rather than rendered with the line severed.
+      # Raised so those extend instead of blocking. If fal quietly clamps a request this long, the
+      # generated clip comes back shorter than asked and the line is cut anyway: that is the risk
+      # this number carries, and it is why it is a knob and not a constant.
+      VIDEO_GEN_MAX_SHOT_DURATION_SECONDS: "15"
+      # Shortest clip worth asking for when trimming dead air off a shot.
+      VIDEO_GEN_MIN_SHOT_DURATION_SECONDS: "3"
       VIDEO_GEN_EXPORT_BUCKET: "creator-assets"
       VIDEO_GEN_EXPORT_PREFIX: "video-gen-exports"
       # Presigned URLs handed to fal.ai and browsers sign against this hostname -- must be a
