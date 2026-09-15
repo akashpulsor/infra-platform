@@ -505,7 +505,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.55-origin-default"
+      tag: "0.2.58-apad"
     service:
       port: 8080
       targetPort: 8080

@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.303-replace-audio
+  tag: 0.1.305-voice-per-cut
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
