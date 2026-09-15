@@ -395,7 +395,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.34-dialogue-retime"
+      tag: "0.2.35-fit-decision"
     service:
       port: 8080
       targetPort: 8080
@@ -505,7 +505,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.46-dialogue-fit"
+      tag: "0.2.47-fit-advice"
     service:
       port: 8080
       targetPort: 8080

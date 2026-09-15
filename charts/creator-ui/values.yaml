@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.295-recover-clips
+  tag: 0.1.297-fit-advice
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
