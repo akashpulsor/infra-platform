@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.299-motion-graphic
+  tag: 0.1.300-listen-redub
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

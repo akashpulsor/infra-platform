@@ -46,7 +46,7 @@ SERVICES=(
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.109-quote-with-margin"
     "llm-gateway:0.2.35-fit-decision"
-    "video-generation-service:0.2.48-fit-tenant"
+    "video-generation-service:0.2.49-fresh-measure"
     "post-production-service:0.1.11-project-tracing"
     "pre-production-service:0.2.26-prose-sound-design"
     "critic-service:0.1.2-gemini-embedding-001"
