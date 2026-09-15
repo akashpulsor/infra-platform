@@ -395,7 +395,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.35-fit-decision"
+      tag: "0.2.36-motion-graphic"
     service:
       port: 8080
       targetPort: 8080
@@ -505,7 +505,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.49-fresh-measure"
+      tag: "0.2.50-motion-graphic"
     service:
       port: 8080
       targetPort: 8080
