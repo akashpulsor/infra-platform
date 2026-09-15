@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.302-clip-repair
+  tag: 0.1.303-replace-audio
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
