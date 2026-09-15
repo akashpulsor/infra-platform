@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.298-regenerate
+  tag: 0.1.299-motion-graphic
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
