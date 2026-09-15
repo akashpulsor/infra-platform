@@ -744,7 +744,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.29-mg-plan-enum"
+      tag: "0.2.30-mg-nocache"
     service:
       port: 8080
       targetPort: 8080
