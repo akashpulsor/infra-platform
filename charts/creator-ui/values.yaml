@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.300-listen-redub
+  tag: 0.1.301-mg-dialogue
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
