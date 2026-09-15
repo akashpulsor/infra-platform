@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.306-outcomes
+  tag: 0.1.307-honest-costs
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
