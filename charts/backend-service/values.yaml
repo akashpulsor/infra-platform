@@ -505,7 +505,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.62-dub-fit"
+      tag: "0.2.63-cut-sound"
     service:
       port: 8080
       targetPort: 8080

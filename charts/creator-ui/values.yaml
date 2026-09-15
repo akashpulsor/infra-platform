@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.311-dub-edit
+  tag: 0.1.312-cut-sound
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
