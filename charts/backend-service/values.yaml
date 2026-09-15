@@ -744,7 +744,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.26-prose-sound-design"
+      tag: "0.2.27-motion-graphic-plan"
     service:
       port: 8080
       targetPort: 8080
