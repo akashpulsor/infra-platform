@@ -744,7 +744,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.28-motion-graphic-plan"
+      tag: "0.2.29-mg-plan-enum"
     service:
       port: 8080
       targetPort: 8080
