@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.317-faster
+  tag: 0.1.318-refetch
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
