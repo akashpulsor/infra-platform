@@ -513,7 +513,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.68-clip-versions"
+      tag: "0.2.69-faster"
     service:
       port: 8080
       targetPort: 8080

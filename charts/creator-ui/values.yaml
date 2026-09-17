@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.316-clip-versions
+  tag: 0.1.317-faster
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
