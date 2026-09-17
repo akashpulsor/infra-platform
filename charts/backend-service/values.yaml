@@ -487,7 +487,15 @@ services:
       - path: /v1/scenes
         timeout: 600s
         retries: false
-      - /v1/final-renders
+      # Assembly runs ffmpeg over every shot in the project and holds the connection for the
+      # whole concat -- minutes for a full film, far past the 30s default. On the default it
+      # answered 504 while ffmpeg carried on, and the default 3 retries then started the whole
+      # assembly again on each per-try timeout: three concurrent renders of the same film, none of
+      # which the caller ever saw. Same long-timeout + no-retry treatment as /v1/jobs and
+      # /v1/scenes above, for exactly the same reason.
+      - path: /v1/final-renders
+        timeout: 900s
+        retries: false
       # /v1/dubbing is already owned by post-production-service (see its own apiPaths comment for
 
       # the "was never exposed, 404'd at the gateway" history) -- use a fresh, unclaimed prefix
