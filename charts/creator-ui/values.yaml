@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.321-editor-cuts
+  tag: 0.1.322-ready-fix
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
