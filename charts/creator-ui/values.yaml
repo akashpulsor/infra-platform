@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.324-reorder
+  tag: 0.1.326-one-cta
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

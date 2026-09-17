@@ -513,7 +513,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.74-keep-video"
+      tag: "0.2.75-latest-take"
     service:
       port: 8080
       targetPort: 8080
@@ -626,7 +626,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.16-pub-shots"
+      tag: "0.1.17-film-edit"
     service:
       port: 8080
       targetPort: 8080
