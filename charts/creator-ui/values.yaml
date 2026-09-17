@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.318-refetch
+  tag: 0.1.319-async-gen
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
