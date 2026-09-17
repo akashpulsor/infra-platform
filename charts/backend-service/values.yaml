@@ -626,7 +626,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.21-cache-roundtrip"
+      tag: "0.1.22-internal-dialogue"
     service:
       port: 8080
       targetPort: 8080
@@ -760,7 +760,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.33-reorder"
+      tag: "0.2.34-internal-dialogue"
     service:
       port: 8080
       targetPort: 8080
