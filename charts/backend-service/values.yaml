@@ -513,7 +513,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.72-async-gen"
+      tag: "0.2.73-dub-jobs"
     service:
       port: 8080
       targetPort: 8080
@@ -594,7 +594,15 @@ services:
       livenessPath: /actuator/health/liveness
       readinessPath: /actuator/health/readiness
     apiPaths:
-      - /v1/post-production
+      # Cutting a shot downloads the clip, runs ffmpeg and uploads the result, and joining the film
+      # does that over every shot -- tens of seconds to minutes, well past the 30s default. On the
+      # default these answered 504 while ffmpeg carried on, and the default 3 retries then ran the
+      # whole cut again on each per-try timeout: three ffmpeg runs and three stored versions for one
+      # press. Same long-timeout + no-retry treatment as /v1/dubbing below, for the same reason --
+      # these calls block on long work and are not idempotent.
+      - path: /v1/post-production
+        timeout: 900s
+        retries: false
       # The standalone "dub / change-language" flow used by the creator-ui editor tab: upload a
 
       # video + targetLanguage, poll the job, get back the dubbed (transcribe->translate->clone->
@@ -618,7 +626,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.11-project-tracing"
+      tag: "0.1.12-clip-cuts"
     service:
       port: 8080
       targetPort: 8080
