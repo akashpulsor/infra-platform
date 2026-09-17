@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.314-workprint
+  tag: 0.1.315-merge-cta
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
