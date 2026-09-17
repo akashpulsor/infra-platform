@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.315-merge-cta
+  tag: 0.1.316-clip-versions
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
