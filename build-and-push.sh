@@ -47,7 +47,7 @@ SERVICES=(
     "billing-service:5.0.109-quote-with-margin"
     "llm-gateway:0.2.36-motion-graphic"
     "video-generation-service:0.2.77-internal-video-url"
-    "post-production-service:0.1.28-hold-picture"
+    "post-production-service:0.1.29-film-staleness"
     "pre-production-service:0.2.34-internal-dialogue"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.18-project-tracing"

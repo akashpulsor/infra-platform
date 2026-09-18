@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.328-reject-cut
+  tag: 0.1.329-film-staleness
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
