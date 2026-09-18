@@ -626,7 +626,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.23-film-join"
+      tag: "0.1.24-bounded-join"
     service:
       port: 8080
       targetPort: 8080
