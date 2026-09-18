@@ -619,6 +619,20 @@ services:
       - /api/v1/internal
       - /actuator
     replicaCount: 1
+    # Recreate, not RollingUpdate. This service is a Kafka worker, and during a rolling deploy the
+    # old pod and the new one are both healthy members of the same consumer group -- so a film
+    # requested mid-rollout is assigned to whichever owns that partition, which is a coin toss
+    # between the build being replaced and the build replacing it.
+    #
+    # That happened three times in one afternoon. Each time the fix was already deployed and the job
+    # ran on the old pod anyway: once producing "Error binding filtergraph" from the single-pass
+    # join, twice producing a film with no dialogue from the broken probe. Every one of those looked
+    # like the fix had not worked.
+    #
+    # One replica joining one film at a time has nothing to gain from overlapping pods, and a few
+    # seconds with no consumer costs nothing: requests queue in Kafka and are picked up on start.
+    strategy:
+      type: Recreate
     # Same reasoning as llmGateway/videoGenerationService -- dialogue-sync dispatch blocks for
 
     # the same kind of long-running provider call chain.
