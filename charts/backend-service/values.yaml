@@ -626,17 +626,25 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.22-internal-dialogue"
+      tag: "0.1.23-film-join"
     service:
       port: 8080
       targetPort: 8080
     database:
       name: post_production_db
       username: post_production_user
+    # ffmpeg joins the film inside this container, so these numbers are an encode budget, not a
+    # web-service one. The node is 8 cores and sits at ~8% CPU, and a limit is not a reservation --
+    # requests are what the scheduler holds -- so the CPU ceiling is close to free.
+    #
+    # Memory is the one that bites. A single filter_complex decodes every shot at once, holding a
+    # decoder context and frame buffers per input, and ffmpeg is a separate process counted against
+    # this same container limit. At 768Mi with the JVM already resident at ~508Mi it had roughly
+    # 260Mi to work in, which is a pod that gets OOM-killed mid-join rather than a slow one.
     resources:
       limits:
-        cpu: 500m
-        memory: 768Mi
+        cpu: 4000m
+        memory: 2Gi
       requests:
         cpu: 100m
         memory: 256Mi
@@ -646,6 +654,10 @@ services:
       maxReplicas: 5
       targetCPUUtilization: 50
     env:
+      # Without this the extra memory above goes straight to the JVM and ffmpeg is no better off:
+      # the image sets -XX:MaxRAMPercentage=75, which sizes the heap from the CONTAINER limit, so
+      # raising the limit to 2Gi would hand the JVM 1.5Gi and leave the encode where it started.
+      JAVA_OPTS: "-XX:MaxRAMPercentage=35.0 -XX:+UseG1GC"
       SPRING_PROFILES_ACTIVE: prod
       SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
       SHOW_SQL: "false"
