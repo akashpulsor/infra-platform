@@ -626,7 +626,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.24-bounded-join"
+      tag: "0.1.25-silent-shots"
     service:
       port: 8080
       targetPort: 8080
