@@ -40,8 +40,8 @@ spec:
             "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
             http_service:
               server_uri:
-                uri: http://oauth2-proxy.istio-system.svc.cluster.local:4180
-                cluster: outbound|4180||oauth2-proxy.istio-system.svc.cluster.local
+                uri: http://oauth2-proxy.apps.svc.cluster.local:4180
+                cluster: outbound|4180||oauth2-proxy.apps.svc.cluster.local
                 timeout: 5s
               path_prefix: /oauth2/auth
               authorization_request:

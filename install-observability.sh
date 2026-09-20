@@ -24,6 +24,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ISTIO_NS="istio-system"
+APPS_NS="apps"
 OPS_HOST="${OPS_HOST:-ops.dalaillama.in}"
 KEYCLOAK_ISSUER="${KEYCLOAK_ISSUER:-https://auth.dalaillama.in/realms/dalai-llama}"
 OAUTH2_PROXY_CLIENT_ID="${OAUTH2_PROXY_CLIENT_ID:-ops-dashboard}"
@@ -165,25 +166,36 @@ EOF
 
 install_oauth2_proxy() {
     log "Installing/upgrading oauth2-proxy (Keycloak OIDC gate for ops.dalaillama.in)"
-    require_env OAUTH2_PROXY_CLIENT_SECRET
     helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests >/dev/null 2>&1 || true
     helm repo update oauth2-proxy >/dev/null
 
-    # A single cookie secret (16/24/32 raw bytes, base64 encoded). Auto-generate the first time
-    # and reuse across upgrades so browser sessions do not invalidate on every deploy.
+    # Client secret comes from the shared oauth2-proxy-secret that charts/backend-service pre-
+    # creates (with a randAlphaNum default that Helm keeps stable across upgrades). Same secret
+    # the keycloak-bootstrap Job reads via OPS_CLIENT_SECRET_DESIRED, so oauth2-proxy and
+    # Keycloak's ops-dashboard client stay in lockstep by construction rather than by a manual
+    # re-sync step. Requires charts/backend-service to have deployed at least once.
+    if ! kubectl -n "$APPS_NS" get secret oauth2-proxy-secret >/dev/null 2>&1; then
+        die "oauth2-proxy-secret missing in namespace ${APPS_NS}. Run \`helm upgrade backend ...\` first (its keycloak-bootstrap job creates the secret and syncs it into Keycloak)."
+    fi
+    local client_secret
+    client_secret="$(kubectl -n "$APPS_NS" get secret oauth2-proxy-secret -o jsonpath='{.data.client-secret}' | base64 -d)"
+
+    # Cookie secret must be exactly 16/24/32 raw bytes (base64 encoded is fine). Auto-generate
+    # the first time and reuse across upgrades so browser sessions do not invalidate on every
+    # deploy. Lives in the same namespace as oauth2-proxy for a straight secretKeyRef mount.
     local cookie_secret
-    if kubectl -n "$ISTIO_NS" get secret oauth2-proxy-cookie >/dev/null 2>&1; then
-        cookie_secret="$(kubectl -n "$ISTIO_NS" get secret oauth2-proxy-cookie -o jsonpath='{.data.value}' | base64 -d)"
+    if kubectl -n "$APPS_NS" get secret oauth2-proxy-cookie >/dev/null 2>&1; then
+        cookie_secret="$(kubectl -n "$APPS_NS" get secret oauth2-proxy-cookie -o jsonpath='{.data.value}' | base64 -d)"
     else
         cookie_secret="$(openssl rand -base64 32 | head -c 32)"
-        kubectl -n "$ISTIO_NS" create secret generic oauth2-proxy-cookie \
+        kubectl -n "$APPS_NS" create secret generic oauth2-proxy-cookie \
             --from-literal=value="$cookie_secret"
     fi
 
     cat >/tmp/oauth2-proxy-values.yaml <<EOF
 config:
   clientID: "${OAUTH2_PROXY_CLIENT_ID}"
-  clientSecret: "${OAUTH2_PROXY_CLIENT_SECRET}"
+  clientSecret: "${client_secret}"
   cookieSecret: "${cookie_secret}"
   configFile: |-
     provider = "keycloak-oidc"
@@ -212,7 +224,7 @@ service:
 ingress:
   enabled: false
 EOF
-    helm upgrade --install oauth2-proxy oauth2-proxy/oauth2-proxy -n "$ISTIO_NS" -f /tmp/oauth2-proxy-values.yaml
+    helm upgrade --install oauth2-proxy oauth2-proxy/oauth2-proxy -n "$APPS_NS" -f /tmp/oauth2-proxy-values.yaml
 }
 
 apply_ops_virtualservice() {

@@ -62,7 +62,7 @@ spec:
             prefix: /oauth2/
       route:
         - destination:
-            host: oauth2-proxy.istio-system.svc.cluster.local
+            host: oauth2-proxy.apps.svc.cluster.local
             port:
               number: 4180
     - match:

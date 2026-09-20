@@ -77,7 +77,7 @@ spec:
               # 3. CREATE REALM ROLES
               # ═══════════════════════════════════════════════════════════
               echo "▶ Step 3: Creating realm roles..."
-              for ROLE in ADMIN SUPERVISOR AGENT CREATOR CREATOR_COPYWRITER CREATOR_EDITOR CREATOR_OPS; do
+              for ROLE in ADMIN SUPERVISOR AGENT CREATOR CREATOR_COPYWRITER CREATOR_EDITOR CREATOR_OPS dalai_admin; do
                 if $KCADM get roles -r $REALM --fields name 2>/dev/null | grep -q "\"$ROLE\""; then
                   echo "  ✓ Role $ROLE already exists"
                 else
@@ -202,6 +202,63 @@ spec:
               echo ""
 
               # ═══════════════════════════════════════════════════════════
+              # 6a. CREATE ops-dashboard CONFIDENTIAL CLIENT (for oauth2-proxy)
+              # ═══════════════════════════════════════════════════════════
+              # Confidential OIDC client that oauth2-proxy uses to gate every request to
+              # ops.dalaillama.in (Grafana, Kiali, Prometheus, Jaeger, /admin). Client secret
+              # is FORCED to match $OPS_CLIENT_SECRET_DESIRED (from oauth2-proxy-secret) --
+              # same pattern platform-api uses, same reason: Keycloak's auto-generated secret
+              # on client-create diverges from what oauth2-proxy already loaded from k8s, and
+              # every subsequent OIDC login fails silently until someone manually resyncs.
+              #
+              # Also attaches a realm-roles protocol mapper so realm_access.roles rides on the
+              # ID token; oauth2-proxy checks it against allowed_roles=["dalai_admin"] there.
+              echo "▶ Step 5a: Creating ops-dashboard client for oauth2-proxy..."
+              OPS_CLIENT_ID=ops-dashboard
+              OPS_REDIRECT='["https://ops.'$DOMAIN'/oauth2/callback"]'
+              OPS_WEB_ORIGIN='["https://ops.'$DOMAIN'"]'
+              if $KCADM get clients -r $REALM -q clientId=$OPS_CLIENT_ID --fields clientId 2>/dev/null | grep -q "$OPS_CLIENT_ID"; then
+                echo "  ✓ $OPS_CLIENT_ID exists — updating"
+                OPS_UUID=$($KCADM get clients -r $REALM -q clientId=$OPS_CLIENT_ID --fields id --format csv --noquotes 2>/dev/null | tail -1 | tr -d '\r')
+                $KCADM update clients/$OPS_UUID -r $REALM \
+                  -s "redirectUris=$OPS_REDIRECT" \
+                  -s "webOrigins=$OPS_WEB_ORIGIN" \
+                  -s enabled=true \
+                  -s publicClient=false \
+                  -s standardFlowEnabled=true \
+                  -s directAccessGrantsEnabled=false \
+                  -s clientAuthenticatorType=client-secret
+              else
+                $KCADM create clients -r $REALM \
+                  -s clientId=$OPS_CLIENT_ID \
+                  -s name="Ops Dashboard (oauth2-proxy)" \
+                  -s enabled=true \
+                  -s publicClient=false \
+                  -s standardFlowEnabled=true \
+                  -s directAccessGrantsEnabled=false \
+                  -s clientAuthenticatorType=client-secret \
+                  -s "redirectUris=$OPS_REDIRECT" \
+                  -s "webOrigins=$OPS_WEB_ORIGIN"
+                OPS_UUID=$($KCADM get clients -r $REALM -q clientId=$OPS_CLIENT_ID --fields id --format csv --noquotes 2>/dev/null | tail -1 | tr -d '\r')
+                echo "  ✓ Created client: $OPS_CLIENT_ID"
+              fi
+              $KCADM update clients/$OPS_UUID -r $REALM -s secret="$OPS_CLIENT_SECRET_DESIRED"
+
+              # Add the realm-roles protocol mapper (idempotent). Any 4xx (already exists) is fine.
+              $KCADM create clients/$OPS_UUID/protocol-mappers/models -r $REALM \
+                -s name=realm-roles \
+                -s protocol=openid-connect \
+                -s protocolMapper=oidc-usermodel-realm-role-mapper \
+                -s 'config."access.token.claim"=true' \
+                -s 'config."id.token.claim"=true' \
+                -s 'config."userinfo.token.claim"=true' \
+                -s 'config."claim.name"=realm_access.roles' \
+                -s 'config."jsonType.label"=String' \
+                -s 'config."multivalued"=true' 2>/dev/null || echo "  ✓ realm-roles mapper already present"
+              echo "  ✓ ops-dashboard client secret synced with oauth2-proxy-secret"
+              echo ""
+
+              # ═══════════════════════════════════════════════════════════
               # 6b. CREATE platform-api IN THE MASTER REALM TOO
               # ═══════════════════════════════════════════════════════════
               # tenant-service's KeycloakRealmServiceImpl (and any other orchestrator-style
@@ -266,6 +323,11 @@ spec:
               create_user "admin" "admin@$DOMAIN" "admin123" "ADMIN"
               create_user "supervisor" "supervisor@$DOMAIN" "super123" "SUPERVISOR"
               create_user "agent" "agent@$DOMAIN" "agent123" "AGENT"
+              # Default ops account -- log in at https://ops.$DOMAIN with these creds. Change
+              # the password from Keycloak admin console after first login (Users -> opsadmin ->
+              # Credentials -> reset). Kept the same shape as the other defaults on purpose:
+              # anyone reading the bootstrap can see exactly who can access what.
+              create_user "opsadmin" "opsadmin@$DOMAIN" "opsadmin123" "dalai_admin"
               echo ""
 
               # ═══════════════════════════════════════════════════════════
@@ -316,3 +378,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.keycloak.clientSecretName }}
                   key: {{ .Values.keycloak.clientSecretKey }}
+            - name: OPS_CLIENT_SECRET_DESIRED
+              valueFrom:
+                secretKeyRef:
+                  name: oauth2-proxy-secret
+                  key: client-secret
