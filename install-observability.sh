@@ -215,7 +215,11 @@ config:
     cookie_secure = true
     cookie_domains = [".dalaillama.in"]
     whitelist_domains = [".dalaillama.in"]
-    upstreams = ["static://202"]
+    # static://200 (not 202): Istio's envoyExtAuthzHttp treats only HTTP 200 as ALLOW; a 202
+    # response gets classified as UAEX (ext_authz_denied) and Envoy forwards oauth2-proxy's
+    # body -- the literal word "Authenticated" -- to the client. Landed on this after a full
+    # envoy access-log trace ("GET /admin HTTP/2" 202 UAEX ext_authz_denied ... 13 bytes).
+    upstreams = ["static://200"]
     reverse_proxy = true
     skip_provider_button = true
     scope = "openid profile email roles"
