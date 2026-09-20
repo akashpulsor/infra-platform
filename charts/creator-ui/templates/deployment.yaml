@@ -42,6 +42,12 @@ spec:
               value: {{ .Values.env.GA_MEASUREMENT_ID | quote }}
             - name: FARO_COLLECTOR_URL
               value: {{ .Values.env.FARO_COLLECTOR_URL | quote }}
+            - name: POSTHOG_API_KEY
+              value: {{ .Values.env.POSTHOG_API_KEY | quote }}
+            - name: POSTHOG_HOST
+              value: {{ .Values.env.POSTHOG_HOST | quote }}
+            - name: POSTHOG_DISABLE_RECORDING
+              value: {{ .Values.env.POSTHOG_DISABLE_RECORDING | quote }}
             {{- if .Values.razorpay.enabled }}
             - name: RAZORPAY_KEY_ID
               valueFrom:

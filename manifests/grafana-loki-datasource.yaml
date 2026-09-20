@@ -1,0 +1,29 @@
+# Loki datasource for Grafana. Grafana auto-picks up files in /etc/grafana/provisioning/datasources
+# so this ConfigMap gets mounted by patching Grafana's Deployment. The datasource is not marked
+# default (Prometheus stays default for metrics dashboards).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-loki-datasource
+  namespace: istio-system
+  labels:
+    grafana_datasource: "1"
+data:
+  loki.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        url: http://loki.istio-system.svc.cluster.local:3100
+        isDefault: false
+        jsonData:
+          maxLines: 5000
+          derivedFields:
+            - name: TraceID
+              matcherRegex: "trace_id=(\\w+)"
+              url: "/jaeger/trace/${__value.raw}"
+            - name: RequestID
+              matcherRegex: "request_id=([\\w-]+)"
+              url: ""

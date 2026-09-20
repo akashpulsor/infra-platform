@@ -1,0 +1,126 @@
+# Single-hostname ops entry point routing.
+#
+# ops.dalaillama.in resolves to the same LB as the platform. Path prefixes route
+# to the observability tools (all in istio-system) and the in-tree /admin route
+# hosted by creator-ui. Auth for every path is enforced by oauth2-proxy via the
+# EnvoyFilter in ops-oauth2-authz.yaml -- keep that file installed alongside
+# this one, they are two halves of the same gate.
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ops-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https-ops
+        protocol: HTTPS
+      hosts:
+        - ops.dalaillama.in
+      tls:
+        mode: SIMPLE
+        credentialName: ops-dalaillama-in-tls
+    - port:
+        number: 80
+        name: http-ops
+        protocol: HTTP
+      hosts:
+        - ops.dalaillama.in
+      tls:
+        httpsRedirect: true
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ops-dalaillama-in-tls
+  namespace: istio-system
+spec:
+  secretName: ops-dalaillama-in-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - ops.dalaillama.in
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ops-dashboard
+  namespace: istio-system
+spec:
+  hosts:
+    - ops.dalaillama.in
+  gateways:
+    - ops-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /oauth2/
+      route:
+        - destination:
+            host: oauth2-proxy.istio-system.svc.cluster.local
+            port:
+              number: 4180
+    - match:
+        - uri:
+            prefix: /grafana
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: grafana.istio-system.svc.cluster.local
+            port:
+              number: 3000
+    - match:
+        - uri:
+            prefix: /kiali
+      route:
+        - destination:
+            host: kiali.istio-system.svc.cluster.local
+            port:
+              number: 20001
+    - match:
+        - uri:
+            prefix: /prom
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: prometheus.istio-system.svc.cluster.local
+            port:
+              number: 9090
+    - match:
+        - uri:
+            prefix: /jaeger
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: tracing.istio-system.svc.cluster.local
+            port:
+              number: 80
+    # Admin REST endpoints -- pinned to llm-gateway for LLM job ops, tenant-service for tenant
+    # ops, billing-service for wallet ops. Each service exposes its admin surface under
+    # /api/v1/internal/admin/<domain>/**; the ops UI calls them same-origin from
+    # ops.dalaillama.in. oauth2-proxy has already enforced dalai_admin before Envoy routes here,
+    # so the internal chain's permitAll is fine (the gate is the perimeter, not the app).
+    - match:
+        - uri:
+            prefix: /api/v1/internal/admin/llm-jobs
+      route:
+        - destination:
+            host: llm-gateway.apps.svc.cluster.local
+            port:
+              number: 8080
+    - match:
+        - uri:
+            prefix: /admin
+      route:
+        - destination:
+            host: creator-ui.apps.svc.cluster.local
+            port:
+              number: 80

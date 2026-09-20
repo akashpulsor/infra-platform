@@ -1,0 +1,57 @@
+# External-authorization filter delegating every ops.dalaillama.in request to
+# oauth2-proxy. Companion to ops-virtualservice.yaml; both files together are
+# the auth wall for the ops dashboard.
+#
+# Flow per request:
+#   1. Envoy at the istio ingress gateway calls oauth2-proxy /oauth2/auth
+#   2. oauth2-proxy returns 202 if the cookie is present, valid, and the token
+#      carries the dalai_admin realm role. Otherwise 401 + Location header to
+#      /oauth2/start which redirects the browser to Keycloak.
+#   3. On 202, Envoy forwards the original request; on non-2xx, the browser
+#      follows the redirect.
+#
+# failure_mode_allow: false -- if oauth2-proxy is unreachable, the gateway
+# denies rather than fails open. That is the correct trade-off: an unavailable
+# ops dashboard is safer than an unauthenticated one.
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: ops-oauth2-proxy-authz
+  namespace: istio-system
+spec:
+  workloadSelector:
+    labels:
+      istio: ingressgateway
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.router
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.ext_authz
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+            http_service:
+              server_uri:
+                uri: http://oauth2-proxy.istio-system.svc.cluster.local:4180
+                cluster: outbound|4180||oauth2-proxy.istio-system.svc.cluster.local
+                timeout: 5s
+              path_prefix: /oauth2/auth
+              authorization_request:
+                allowed_headers:
+                  patterns:
+                    - exact: cookie
+                    - exact: authorization
+                    - prefix: x-forwarded-
+              authorization_response:
+                allowed_upstream_headers:
+                  patterns:
+                    - prefix: x-auth-request-
+            failure_mode_allow: false

@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.330-shot-list-failure-banner
+  tag: 0.1.331-admin-and-posthog
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
@@ -27,6 +27,14 @@ env:
   # apps/creator-ui/src/faro.js. Traces + web vitals only for now (no Loki
   # deployed yet, so JS-error/console-log capture has nowhere to go).
   FARO_COLLECTOR_URL: "https://monitor.dalaillama.in/faro/collect"
+  # PostHog Cloud (US region) — session replay + product analytics for ops
+  # visibility. Free tier: 1M events + 5k session recordings per month, which a
+  # single-client platform will not come close to. Leave POSTHOG_API_KEY unset
+  # in a dev deploy to no-op the SDK. POSTHOG_DISABLE_RECORDING=true keeps
+  # events flowing but stops replays (use if a client asks for data-minimisation).
+  POSTHOG_API_KEY: ""
+  POSTHOG_HOST: "https://us.i.posthog.com"
+  POSTHOG_DISABLE_RECORDING: ""
 # The browser only needs Razorpay's public key ID. The private key and webhook
 # secret stay exclusively on billing-service.
 razorpay:
