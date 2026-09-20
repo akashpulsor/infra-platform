@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.38-gemini-resilience"
+      tag: "0.2.39-gemini-timeout"
     service:
       port: 8080
       targetPort: 8080
