@@ -45,7 +45,7 @@ SERVICES=(
     "tenant-service:5.0.89-creator-margin"
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.109-quote-with-margin"
-    "llm-gateway:0.2.36-motion-graphic"
+    "llm-gateway:0.2.38-gemini-resilience"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
     "pre-production-service:0.2.34-internal-dialogue"
