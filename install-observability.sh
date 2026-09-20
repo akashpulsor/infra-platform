@@ -50,6 +50,9 @@ install_loki() {
     # logs vanish if the loki pod moves nodes, which is fine here because there IS only one node.
     # 24 h retention keeps disk usage bounded without any cron; go higher only when there is a
     # separate volume mounted for /var/loki.
+    # SingleBinary mode requires explicitly zeroing SimpleScalable's read/write/backend replicas
+    # -- the chart's validate.yaml refuses to install if both modes have replicas set. Failing to
+    # zero them out was the first attempt's install error.
     helm upgrade --install loki grafana/loki -n "$ISTIO_NS" \
         --set deploymentMode=SingleBinary \
         --set loki.commonConfig.replication_factor=1 \
@@ -63,6 +66,9 @@ install_loki() {
         --set 'loki.schemaConfig.configs[0].index.period=24h' \
         --set 'loki.limits_config.retention_period=168h' \
         --set singleBinary.replicas=1 \
+        --set read.replicas=0 \
+        --set write.replicas=0 \
+        --set backend.replicas=0 \
         --set singleBinary.persistence.enabled=true \
         --set singleBinary.persistence.size=10Gi \
         --set 'singleBinary.resources.requests.cpu=100m' \
