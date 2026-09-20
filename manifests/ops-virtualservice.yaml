@@ -162,3 +162,32 @@ spec:
             host: creator-ui.apps.svc.cluster.local
             port:
               number: 80
+    # Static assets the SPA loads from root paths -- /assets/index-<hash>.js, /favicon.ico,
+    # /manifest.webmanifest, etc. Without these routes the browser gets 404 on the JS bundle
+    # and shows a blank white page. Route order matters: these live BELOW /grafana, /kiali,
+    # /prom, /jaeger (which have their own /assets subtrees via URI rewrite) so they only match
+    # top-level asset requests.
+    - match:
+        - uri:
+            prefix: /assets/
+      route:
+        - destination:
+            host: creator-ui.apps.svc.cluster.local
+            port:
+              number: 80
+    - match:
+        - uri:
+            exact: /favicon.ico
+      route:
+        - destination:
+            host: creator-ui.apps.svc.cluster.local
+            port:
+              number: 80
+    - match:
+        - uri:
+            exact: /manifest.webmanifest
+      route:
+        - destination:
+            host: creator-ui.apps.svc.cluster.local
+            port:
+              number: 80
