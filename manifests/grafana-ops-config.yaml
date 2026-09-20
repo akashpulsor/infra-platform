@@ -60,6 +60,10 @@ data:
     default_theme = dark
     [dashboards]
     default_home_dashboard_path = /var/lib/grafana/dashboards/istio-services/istio-mesh-dashboard.json
+    [security]
+    # Let /admin iframe Grafana inline as a tab. Same-origin (ops.dalaillama.in) so no CSRF risk.
+    allow_embedding = true
+    cookie_samesite = lax
   dashboardproviders.yaml: |
     apiVersion: 1
     providers:

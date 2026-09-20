@@ -57,14 +57,15 @@ spec:
   gateways:
     - ops-gateway
   http:
-    # Bare root has no useful landing of its own -- 302 to Grafana so an operator who typed just
-    # the hostname lands somewhere real instead of the default 404. Exact-match only; every other
-    # path routes below by prefix.
+    # Bare root -> /admin so an operator who typed the hostname lands on the unified ops UI
+    # (tabs for Jobs, Live errors, LLM gateway logs, Tenants, Wallets, Grafana, Kiali, Prom,
+    # Jaeger). Grafana etc are reachable within the admin UI as iframed tabs. Exact-match only;
+    # every other path routes below by prefix.
     - match:
         - uri:
             exact: /
       redirect:
-        uri: /grafana
+        uri: /admin
         redirectCode: 302
     - match:
         - uri:
