@@ -292,6 +292,16 @@ spec:
                 $KCADM add-roles -r master --uusername service-account-platform-api --cclientid "$MGMT_CLIENT" --rolename $ROLE 2>/dev/null || true
               done
               echo "  ✓ platform-api (master) granted manage-users/manage-realm/manage-clients on $MGMT_CLIENT"
+
+              # Realm-CREATION requires the create-realm role on the master-realm client, NOT
+              # on $REALM-realm. Without this every new tenant onboarded through tenant-service
+              # gets "Keycloak failed: HTTP 403 Forbidden" stored on its tenants.status_message
+              # and never gets a Keycloak realm (login for that tenant then never works). Observed
+              # on ACME and PragyaTalks -- both blocked on this single missing grant.
+              for ROLE in create-realm view-realm view-users; do
+                $KCADM add-roles -r master --uusername service-account-platform-api --cclientid master-realm --rolename $ROLE 2>/dev/null || true
+              done
+              echo "  ✓ platform-api (master) granted create-realm/view-realm/view-users on master-realm"
               echo ""
 
               # ═══════════════════════════════════════════════════════════
