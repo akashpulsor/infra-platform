@@ -1,19 +1,20 @@
 # Istio-native external authorization gate for ops.dalaillama.in.
 #
 # Uses Istio's AuthorizationPolicy with action: CUSTOM + a mesh-config-declared
-# extensionProvider. This is the officially supported and host-scopable way to
-# put an ext-authz check in front of a subset of gateway traffic. The earlier
-# EnvoyFilter approach ran the ext_authz filter on EVERY vhost at the gateway
-# HCM level and needed per-vhost DISABLE overrides for every unrelated
-# hostname -- fragile, easy to miss a new hostname, and it did break
-# auth./api./creator. traffic on the first attempt ("too many redirects").
+# extensionProvider (oauth2-proxy). This is the officially supported and host-
+# scopable way to put an ext-authz check in front of a subset of gateway traffic.
 #
-# The extensionProvider is defined in the istio-system/istio ConfigMap under
-# meshConfig.extensionProviders[name=oauth2-proxy]. Adding a new one there
-# means restarting istiod so it picks up the config. See install-observability.sh.
+# The rule matches ops.dalaillama.in EXCEPT paths under /oauth2/*. Those are
+# oauth2-proxy's own paths (the login callback, sign_in, sign_out) and must
+# reach it DIRECTLY, not through another ext-authz check. Without the notPaths
+# exclusion, oauth2-proxy is asked to authorise its own /oauth2/callback -- it
+# sees no session cookie yet (the cookie is only set BY the callback), returns
+# 302 to Keycloak, and the browser loops forever. That was the "auth.dalaillama.in
+# redirected you too many times" bug on the first launch attempt.
 #
-# match.hosts targets ONLY ops.dalaillama.in. Every other hostname served by
-# the same ingress gateway is untouched; no per-vhost enumeration required.
+# The VirtualService routes /oauth2/* to oauth2-proxy separately; since those
+# requests are not matched by this rule, they skip ext-authz and reach oauth2-
+# proxy's real handlers where the OAuth flow actually completes.
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
@@ -31,3 +32,5 @@ spec:
         - operation:
             hosts:
               - ops.dalaillama.in
+            notPaths:
+              - /oauth2/*
