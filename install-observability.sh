@@ -297,6 +297,13 @@ apply_ops_virtualservice() {
     kubectl apply -f "$SCRIPT_DIR/manifests/ops-oauth2-authz.yaml"
 }
 
+apply_alloy_faro_config() {
+    log "Reconciling alloy-faro receiver config (CORS + Loki writer + Jaeger exporter)"
+    kubectl apply -f "$SCRIPT_DIR/manifests/alloy-faro-receiver.yaml"
+    kubectl -n "$ISTIO_NS" rollout restart deploy/alloy-faro 2>/dev/null || true
+    kubectl -n "$ISTIO_NS" rollout status deploy/alloy-faro --timeout=60s 2>/dev/null || true
+}
+
 apply_grafana_loki_datasource() {
     log "Adding Loki as a Grafana datasource"
     kubectl apply -f "$SCRIPT_DIR/manifests/grafana-loki-datasource.yaml"
@@ -322,6 +329,7 @@ main() {
     apply_ops_virtualservice
     apply_grafana_loki_datasource
     apply_grafana_ops_config
+    apply_alloy_faro_config
     log "Done. Visit https://${OPS_HOST}/grafana (or /kiali, /prom, /jaeger). Log in as a Keycloak user with the dalai_admin role."
 }
 

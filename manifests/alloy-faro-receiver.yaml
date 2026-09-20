@@ -1,0 +1,46 @@
+# Alloy Faro receiver config -- browser-side telemetry from creator-ui (RUM,
+# JS errors, console logs, traces) that lands in Loki and Jaeger.
+#
+# CORS: cors_allowed_origins must list every origin that will POST to the
+# receiver. The browser sees the receiver at monitor.dalaillama.in/faro/collect;
+# creator.dalaillama.in and ops.dalaillama.in are the two SPAs that call it
+# today. Missing an origin here shows up in the browser console as
+# "blocked by CORS policy: No 'Access-Control-Allow-Origin' header".
+#
+# Kept in a ConfigMap so re-applying does not require a Helm chart rebuild.
+# Re-apply + kubectl -n istio-system rollout restart deploy/alloy-faro to pick
+# up changes.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-faro-receiver-config
+  namespace: istio-system
+data:
+  config.alloy: |
+    faro.receiver "default" {
+      server {
+        listen_address       = "0.0.0.0"
+        listen_port           = 12347
+        cors_allowed_origins  = [
+          "https://creator.dalaillama.in",
+          "https://ops.dalaillama.in",
+          "https://dalaillama.in",
+        ]
+      }
+      output {
+        logs   = [loki.write.faro.receiver]
+        traces = [otelcol.exporter.otlp.jaeger.input]
+      }
+    }
+    loki.write "faro" {
+      endpoint {
+        url = "http://loki.istio-system.svc.cluster.local:3100/loki/api/v1/push"
+      }
+      external_labels = { app = "creator-ui-browser" }
+    }
+    otelcol.exporter.otlp "jaeger" {
+      client {
+        endpoint = "jaeger-collector.istio-system.svc.cluster.local:4317"
+        tls { insecure = true }
+      }
+    }
