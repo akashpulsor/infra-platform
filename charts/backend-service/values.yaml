@@ -130,6 +130,21 @@ services:
       - /api/v1/internal
       - /actuator
     replicaCount: 1
+    # Recreate, not RollingUpdate. This service consumes Kafka, and a rolling deploy keeps the
+    # outgoing pod in the consumer group while the incoming one joins -- so a job published during
+    # the rollout goes to whichever owns that partition, a coin toss between the build being
+    # replaced and the build replacing it.
+    #
+    # That is not theoretical: it happened four times on 2026-09-18/20, and every time the fix was
+    # already deployed and the job ran on the old pod anyway -- a film joined by superseded ffmpeg
+    # code twice, and a shot-list generation cut off by the very timeout that had just been raised.
+    # Each one read as "the fix did not work".
+    #
+    # Every one of these is replicaCount 1, so a rolling update buys no availability worth having:
+    # it trades a few seconds of downtime for jobs landing on the build you just replaced. Requests
+    # queue in Kafka and are picked up when the new pod joins the group.
+    strategy:
+      type: Recreate
     image:
       repository: tenant-service
       tag: "5.0.89-creator-margin"
@@ -212,6 +227,21 @@ services:
     internalApiPaths:
       - /api/v1/internal
     replicaCount: 1
+    # Recreate, not RollingUpdate. This service consumes Kafka, and a rolling deploy keeps the
+    # outgoing pod in the consumer group while the incoming one joins -- so a job published during
+    # the rollout goes to whichever owns that partition, a coin toss between the build being
+    # replaced and the build replacing it.
+    #
+    # That is not theoretical: it happened four times on 2026-09-18/20, and every time the fix was
+    # already deployed and the job ran on the old pod anyway -- a film joined by superseded ffmpeg
+    # code twice, and a shot-list generation cut off by the very timeout that had just been raised.
+    # Each one read as "the fix did not work".
+    #
+    # Every one of these is replicaCount 1, so a rolling update buys no availability worth having:
+    # it trades a few seconds of downtime for jobs landing on the build you just replaced. Requests
+    # queue in Kafka and are picked up when the new pod joins the group.
+    strategy:
+      type: Recreate
     image:
       repository: product-service
       tag: "5.0.98-honest-payment-error"
@@ -291,6 +321,21 @@ services:
     internalApiPaths:
       - /api/v1/internal
     replicaCount: 1
+    # Recreate, not RollingUpdate. This service consumes Kafka, and a rolling deploy keeps the
+    # outgoing pod in the consumer group while the incoming one joins -- so a job published during
+    # the rollout goes to whichever owns that partition, a coin toss between the build being
+    # replaced and the build replacing it.
+    #
+    # That is not theoretical: it happened four times on 2026-09-18/20, and every time the fix was
+    # already deployed and the job ran on the old pod anyway -- a film joined by superseded ffmpeg
+    # code twice, and a shot-list generation cut off by the very timeout that had just been raised.
+    # Each one read as "the fix did not work".
+    #
+    # Every one of these is replicaCount 1, so a rolling update buys no availability worth having:
+    # it trades a few seconds of downtime for jobs landing on the build you just replaced. Requests
+    # queue in Kafka and are picked up when the new pod joins the group.
+    strategy:
+      type: Recreate
     image:
       repository: billing-service
       tag: "5.0.109-quote-with-margin"
@@ -382,6 +427,21 @@ services:
       - /api/v1/internal
       - /actuator
     replicaCount: 1
+    # Recreate, not RollingUpdate. This service consumes Kafka, and a rolling deploy keeps the
+    # outgoing pod in the consumer group while the incoming one joins -- so a job published during
+    # the rollout goes to whichever owns that partition, a coin toss between the build being
+    # replaced and the build replacing it.
+    #
+    # That is not theoretical: it happened four times on 2026-09-18/20, and every time the fix was
+    # already deployed and the job ran on the old pod anyway -- a film joined by superseded ffmpeg
+    # code twice, and a shot-list generation cut off by the very timeout that had just been raised.
+    # Each one read as "the fix did not work".
+    #
+    # Every one of these is replicaCount 1, so a rolling update buys no availability worth having:
+    # it trades a few seconds of downtime for jobs landing on the build you just replaced. Requests
+    # queue in Kafka and are picked up when the new pod joins the group.
+    strategy:
+      type: Recreate
     # Video-generation calls can block for minutes -- give an in-flight request a real chance to
 
     # finish on a rolling restart/scale-down instead of being SIGKILLed mid-dispatch (which would
@@ -506,6 +566,21 @@ services:
       - /api/v1/internal
       - /actuator
     replicaCount: 1
+    # Recreate, not RollingUpdate. This service consumes Kafka, and a rolling deploy keeps the
+    # outgoing pod in the consumer group while the incoming one joins -- so a job published during
+    # the rollout goes to whichever owns that partition, a coin toss between the build being
+    # replaced and the build replacing it.
+    #
+    # That is not theoretical: it happened four times on 2026-09-18/20, and every time the fix was
+    # already deployed and the job ran on the old pod anyway -- a film joined by superseded ffmpeg
+    # code twice, and a shot-list generation cut off by the very timeout that had just been raised.
+    # Each one read as "the fix did not work".
+    #
+    # Every one of these is replicaCount 1, so a rolling update buys no availability worth having:
+    # it trades a few seconds of downtime for jobs landing on the build you just replaced. Requests
+    # queue in Kafka and are picked up when the new pod joins the group.
+    strategy:
+      type: Recreate
     # See llmGateway's own terminationGracePeriodSeconds/preStopSleepSeconds comment -- same
 
     # reasoning applies here (approve() blocks on the same kind of long-running dispatch chain).
@@ -779,6 +854,21 @@ services:
       - /api/v1/internal
       - /actuator
     replicaCount: 1
+    # Recreate, not RollingUpdate. This service consumes Kafka, and a rolling deploy keeps the
+    # outgoing pod in the consumer group while the incoming one joins -- so a job published during
+    # the rollout goes to whichever owns that partition, a coin toss between the build being
+    # replaced and the build replacing it.
+    #
+    # That is not theoretical: it happened four times on 2026-09-18/20, and every time the fix was
+    # already deployed and the job ran on the old pod anyway -- a film joined by superseded ffmpeg
+    # code twice, and a shot-list generation cut off by the very timeout that had just been raised.
+    # Each one read as "the fix did not work".
+    #
+    # Every one of these is replicaCount 1, so a rolling update buys no availability worth having:
+    # it trades a few seconds of downtime for jobs landing on the build you just replaced. Requests
+    # queue in Kafka and are picked up when the new pod joins the group.
+    strategy:
+      type: Recreate
     # Same reasoning as videoGenerationService -- shot dispatch blocks on video-generation-service's
 
     # own long-running dispatch chain.
@@ -928,6 +1018,21 @@ services:
       - /api/v1/internal
       - /actuator
     replicaCount: 1
+    # Recreate, not RollingUpdate. This service consumes Kafka, and a rolling deploy keeps the
+    # outgoing pod in the consumer group while the incoming one joins -- so a job published during
+    # the rollout goes to whichever owns that partition, a coin toss between the build being
+    # replaced and the build replacing it.
+    #
+    # That is not theoretical: it happened four times on 2026-09-18/20, and every time the fix was
+    # already deployed and the job ran on the old pod anyway -- a film joined by superseded ffmpeg
+    # code twice, and a shot-list generation cut off by the very timeout that had just been raised.
+    # Each one read as "the fix did not work".
+    #
+    # Every one of these is replicaCount 1, so a rolling update buys no availability worth having:
+    # it trades a few seconds of downtime for jobs landing on the build you just replaced. Requests
+    # queue in Kafka and are picked up when the new pod joins the group.
+    strategy:
+      type: Recreate
     terminationGracePeriodSeconds: 120
     preStopSleepSeconds: 10
     image:
