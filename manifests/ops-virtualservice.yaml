@@ -88,6 +88,8 @@ spec:
     - match:
         - uri:
             prefix: /kiali
+      rewrite:
+        uri: /
       route:
         - destination:
             host: kiali.istio-system.svc.cluster.local
@@ -141,7 +143,7 @@ spec:
         - destination:
             host: billing-service.apps.svc.cluster.local
             port:
-              number: 8082
+              number: 8080
     # Loki HTTP API for same-origin queries from /admin's Live errors tab. Auth is enforced by
     # the same oauth2-proxy + dalai_admin gate as the rest of ops.dalaillama.in -- no extra
     # perimeter here. The path is stable per Loki's HTTP API contract (/loki/api/v1/query_range,
