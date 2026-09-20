@@ -234,40 +234,57 @@ EOF
 }
 
 patch_mesh_config_extension_provider() {
-    log "Ensuring istio meshConfig has the oauth2-proxy extensionProvider (idempotent)"
-    if kubectl -n "$ISTIO_NS" get configmap istio -o jsonpath='{.data.mesh}' | grep -q '^extensionProviders:'; then
-        echo "  ✓ extensionProviders block already present"
-        return 0
-    fi
-    # Append the extensionProviders block, restart istiod so it picks up the new config.
-    local mesh_current
-    mesh_current="$(kubectl -n "$ISTIO_NS" get configmap istio -o jsonpath='{.data.mesh}')"
-    local mesh_updated
-    mesh_updated="${mesh_current}
-extensionProviders:
-- name: oauth2-proxy
-  envoyExtAuthzHttp:
-    service: oauth2-proxy.apps.svc.cluster.local
-    port: 4180
-    pathPrefix: /oauth2/auth
-    timeout: 5s
-    includeRequestHeadersInCheck:
-    - cookie
-    - authorization
-    - x-forwarded-for
-    - x-forwarded-host
-    - x-forwarded-proto
-    - x-forwarded-uri
-    headersToUpstreamOnAllow:
-    - x-auth-request-user
-    - x-auth-request-email
-    - x-auth-request-access-token
-    - authorization"
-    kubectl -n "$ISTIO_NS" create configmap istio --from-literal=mesh="$mesh_updated" \
-        --from-literal=meshNetworks='networks: {}' \
-        --dry-run=client -o yaml | kubectl apply -f -
+    log "Reconciling istio meshConfig with the oauth2-proxy extensionProvider + accessLogFile"
+    # Write the FULL mesh config each time. Earlier attempts used append-only patches which
+    # produced a broken sub-set on any redo (an accessLogFile-only patch wiped extensionProviders
+    # and RBAC-denied every ops.dalaillama.in request). Ownership is now unambiguous: this script
+    # owns the mesh config, re-running it re-applies the whole thing.
+    cat >/tmp/istio-mesh.yaml <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio
+  namespace: ${ISTIO_NS}
+data:
+  mesh: |
+    accessLogFile: /dev/stdout
+    defaultConfig:
+      discoveryAddress: istiod.${ISTIO_NS}.svc:15012
+      proxyMetadata:
+        SECRET_TTL: 720h
+    defaultProviders:
+      metrics:
+      - prometheus
+    enablePrometheusMerge: true
+    rootNamespace: ${ISTIO_NS}
+    trustDomain: cluster.local
+    extensionProviders:
+    - name: oauth2-proxy
+      envoyExtAuthzHttp:
+        service: oauth2-proxy.${APPS_NS}.svc.cluster.local
+        port: 4180
+        pathPrefix: /oauth2/auth
+        timeout: 5s
+        includeRequestHeadersInCheck:
+        - cookie
+        - authorization
+        - x-forwarded-for
+        - x-forwarded-host
+        - x-forwarded-proto
+        - x-forwarded-uri
+        headersToUpstreamOnAllow:
+        - x-auth-request-user
+        - x-auth-request-email
+        - x-auth-request-access-token
+        - authorization
+  meshNetworks: 'networks: {}'
+EOF
+    kubectl apply -f /tmp/istio-mesh.yaml
     kubectl -n "$ISTIO_NS" rollout restart deploy/istiod
     kubectl -n "$ISTIO_NS" rollout status deploy/istiod --timeout=120s
+    # ingressgateway must be re-rolled too or its cached xDS keeps the old (broken) view.
+    kubectl -n "$ISTIO_NS" rollout restart deploy/istio-ingressgateway
+    kubectl -n "$ISTIO_NS" rollout status deploy/istio-ingressgateway --timeout=120s
 }
 
 apply_ops_virtualservice() {
