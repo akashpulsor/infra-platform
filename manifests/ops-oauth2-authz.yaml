@@ -1,18 +1,21 @@
-# External-authorization filter delegating every ops.dalaillama.in request to
-# oauth2-proxy. Companion to ops-virtualservice.yaml; both files together are
-# the auth wall for the ops dashboard.
+# ExtAuthz to oauth2-proxy, scoped to ops.dalaillama.in only.
 #
-# Flow per request:
-#   1. Envoy at the istio ingress gateway calls oauth2-proxy /oauth2/auth
-#   2. oauth2-proxy returns 202 if the cookie is present, valid, and the token
-#      carries the dalai_admin realm role. Otherwise 401 + Location header to
-#      /oauth2/start which redirects the browser to Keycloak.
-#   3. On 202, Envoy forwards the original request; on non-2xx, the browser
-#      follows the redirect.
+# The Istio ingress gateway HCM runs ONE filter chain for every host it serves,
+# so an HTTP_FILTER inserted here fires on every request -- including
+# auth.dalaillama.in, api.*, creator.*, etc. Leaving the filter unscoped is
+# what caused the "auth.dalaillama.in redirected you too many times" loop
+# on the first launch: browser follows the Keycloak redirect, that request
+# hits ExtAuthz too, which returns another 302 back to Keycloak.
 #
-# failure_mode_allow: false -- if oauth2-proxy is unreachable, the gateway
-# denies rather than fails open. That is the correct trade-off: an unavailable
-# ops dashboard is safer than an unauthenticated one.
+# Correct behaviour: filter is inserted globally (Envoy needs it in the chain
+# to reference it), then explicitly DISABLED per virtual host on every non-ops
+# hostname. Envoy resolves per-vhost typed_per_filter_config as an override
+# above the filter's default enabled state, so listing each non-ops host with
+# {disabled: true} takes precedence over the global insertion.
+#
+# Every hostname currently served by the platform's central gateway is
+# enumerated below. Adding a new public hostname? Add it to this list too,
+# otherwise its traffic also goes through oauth2-proxy and loops.
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
@@ -55,3 +58,123 @@ spec:
                   patterns:
                     - prefix: x-auth-request-
             failure_mode_allow: false
+    # Disable ExtAuthz on every non-ops virtual host. Envoy resolves
+    # typed_per_filter_config at VIRTUAL_HOST as an override for that vhost only,
+    # so the filter's global enabled state is overridden here to disabled.
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "auth.dalaillama.in:*"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.ext_authz:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+              disabled: true
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "api.dalaillama.in:*"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.ext_authz:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+              disabled: true
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "creator.dalaillama.in:*"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.ext_authz:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+              disabled: true
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "dashboard.dalaillama.in:*"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.ext_authz:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+              disabled: true
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "app.dalaillama.in:*"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.ext_authz:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+              disabled: true
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "platform.dalaillama.in:*"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.ext_authz:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+              disabled: true
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "monitor.dalaillama.in:*"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.ext_authz:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+              disabled: true
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "media.dalaillama.in:*"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.ext_authz:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+              disabled: true
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "console.dalaillama.in:*"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.ext_authz:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+              disabled: true
