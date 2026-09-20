@@ -147,7 +147,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.90-admin-tenants-mdc"
+      tag: "5.0.91-admin-activate-toggle"
     service:
       port: 8080
       targetPort: 8080
