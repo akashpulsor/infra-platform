@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.2.39-gemini-timeout"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
-    "pre-production-service:0.2.34-internal-dialogue"
+    "pre-production-service:0.2.35-shot-list-failure-banner"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.18-project-tracing"
     "trend-intelligence-service:0.1.0"

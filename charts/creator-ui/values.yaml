@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.329-film-staleness
+  tag: 0.1.330-shot-list-failure-banner
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
