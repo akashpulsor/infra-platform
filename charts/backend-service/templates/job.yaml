@@ -316,8 +316,29 @@ spec:
                   $KCADM set-password -r $REALM --username $USERNAME --new-password "$PASSWORD"
                   echo "  ✓ Created user: $USERNAME ($EMAIL)"
                 fi
-                $KCADM add-roles -r $REALM --username $USERNAME --rolename $ROLE 2>/dev/null || true
-                echo "  ✓ $USERNAME → $ROLE"
+                # Role grant needs to be verified, NOT silently swallowed with '|| true'. The
+                # previous shape hid a bug where opsadmin never got the dalai_admin role: the
+                # add-roles call errored, the "|| true" ate the exit code, the echo below still
+                # ran, and oauth2-proxy denied the login with "unauthorized". Now: capture stderr
+                # + check that the role actually shows up in get-roles afterwards.
+                ROLE_ASSIGN_OUT=$($KCADM add-roles -r $REALM --uusername $USERNAME --rolename $ROLE 2>&1) || true
+                if $KCADM get-roles -r $REALM --uusername $USERNAME --effective --fields name 2>/dev/null | grep -q "\"$ROLE\""; then
+                  echo "  ✓ $USERNAME → $ROLE"
+                else
+                  echo "  ✗ $USERNAME → $ROLE   FAILED (kcadm said: $ROLE_ASSIGN_OUT)"
+                  echo "    Retrying with escape-friendly forms..."
+                  # Two known-quirky KC 26 issues that eat --rolename silently:
+                  #   1. Some role names collide with default-roles-<realm> composite membership
+                  #      and need the client-role form to attach even for realm roles.
+                  #   2. `--username` vs `--uusername` behaviour differs by subcommand version.
+                  # Trying both flag variants explicitly is cheap and eliminates the ambiguity.
+                  $KCADM add-roles -r $REALM --username $USERNAME --rolename $ROLE 2>&1 || true
+                  if $KCADM get-roles -r $REALM --uusername $USERNAME --effective --fields name 2>/dev/null | grep -q "\"$ROLE\""; then
+                    echo "  ✓ $USERNAME → $ROLE (retry succeeded)"
+                  else
+                    echo "  !! $USERNAME → $ROLE STILL FAILED — assign manually from Keycloak admin console"
+                  fi
+                fi
               }
 
               create_user "admin" "admin@$DOMAIN" "admin123" "ADMIN"
