@@ -283,6 +283,16 @@ apply_grafana_loki_datasource() {
     kubectl -n "$ISTIO_NS" rollout restart deploy/grafana || true
 }
 
+apply_grafana_ops_config() {
+    log "Applying ops-dashboard Grafana config (subpath / auth.proxy / anonymous Editor / home dashboard)"
+    # Overrides the Istio-shipped grafana ConfigMap with ops-friendly defaults. Kept in a
+    # separate manifest so re-applying the Istio addon doesn't clobber it. See the manifest for
+    # the specific settings changed and why.
+    kubectl apply -f "$SCRIPT_DIR/manifests/grafana-ops-config.yaml"
+    kubectl -n "$ISTIO_NS" rollout restart deploy/grafana || true
+    kubectl -n "$ISTIO_NS" rollout status deploy/grafana --timeout=120s || true
+}
+
 main() {
     install_loki
     install_alloy
@@ -290,6 +300,7 @@ main() {
     patch_mesh_config_extension_provider
     apply_ops_virtualservice
     apply_grafana_loki_datasource
+    apply_grafana_ops_config
     log "Done. Visit https://${OPS_HOST}/grafana (or /kiali, /prom, /jaeger). Log in as a Keycloak user with the dalai_admin role."
 }
 

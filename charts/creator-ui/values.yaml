@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.333-tenant-toggle
+  tag: 0.1.334-loki-live-tabs
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
