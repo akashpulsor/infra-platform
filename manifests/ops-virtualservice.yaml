@@ -85,6 +85,11 @@ spec:
             host: grafana.istio-system.svc.cluster.local
             port:
               number: 3000
+    # Kiali + Prometheus don't natively serve on a subpath -- their startup probes hit /,
+    # which fails 404 if we change web_root or route-prefix. Keeping the URI-rewrite approach
+    # so the tools serve at root inside the pod; a follow-up should move them to their own
+    # subdomains (kiali.dalaillama.in / prom.dalaillama.in) to fix the "internal calls hit
+    # /admin instead of /kiali/api" issue their JS has when iframed at a subpath.
     - match:
         - uri:
             prefix: /kiali
@@ -105,11 +110,11 @@ spec:
             host: prometheus.istio-system.svc.cluster.local
             port:
               number: 9090
+    # Jaeger IS natively subpath-aware (QUERY_BASE_PATH=/jaeger already set in its Deployment),
+    # so DO NOT rewrite -- it generates internal URLs with /jaeger and expects to receive them.
     - match:
         - uri:
             prefix: /jaeger
-      rewrite:
-        uri: /
       route:
         - destination:
             host: tracing.istio-system.svc.cluster.local
