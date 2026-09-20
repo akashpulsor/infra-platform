@@ -57,6 +57,15 @@ spec:
   gateways:
     - ops-gateway
   http:
+    # Bare root has no useful landing of its own -- 302 to Grafana so an operator who typed just
+    # the hostname lands somewhere real instead of the default 404. Exact-match only; every other
+    # path routes below by prefix.
+    - match:
+        - uri:
+            exact: /
+      redirect:
+        uri: /grafana
+        redirectCode: 302
     - match:
         - uri:
             prefix: /oauth2/
