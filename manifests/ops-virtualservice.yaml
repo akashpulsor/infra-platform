@@ -127,6 +127,22 @@ spec:
               number: 8080
     - match:
         - uri:
+            prefix: /api/v1/internal/admin/tenants
+      route:
+        - destination:
+            host: tenant-service.apps.svc.cluster.local
+            port:
+              number: 8080
+    - match:
+        - uri:
+            prefix: /api/v1/internal/admin/billing
+      route:
+        - destination:
+            host: billing-service.apps.svc.cluster.local
+            port:
+              number: 8082
+    - match:
+        - uri:
             prefix: /admin
       route:
         - destination:

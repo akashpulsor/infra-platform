@@ -147,7 +147,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.89-creator-margin"
+      tag: "5.0.90-admin-tenants-mdc"
     service:
       port: 8080
       targetPort: 8080
@@ -338,7 +338,7 @@ services:
       type: Recreate
     image:
       repository: billing-service
-      tag: "5.0.109-quote-with-margin"
+      tag: "5.0.110-admin-wallet-mdc"
     service:
       port: 8080
       targetPort: 8080
