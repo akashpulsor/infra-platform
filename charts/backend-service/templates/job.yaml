@@ -244,6 +244,14 @@ spec:
               fi
               $KCADM update clients/$OPS_UUID -r $REALM -s secret="$OPS_CLIENT_SECRET_DESIRED"
 
+              # Sign-out flow: /admin's Sign out button hits oauth2-proxy /oauth2/sign_out?rd=<kc-logout>
+              # which chains through to Keycloak's end-session endpoint. Keycloak validates the
+              # post_logout_redirect_uri against this attribute list -- if not registered, the
+              # end-session call fails with "Invalid parameter: post_logout_redirect_uri" and the
+              # operator gets stuck. Attribute is semi-colon separated per KC docs.
+              $KCADM update clients/$OPS_UUID -r $REALM \
+                -s 'attributes."post.logout.redirect.uris"=https://ops.'$DOMAIN'/admin;https://ops.'$DOMAIN'/*' 2>/dev/null || echo "  ! could not set post.logout.redirect.uris (Keycloak version might differ)"
+
               # Add the realm-roles protocol mapper (idempotent). Any 4xx (already exists) is fine.
               $KCADM create clients/$OPS_UUID/protocol-mappers/models -r $REALM \
                 -s name=realm-roles \

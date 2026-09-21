@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.337-absolute-urls
+  tag: 0.1.339-signout
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
