@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.340-trim-tabs
+  tag: 0.1.341-plans-tab
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

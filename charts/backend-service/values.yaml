@@ -338,7 +338,7 @@ services:
       type: Recreate
     image:
       repository: billing-service
-      tag: "5.0.110-admin-wallet-mdc"
+      tag: "5.0.111-admin-plans"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.37-lenient-people-in-frame"
+      tag: "0.2.38-widen-shot-text-cols"
     service:
       port: 8080
       targetPort: 8080

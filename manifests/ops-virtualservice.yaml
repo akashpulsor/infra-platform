@@ -149,6 +149,14 @@ spec:
             host: billing-service.apps.svc.cluster.local
             port:
               number: 8080
+    - match:
+        - uri:
+            prefix: /api/v1/internal/admin/plans
+      route:
+        - destination:
+            host: billing-service.apps.svc.cluster.local
+            port:
+              number: 8080
     # Loki HTTP API for same-origin queries from /admin's Live errors tab. Auth is enforced by
     # the same oauth2-proxy + dalai_admin gate as the rest of ops.dalaillama.in -- no extra
     # perimeter here. The path is stable per Loki's HTTP API contract (/loki/api/v1/query_range,
