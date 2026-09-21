@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.2.41-admin-recent-jobs"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
-    "pre-production-service:0.2.36-observability-mdc"
+    "pre-production-service:0.2.37-lenient-people-in-frame"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.18-project-tracing"
     "trend-intelligence-service:0.1.0"

@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.36-observability-mdc"
+      tag: "0.2.37-lenient-people-in-frame"
     service:
       port: 8080
       targetPort: 8080
