@@ -32,5 +32,10 @@ spec:
         - operation:
             hosts:
               - ops.dalaillama.in
+              - grafana.dalaillama.in
+              - prometheus.dalaillama.in
+              - jaeger.dalaillama.in
+              - kiali.dalaillama.in
+              - loki.dalaillama.in
             notPaths:
               - /oauth2/*

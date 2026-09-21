@@ -295,6 +295,12 @@ apply_ops_virtualservice() {
     log "Wiring VirtualService: ops.dalaillama.in → oauth2-proxy → Grafana/Kiali/Prometheus/Jaeger"
     kubectl apply -f "$SCRIPT_DIR/manifests/ops-virtualservice.yaml"
     kubectl apply -f "$SCRIPT_DIR/manifests/ops-oauth2-authz.yaml"
+    # Per-tool subdomains -- grafana./prometheus./jaeger./kiali./loki.dalaillama.in.
+    # DNS records for these must exist (A record → same LB IP as ops.dalaillama.in) before
+    # cert-manager can complete the ACME HTTP-01 challenge; the Gateway/VirtualService itself
+    # applies fine either way. The AuthorizationPolicy in ops-oauth2-authz.yaml is already
+    # scoped to these hosts too.
+    kubectl apply -f "$SCRIPT_DIR/manifests/ops-tool-subdomains.yaml"
 }
 
 apply_alloy_faro_config() {

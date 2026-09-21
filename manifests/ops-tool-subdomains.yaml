@@ -1,0 +1,186 @@
+# Per-tool subdomains for the ops stack: grafana / prometheus / jaeger / kiali / loki each get
+# their own https://<tool>.dalaillama.in URL, protected by the same oauth2-proxy + dalai_admin
+# gate as ops.dalaillama.in.
+#
+# Why not path prefixes on ops.dalaillama.in? Because Kiali / Prometheus / Loki hard-code
+# root-absolute URLs in their frontend (/api/... etc). Serving them at a subpath either breaks
+# their startup probes (when configured with web_root/route-prefix that mismatches the probe URL)
+# or breaks the browser JS (when we URI-rewrite the prefix away and the tool re-emits root URLs).
+# A dedicated subdomain per tool lets each serve at its native root without any path acrobatics.
+#
+# Auth wall is unchanged: ops-oauth2-authz.yaml's AuthorizationPolicy already selects the
+# istio ingressgateway workload, and the `hosts:` list here is what we add there.
+#
+# DNS + cert-manager: one A record per subdomain pointed at the same LB IP as everything else;
+# cert-manager auto-provisions per-host certs from the Certificate resources below.
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ops-tools-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https-grafana
+        protocol: HTTPS
+      hosts: [grafana.dalaillama.in]
+      tls: { mode: SIMPLE, credentialName: grafana-dalaillama-in-tls }
+    - port:
+        number: 443
+        name: https-prometheus
+        protocol: HTTPS
+      hosts: [prometheus.dalaillama.in]
+      tls: { mode: SIMPLE, credentialName: prometheus-dalaillama-in-tls }
+    - port:
+        number: 443
+        name: https-jaeger
+        protocol: HTTPS
+      hosts: [jaeger.dalaillama.in]
+      tls: { mode: SIMPLE, credentialName: jaeger-dalaillama-in-tls }
+    - port:
+        number: 443
+        name: https-kiali
+        protocol: HTTPS
+      hosts: [kiali.dalaillama.in]
+      tls: { mode: SIMPLE, credentialName: kiali-dalaillama-in-tls }
+    - port:
+        number: 443
+        name: https-loki
+        protocol: HTTPS
+      hosts: [loki.dalaillama.in]
+      tls: { mode: SIMPLE, credentialName: loki-dalaillama-in-tls }
+    - port:
+        number: 80
+        name: http-redirect
+        protocol: HTTP
+      hosts:
+        - grafana.dalaillama.in
+        - prometheus.dalaillama.in
+        - jaeger.dalaillama.in
+        - kiali.dalaillama.in
+        - loki.dalaillama.in
+      tls:
+        httpsRedirect: true
+---
+# Cert-manager Certificate per host. Same ClusterIssuer as ops.dalaillama.in.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana-dalaillama-in-tls
+  namespace: istio-system
+spec:
+  secretName: grafana-dalaillama-in-tls
+  issuerRef: { name: letsencrypt-prod, kind: ClusterIssuer }
+  dnsNames: [grafana.dalaillama.in]
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: prometheus-dalaillama-in-tls
+  namespace: istio-system
+spec:
+  secretName: prometheus-dalaillama-in-tls
+  issuerRef: { name: letsencrypt-prod, kind: ClusterIssuer }
+  dnsNames: [prometheus.dalaillama.in]
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: jaeger-dalaillama-in-tls
+  namespace: istio-system
+spec:
+  secretName: jaeger-dalaillama-in-tls
+  issuerRef: { name: letsencrypt-prod, kind: ClusterIssuer }
+  dnsNames: [jaeger.dalaillama.in]
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kiali-dalaillama-in-tls
+  namespace: istio-system
+spec:
+  secretName: kiali-dalaillama-in-tls
+  issuerRef: { name: letsencrypt-prod, kind: ClusterIssuer }
+  dnsNames: [kiali.dalaillama.in]
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: loki-dalaillama-in-tls
+  namespace: istio-system
+spec:
+  secretName: loki-dalaillama-in-tls
+  issuerRef: { name: letsencrypt-prod, kind: ClusterIssuer }
+  dnsNames: [loki.dalaillama.in]
+---
+# VirtualService per tool, each routing / and /oauth2/* separately (oauth2-proxy handles the
+# callback flow at each host). Tools serve at root inside their pod, so no URI rewrites are
+# needed and no subpath confusion.
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: grafana-tool
+  namespace: istio-system
+spec:
+  hosts: [grafana.dalaillama.in]
+  gateways: [ops-tools-gateway]
+  http:
+    - match: [{ uri: { prefix: /oauth2/ } }]
+      route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
+    - route: [{ destination: { host: grafana.istio-system.svc.cluster.local, port: { number: 3000 } } }]
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: prometheus-tool
+  namespace: istio-system
+spec:
+  hosts: [prometheus.dalaillama.in]
+  gateways: [ops-tools-gateway]
+  http:
+    - match: [{ uri: { prefix: /oauth2/ } }]
+      route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
+    - route: [{ destination: { host: prometheus.istio-system.svc.cluster.local, port: { number: 9090 } } }]
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: jaeger-tool
+  namespace: istio-system
+spec:
+  hosts: [jaeger.dalaillama.in]
+  gateways: [ops-tools-gateway]
+  http:
+    - match: [{ uri: { prefix: /oauth2/ } }]
+      route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
+    - route: [{ destination: { host: tracing.istio-system.svc.cluster.local, port: { number: 80 } } }]
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kiali-tool
+  namespace: istio-system
+spec:
+  hosts: [kiali.dalaillama.in]
+  gateways: [ops-tools-gateway]
+  http:
+    - match: [{ uri: { prefix: /oauth2/ } }]
+      route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
+    - route: [{ destination: { host: kiali.istio-system.svc.cluster.local, port: { number: 20001 } } }]
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: loki-tool
+  namespace: istio-system
+spec:
+  hosts: [loki.dalaillama.in]
+  gateways: [ops-tools-gateway]
+  http:
+    - match: [{ uri: { prefix: /oauth2/ } }]
+      route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
+    - route: [{ destination: { host: loki.istio-system.svc.cluster.local, port: { number: 3100 } } }]

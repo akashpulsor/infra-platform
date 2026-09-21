@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.40-admin-retry"
+      tag: "0.2.41-admin-recent-jobs"
     service:
       port: 8080
       targetPort: 8080

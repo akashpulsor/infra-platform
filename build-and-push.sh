@@ -45,7 +45,7 @@ SERVICES=(
     "tenant-service:5.0.91-admin-activate-toggle"
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.110-admin-wallet-mdc"
-    "llm-gateway:0.2.40-admin-retry"
+    "llm-gateway:0.2.41-admin-recent-jobs"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
     "pre-production-service:0.2.36-observability-mdc"
