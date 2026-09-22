@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.345-review-brief-section
+  tag: 0.1.346-brief-videos
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
