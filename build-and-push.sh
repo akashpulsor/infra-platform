@@ -45,7 +45,7 @@ SERVICES=(
     "tenant-service:5.0.91-admin-activate-toggle"
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.111-admin-plans"
-    "llm-gateway:0.2.42-flux-schnell-image"
+    "llm-gateway:0.2.43-flux-schnell-v104"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
     "pre-production-service:0.2.39-planning-image-model"
