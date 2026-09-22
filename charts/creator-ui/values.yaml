@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.341-plans-tab
+  tag: 0.1.342-userchip-real-plan
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
