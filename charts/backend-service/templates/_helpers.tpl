@@ -674,8 +674,30 @@ app.kubernetes.io/part-of: dalai-llama-backend
       key: {{ .Values.secrets.razorpay.webhookSecretKey }}
 - name: RAZORPAY_MOCK_ENABLED
   value: {{ .Values.services.billingService.razorpay.mockEnabled | default false | quote }}
-      
+
 {{- end }}
+
+# SMTP -- Hostinger by default; host/port default in application.yml so only the auth pair +
+# from-address need to come through the secret. spring.mail.enabled=false in a deploy that
+# hasn't yet been given SMTP creds keeps EmailService quietly no-op'ing.
+- name: SMTP_USERNAME
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.smtp.name }}
+      key: {{ .Values.secrets.smtp.usernameKey }}
+      optional: true
+- name: SMTP_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.smtp.name }}
+      key: {{ .Values.secrets.smtp.passwordKey }}
+      optional: true
+- name: SMTP_FROM
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.smtp.name }}
+      key: {{ .Values.secrets.smtp.fromKey }}
+      optional: true
 {{- end -}}
 
 
