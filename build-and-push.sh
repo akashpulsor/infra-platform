@@ -50,7 +50,7 @@ SERVICES=(
     "post-production-service:0.1.29-film-staleness"
     "pre-production-service:0.2.40-storyboard-lite"
     "critic-service:0.1.2-gemini-embedding-001"
-    "creative-planning-service:0.1.18-project-tracing"
+    "creative-planning-service:0.1.19-locked-idea-requirement-id"
     "trend-intelligence-service:0.1.0"
     "chat-service:0.1.5-project-tracing"
 )
