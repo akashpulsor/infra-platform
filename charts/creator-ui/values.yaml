@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.344-brief-tab
+  tag: 0.1.345-review-brief-section
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

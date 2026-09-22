@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.40-storyboard-lite"
+      tag: "0.2.41-locked-idea-in-public-view"
     service:
       port: 8080
       targetPort: 8080
@@ -1013,6 +1013,10 @@ services:
       - /v1/project-ideas
       - /v1/project-requirements
       - /v1/public/project-requirements
+      # Public brief-summary endpoint for the client-review page's "The original brief" section --
+      # scoped to /public/locked-ideas so it doesn't shadow the tenant-authenticated /v1/locked-ideas
+      # already routed above.
+      - /v1/public/locked-ideas
       - /v1/marketing-plans
     internalApiPaths:
       - /api/v1/internal
@@ -1037,7 +1041,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: creative-planning-service
-      tag: "0.1.19-locked-idea-requirement-id"
+      tag: "0.1.20-public-brief-by-locked-idea"
     service:
       port: 8080
       targetPort: 8080

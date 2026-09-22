@@ -48,9 +48,9 @@ SERVICES=(
     "llm-gateway:0.2.44-gemini-3-1-image"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
-    "pre-production-service:0.2.40-storyboard-lite"
+    "pre-production-service:0.2.41-locked-idea-in-public-view"
     "critic-service:0.1.2-gemini-embedding-001"
-    "creative-planning-service:0.1.19-locked-idea-requirement-id"
+    "creative-planning-service:0.1.20-public-brief-by-locked-idea"
     "trend-intelligence-service:0.1.0"
     "chat-service:0.1.5-project-tracing"
 )
