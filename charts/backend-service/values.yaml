@@ -338,7 +338,7 @@ services:
       type: Recreate
     image:
       repository: billing-service
-      tag: "5.0.111-admin-plans"
+      tag: "5.0.112-brief-wallet-pay"
     service:
       port: 8080
       targetPort: 8080
