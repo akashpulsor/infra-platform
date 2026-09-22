@@ -45,7 +45,7 @@ SERVICES=(
     "tenant-service:5.0.91-admin-activate-toggle"
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.113-smtp"
-    "llm-gateway:0.2.44-gemini-3-1-image"
+    "llm-gateway:0.2.45-shot-list-v9-sketch-styling"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
     "pre-production-service:0.2.43-describe-production-only"
