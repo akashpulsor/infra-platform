@@ -147,7 +147,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.94-smtp-composer"
+      tag: "5.0.95-smtp-starttls"
     service:
       port: 8080
       targetPort: 8080
