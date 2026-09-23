@@ -677,9 +677,15 @@ app.kubernetes.io/part-of: dalai-llama-backend
 
 {{- end }}
 
-# SMTP -- Hostinger by default; host/port default in application.yml so only the auth pair +
-# from-address need to come through the secret. spring.mail.enabled=false in a deploy that
-# hasn't yet been given SMTP creds keeps EmailService quietly no-op'ing.
+{{- include "dalai-backend.smtp-envs" . }}
+{{- end -}}
+
+{{/* SMTP env vars — used by any service that fronts Spring's JavaMailSender.
+     Extracted out so both billing-service (payment receipts) and tenant-service
+     (creator lead-management outbound) mount the same secret without duplicating
+     the block. All refs optional so a deploy without SMTP creds still boots and
+     lets the sender no-op cleanly. */}}
+{{- define "dalai-backend.smtp-envs" -}}
 - name: SMTP_USERNAME
   valueFrom:
     secretKeyRef:

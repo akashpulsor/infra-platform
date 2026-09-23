@@ -147,7 +147,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.93-email-backfill"
+      tag: "5.0.94-smtp-composer"
     service:
       port: 8080
       targetPort: 8080

@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.349-onboarding-modal-signout
+  tag: 0.1.350-marketing-composer
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
