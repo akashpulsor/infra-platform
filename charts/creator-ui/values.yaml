@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.348-mobile-topbar-signout-intent
+  tag: 0.1.349-onboarding-modal-signout
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

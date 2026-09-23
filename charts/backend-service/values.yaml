@@ -147,7 +147,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.91-admin-activate-toggle"
+      tag: "5.0.92-creator-email-identity"
     service:
       port: 8080
       targetPort: 8080
