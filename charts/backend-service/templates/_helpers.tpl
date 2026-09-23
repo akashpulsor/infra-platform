@@ -677,14 +677,33 @@ app.kubernetes.io/part-of: dalai-llama-backend
 
 {{- end }}
 
-{{- include "dalai-backend.smtp-envs" . }}
+# SMTP -- Hostinger by default; host/port default in application.yml so only the auth pair +
+# from-address need to come through the secret. spring.mail.enabled=false in a deploy that
+# hasn't yet been given SMTP creds keeps EmailService quietly no-op'ing.
+- name: SMTP_USERNAME
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.smtp.name }}
+      key: {{ .Values.secrets.smtp.usernameKey }}
+      optional: true
+- name: SMTP_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.smtp.name }}
+      key: {{ .Values.secrets.smtp.passwordKey }}
+      optional: true
+- name: SMTP_FROM
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.smtp.name }}
+      key: {{ .Values.secrets.smtp.fromKey }}
+      optional: true
 {{- end -}}
 
-{{/* SMTP env vars — used by any service that fronts Spring's JavaMailSender.
-     Extracted out so both billing-service (payment receipts) and tenant-service
-     (creator lead-management outbound) mount the same secret without duplicating
-     the block. All refs optional so a deploy without SMTP creds still boots and
-     lets the sender no-op cleanly. */}}
+{{/* SMTP env vars — mirror of the block inside billing-integrations. Kept as its own helper
+     so tenant-service (creator lead-management outbound) mounts the same dalai-backend-smtp
+     secret without a second copy. Duplicated (not include'd) inside billing-integrations to
+     preserve that block's rendering exactly. */}}
 {{- define "dalai-backend.smtp-envs" -}}
 - name: SMTP_USERNAME
   valueFrom:
