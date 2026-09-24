@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.45-shot-list-v9-sketch-styling"
+      tag: "0.2.46-explicit-script-subtag"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.44-cine-still-taxonomy"
+      tag: "0.2.44-language-and-regenerate"
     service:
       port: 8080
       targetPort: 8080
@@ -1011,7 +1011,15 @@ services:
       - /v1/campaign-sessions
       - /v1/locked-ideas
       - /v1/project-ideas
-      - /v1/project-requirements
+      # /v1/project-requirements catches the LLM-backed POST .../ideas/generate as well as the
+      # fast CRUD. The default 10s perTryTimeout / 3 attempts caused 504 UT
+      # upstream_per_try_timeout on every generation (each LLM call takes 20-60s). Widening the
+      # whole prefix to 95s (Cloudflare's free-plan ceiling is 100s) and dropping retries
+      # unblocks the endpoint without needing a per-method route split. Retries on a
+      # non-idempotent LLM POST would in any case bill the same generation multiple times.
+      - path: /v1/project-requirements
+        timeout: 95s
+        retries: false
       - /v1/public/project-requirements
       # Public brief-summary endpoint for the client-review page's "The original brief" section --
       # scoped to /public/locked-ideas so it doesn't shadow the tenant-authenticated /v1/locked-ideas
