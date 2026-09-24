@@ -1041,7 +1041,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: creative-planning-service
-      tag: "0.1.22-locked-idea-video-intent"
+      tag: "0.1.23-client-duration-edit"
     service:
       port: 8080
       targetPort: 8080

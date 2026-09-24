@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.350-marketing-composer
+  tag: 0.1.351-brief-duration-edit
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
