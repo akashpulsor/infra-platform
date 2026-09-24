@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.352-review-lang-regen
+  tag: 0.1.353-custom-duration
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
