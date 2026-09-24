@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.353-custom-duration
+  tag: 0.1.354-narrative-and-version-pick
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

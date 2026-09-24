@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.48-v108-audience-first-search"
+      tag: "0.2.49-language-filter-and-narrative"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.45-audience-first-search"
+      tag: "0.2.46-narrative-lang-and-script-version"
     service:
       port: 8080
       targetPort: 8080
