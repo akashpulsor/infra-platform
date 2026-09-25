@@ -45,7 +45,7 @@ SERVICES=(
     "tenant-service:5.0.91-admin-activate-toggle"
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.113-smtp"
-    "llm-gateway:0.2.49-language-filter-and-narrative"
+    "llm-gateway:0.2.50-voices-sync-dedupe"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
     "pre-production-service:0.2.46-narrative-lang-and-script-version"
