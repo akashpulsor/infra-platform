@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.354-narrative-and-version-pick
+  tag: 0.1.355-async-ideas-poll
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
