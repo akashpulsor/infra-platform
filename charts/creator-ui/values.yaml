@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.355-async-ideas-poll
+  tag: 0.1.356-useeffect-fix
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
