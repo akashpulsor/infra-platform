@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.2.50-voices-sync-dedupe"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
-    "pre-production-service:0.2.46-narrative-lang-and-script-version"
+    "pre-production-service:0.2.47-cast-face-gen"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.25-async-ideas"
     "trend-intelligence-service:0.1.0"

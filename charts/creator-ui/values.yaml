@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.356-useeffect-fix
+  tag: 0.1.357-cast-face-and-pricing
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
