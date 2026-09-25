@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.358-auto-wallet-fund
+  tag: 0.1.359-revert-autofund
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
