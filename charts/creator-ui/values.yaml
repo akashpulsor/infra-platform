@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.357-cast-face-and-pricing
+  tag: 0.1.358-auto-wallet-fund
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
