@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.56-retry-strip-refs-and-scene-flag-sync"
+      tag: "0.2.57-skip-terminal-shot-list-redelivery"
     service:
       port: 8080
       targetPort: 8080
