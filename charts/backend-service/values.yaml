@@ -588,7 +588,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.81-prepare-multi-image"
+      tag: "0.2.82-asset-tags"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.61-force-regenerate"
+      tag: "0.2.62-asset-tags-and-delete-shot"
     service:
       port: 8080
       targetPort: 8080
