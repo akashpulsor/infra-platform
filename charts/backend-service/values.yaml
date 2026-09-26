@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.53-voice-face-scene-type"
+      tag: "0.2.54-shot-list-character-profiles"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.52-scene-type-and-voice-face-fk"
+      tag: "0.2.53-shot-order-and-scene-characters"
     service:
       port: 8080
       targetPort: 8080
