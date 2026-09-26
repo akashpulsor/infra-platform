@@ -588,7 +588,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.77-internal-video-url"
+      tag: "0.2.78-shot-refs-in-prompt"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.49-shot-multi-image-upload"
+      tag: "0.2.50-shot-refs-in-context"
     service:
       port: 8080
       targetPort: 8080
