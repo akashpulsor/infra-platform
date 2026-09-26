@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.54-shot-list-cache-key-versioned"
+      tag: "0.2.55-production-still-scene-characters"
     service:
       port: 8080
       targetPort: 8080
