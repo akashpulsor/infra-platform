@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.366-force-regenerate
+  tag: 0.1.367-asset-tags-delete-shot
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
