@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.2.54-shot-list-character-profiles"
     "video-generation-service:0.2.80-scene-type-passthrough"
     "post-production-service:0.1.29-film-staleness"
-    "pre-production-service:0.2.53-shot-order-and-scene-characters"
+    "pre-production-service:0.2.54-shot-list-cache-key-versioned"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.26-wallet-balance-bypass"
     "trend-intelligence-service:0.1.0"
