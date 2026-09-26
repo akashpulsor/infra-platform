@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.2.51-gemini-tools-json-fix"
     "video-generation-service:0.2.77-internal-video-url"
     "post-production-service:0.1.29-film-staleness"
-    "pre-production-service:0.2.48-scene-multi-image-flag"
+    "pre-production-service:0.2.49-shot-multi-image-upload"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.26-wallet-balance-bypass"
     "trend-intelligence-service:0.1.0"

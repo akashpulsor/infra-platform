@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.362-scene-multi-image-checkbox
+  tag: 0.1.363-shot-multi-image-panel
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
