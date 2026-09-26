@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.360-wallet-checkbox
+  tag: 0.1.361-wallet-checkbox-relaxed
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
