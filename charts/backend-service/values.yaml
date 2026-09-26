@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.50-voices-sync-dedupe"
+      tag: "0.2.51-gemini-tools-json-fix"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.47-cast-face-gen"
+      tag: "0.2.48-scene-multi-image-flag"
     service:
       port: 8080
       targetPort: 8080
