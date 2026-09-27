@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.56-tagged-assets"
+      tag: "0.2.57-fal-music"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.64-bgm-prompt-and-upload"
+      tag: "0.2.65-music-plan"
     service:
       port: 8080
       targetPort: 8080
