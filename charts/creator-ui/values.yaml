@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.368-review-centered-product-frame
+  tag: 0.1.369-no-per-shot-duration
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
