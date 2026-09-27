@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.374-music-plan
+  tag: 0.1.376-clip-swap-score-player
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

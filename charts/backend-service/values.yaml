@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.57-fal-music"
+      tag: "0.2.58-sync-points"
     service:
       port: 8080
       targetPort: 8080
@@ -715,7 +715,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.32-score-in-film"
+      tag: "0.1.33-accept-flush"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.65-music-plan"
+      tag: "0.2.67-sync-points"
     service:
       port: 8080
       targetPort: 8080
