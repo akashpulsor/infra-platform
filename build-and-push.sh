@@ -46,7 +46,7 @@ SERVICES=(
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.113-smtp"
     "llm-gateway:0.2.58-sync-points"
-    "video-generation-service:0.2.84-shot-voice"
+    "video-generation-service:0.2.85-job-by-shot-id"
     "post-production-service:0.1.33-accept-flush"
     "pre-production-service:0.2.68-shot-voice"
     "critic-service:0.1.2-gemini-embedding-001"
