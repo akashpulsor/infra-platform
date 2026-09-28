@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.378-prompt-gate
+  tag: 0.1.379-generate-gate
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
