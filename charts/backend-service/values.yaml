@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.60-shot-prompt"
+      tag: "0.2.61-cinematographer"
     service:
       port: 8080
       targetPort: 8080
@@ -588,7 +588,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.87-full-bundle"
+      tag: "0.2.88-rich-refs"
     service:
       port: 8080
       targetPort: 8080
