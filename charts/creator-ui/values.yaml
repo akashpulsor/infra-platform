@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.376-clip-swap-score-player
+  tag: 0.1.377-shot-voice
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

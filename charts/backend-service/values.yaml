@@ -588,7 +588,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.83-shot-artifact-cleanup"
+      tag: "0.2.84-shot-voice"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.67-sync-points"
+      tag: "0.2.68-shot-voice"
     service:
       port: 8080
       targetPort: 8080
