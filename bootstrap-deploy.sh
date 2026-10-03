@@ -196,10 +196,9 @@ run_deploy() {
 
   if [[ "$SKIP_ISTIO" != "true" ]]; then
     step "Installing Istio"
-    require_cmd istioctl
-    istioctl install -y \
-      --set profile=default \
-      --set meshConfig.defaultConfig.proxyMetadata.SECRET_TTL=720h
+    ./install-third-party.sh istio-base istiod
+    kubectl rollout status deployment/istiod -n istio-system --timeout=300s
+    helm upgrade --install istio-ingressgateway charts/istio-ingressgateway -n istio-system
 
     kubectl apply -f istio-namespaces.yaml
     kubectl label namespace infra istio-injection=disabled --overwrite

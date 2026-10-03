@@ -13,5 +13,5 @@ while IFS=$'\t' read -r release namespace chart repo version; do
     [[ $# -gt 0 && "$wanted" != *" $release "* ]] && continue
     echo "--- $release ($chart $version) ---"
     helm upgrade --install "$release" "$chart" --repo "$repo" --version "$version" \
-        -n "$namespace" -f "charts/third-party/$release/values.yaml"
+        -n "$namespace" --create-namespace -f "charts/third-party/$release/values.yaml"
 done < charts/third-party/releases.tsv

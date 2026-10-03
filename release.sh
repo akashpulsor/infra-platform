@@ -116,7 +116,7 @@ echo '--- tags moved by this pull (all of these will roll) ---'
 git diff \"\$before\"..HEAD -- charts/*/values.yaml | grep -E '^[+-] +tag:' || echo '  (none)'
 # Platform charts (routing, certificates and the ops gate in gateway; our observability config in
 # observability-config) ship with the release that changed them.
-for chart in gateway observability-config; do
+for chart in istio-ingressgateway gateway observability-config; do
     if ! git diff --quiet \"\$before\"..HEAD -- charts/\$chart; then
         echo \"--- \$chart chart changed: upgrading its release ---\"
         helm upgrade --install \$chart charts/\$chart -n istio-system -f charts/\$chart/values.yaml

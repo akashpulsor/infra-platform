@@ -1,0 +1,53 @@
+# istio/istiod 1.27.2: the control plane. Settings are the ones istioctl installed with (its
+# "values" ConfigMap) plus the mesh config this platform runs.
+defaultRevision: ""
+global:
+  hub: docker.io/istio
+  tag: 1.27.2
+  istioNamespace: istio-system
+  configValidation: true
+pilot:
+  cni:
+    enabled: false
+# The default revision tag -- the istio-revision-tag-default webhook that injects sidecars into
+# namespaces labelled istio-injection=enabled.
+revisionTags:
+  - default
+# The whole mesh config lives here and nowhere else (it used to be written by
+# install-observability.sh). The oauth2-proxy provider is the ops gate (gateway chart, ops-auth.yaml).
+meshConfig:
+  accessLogFile: /dev/stdout
+  defaultConfig:
+    discoveryAddress: istiod.istio-system.svc:15012
+    proxyMetadata:
+      SECRET_TTL: 720h
+  defaultProviders:
+    metrics:
+    - prometheus
+  enablePrometheusMerge: true
+  rootNamespace: istio-system
+  trustDomain: cluster.local
+  extensionProviders:
+  - name: oauth2-proxy
+    envoyExtAuthzHttp:
+      service: oauth2-proxy.apps.svc.cluster.local
+      port: 4180
+      pathPrefix: /oauth2/auth
+      timeout: 5s
+      includeRequestHeadersInCheck:
+      - cookie
+      - authorization
+      - x-forwarded-for
+      - x-forwarded-host
+      - x-forwarded-proto
+      - x-forwarded-uri
+      # The page the user actually asked for. Without it oauth2-proxy takes its own check path
+      # (/oauth2/auth/) as the return address, so after signing in the browser lands on that
+      # endpoint and shows a bare "Authenticated" instead of Grafana / Kiali / the admin page.
+      includeAdditionalHeadersInCheck:
+        X-Auth-Request-Redirect: "https://%REQ(:authority)%%REQ(:path)%"
+      headersToUpstreamOnAllow:
+      - x-auth-request-user
+      - x-auth-request-email
+      - x-auth-request-access-token
+      - authorization

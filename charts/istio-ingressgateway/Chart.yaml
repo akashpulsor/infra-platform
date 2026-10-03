@@ -1,0 +1,11 @@
+apiVersion: v2
+name: istio-ingressgateway
+description: >-
+  The ingress gateway every request enters through, exactly as istioctl 1.27.2 renders it (its legacy
+  istio-ingress chart, which Istio does not publish). Kept as-is so Helm took ownership of the running
+  gateway with no new pods, ServiceAccount or Service changes. Moving to the published istio/gateway
+  chart is a separate, deliberate step: it injects the proxy instead of running it as a container and
+  changes the ServiceAccount (the gateway's mTLS identity) and the Service's target ports.
+type: application
+version: 1.27.2
+appVersion: "1.27.2"

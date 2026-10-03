@@ -1,0 +1,2 @@
+# No settings: the gateway is rendered verbatim (see Chart.yaml). Regenerate templates/ with
+# `istioctl manifest generate` for the Istio version in use when upgrading.

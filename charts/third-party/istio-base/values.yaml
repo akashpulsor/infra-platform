@@ -1,0 +1,9 @@
+# istio/base 1.27.2: CRDs, the reader ServiceAccount and the default validating webhook. Settings are
+# the ones istioctl installed with (its "values" ConfigMap); defaultRevision: default renders
+# istiod-default-validator, which istioctl created as part of the default revision tag.
+defaultRevision: default
+global:
+  hub: docker.io/istio
+  tag: 1.27.2
+  istioNamespace: istio-system
+  configValidation: true

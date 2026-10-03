@@ -422,10 +422,10 @@ install_istio() {
   [[ "$INSTALL_ISTIO" == "true" ]] || return 0
 
   log "Installing Istio"
-  istioctl install -y \
-    --set profile=default \
-    --set meshConfig.defaultConfig.proxyMetadata.SECRET_TTL=720h \
-    --set values.gateways.istio-ingressgateway.type=LoadBalancer
+  # Helm: Istio's own base + istiod charts (charts/third-party), then the ingress gateway chart.
+  "$REPO_PATH/install-third-party.sh" istio-base istiod
+  kubectl rollout status deployment/istiod -n istio-system --timeout="$ROLLOUT_TIMEOUT"
+  helm upgrade --install istio-ingressgateway "$REPO_PATH/charts/istio-ingressgateway" -n istio-system
 
   kubectl rollout status deployment/istiod -n istio-system --timeout="$ROLLOUT_TIMEOUT"
   kubectl rollout status deployment/istio-ingressgateway -n istio-system --timeout="$ROLLOUT_TIMEOUT"

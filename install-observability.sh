@@ -238,57 +238,9 @@ EOF
 }
 
 patch_mesh_config_extension_provider() {
-    log "Reconciling istio meshConfig with the oauth2-proxy extensionProvider + accessLogFile"
-    # Write the FULL mesh config each time. Earlier attempts used append-only patches which
-    # produced a broken sub-set on any redo (an accessLogFile-only patch wiped extensionProviders
-    # and RBAC-denied every ops.dalaillama.in request). Ownership is now unambiguous: this script
-    # owns the mesh config, re-running it re-applies the whole thing.
-    cat >/tmp/istio-mesh.yaml <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: istio
-  namespace: ${ISTIO_NS}
-data:
-  mesh: |
-    accessLogFile: /dev/stdout
-    defaultConfig:
-      discoveryAddress: istiod.${ISTIO_NS}.svc:15012
-      proxyMetadata:
-        SECRET_TTL: 720h
-    defaultProviders:
-      metrics:
-      - prometheus
-    enablePrometheusMerge: true
-    rootNamespace: ${ISTIO_NS}
-    trustDomain: cluster.local
-    extensionProviders:
-    - name: oauth2-proxy
-      envoyExtAuthzHttp:
-        service: oauth2-proxy.${APPS_NS}.svc.cluster.local
-        port: 4180
-        pathPrefix: /oauth2/auth
-        timeout: 5s
-        includeRequestHeadersInCheck:
-        - cookie
-        - authorization
-        - x-forwarded-for
-        - x-forwarded-host
-        - x-forwarded-proto
-        - x-forwarded-uri
-        # The page the user actually asked for. Without it oauth2-proxy takes its own check path
-        # (/oauth2/auth/) as the return address, so after signing in the browser lands on that
-        # endpoint and shows a bare "Authenticated" instead of Grafana / Kiali / the admin page.
-        includeAdditionalHeadersInCheck:
-          X-Auth-Request-Redirect: "https://%REQ(:authority)%%REQ(:path)%"
-        headersToUpstreamOnAllow:
-        - x-auth-request-user
-        - x-auth-request-email
-        - x-auth-request-access-token
-        - authorization
-  meshNetworks: 'networks: {}'
-EOF
-    kubectl apply -f /tmp/istio-mesh.yaml
+    log "Reconciling istio meshConfig (oauth2-proxy extensionProvider + accessLogFile) via the istiod release"
+    # The mesh config is istiod's Helm values (charts/third-party/istiod/values.yaml) -- one owner.
+    "$SCRIPT_DIR/install-third-party.sh" istiod
     kubectl -n "$ISTIO_NS" rollout restart deploy/istiod
     kubectl -n "$ISTIO_NS" rollout status deploy/istiod --timeout=120s
     # ingressgateway must be re-rolled too or its cached xDS keeps the old (broken) view.
