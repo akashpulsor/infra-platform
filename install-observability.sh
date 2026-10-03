@@ -276,6 +276,11 @@ data:
         - x-forwarded-host
         - x-forwarded-proto
         - x-forwarded-uri
+        # The page the user actually asked for. Without it oauth2-proxy takes its own check path
+        # (/oauth2/auth/) as the return address, so after signing in the browser lands on that
+        # endpoint and shows a bare "Authenticated" instead of Grafana / Kiali / the admin page.
+        includeAdditionalHeadersInCheck:
+          X-Auth-Request-Redirect: "https://%REQ(:authority)%%REQ(:path)%"
         headersToUpstreamOnAllow:
         - x-auth-request-user
         - x-auth-request-email
