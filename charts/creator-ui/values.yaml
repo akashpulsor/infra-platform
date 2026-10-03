@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.382-next-brief
+  tag: 0.1.384-creative-direction
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
