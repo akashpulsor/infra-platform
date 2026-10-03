@@ -1,3 +1,4 @@
+{{- if .Values.opsDashboard.enabled }}
 # Single-hostname ops entry point routing.
 #
 # ops.dalaillama.in resolves to the same LB as the platform. Path prefixes route
@@ -5,6 +6,10 @@
 # hosted by creator-ui. Auth for every path is enforced by oauth2-proxy via the
 # EnvoyFilter in ops-oauth2-authz.yaml -- keep that file installed alongside
 # this one, they are two halves of the same gate.
+#
+# Part of the gateway release since it moved out of manifests/ -- release.sh upgrades this
+# chart on the box whenever charts/gateway changes, so a routing change ships with the release
+# instead of waiting for a manual kubectl apply.
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
@@ -215,3 +220,4 @@ spec:
             host: creator-ui.apps.svc.cluster.local
             port:
               number: 80
+{{- end }}

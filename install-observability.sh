@@ -293,7 +293,8 @@ EOF
 
 apply_ops_virtualservice() {
     log "Wiring VirtualService: ops.dalaillama.in → oauth2-proxy → Grafana/Kiali/Prometheus/Jaeger"
-    kubectl apply -f "$SCRIPT_DIR/manifests/ops-virtualservice.yaml"
+    # The ops Gateway/Certificate/VirtualService live in the gateway chart (templates/ops-dashboard.yaml).
+    helm upgrade --install gateway "$SCRIPT_DIR/charts/gateway" -n "$ISTIO_NS" -f "$SCRIPT_DIR/charts/gateway/values.yaml"
     kubectl apply -f "$SCRIPT_DIR/manifests/ops-oauth2-authz.yaml"
     # Per-tool subdomains -- grafana./prometheus./jaeger./kiali./loki.dalaillama.in.
     # DNS records for these must exist (A record → same LB IP as ops.dalaillama.in) before

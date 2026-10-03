@@ -193,3 +193,10 @@ istio:
       - secretName: monitor-dalaillama-in-tls
         hosts:
           - monitor.dalaillama.in
+
+# ops.dalaillama.in: the ops gateway, its TLS certificate and the single VirtualService that
+# routes /admin, the /api/v1/internal/admin/<domain> APIs and the observability tools behind
+# oauth2-proxy (templates/ops-dashboard.yaml). Auth is the EnvoyFilter in
+# manifests/ops-oauth2-authz.yaml -- keep both installed, they are two halves of one gate.
+opsDashboard:
+  enabled: true

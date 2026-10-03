@@ -40,7 +40,9 @@ for arg in "$@"; do
         *) echo "ERROR: expected <service>:<tag>, got '$arg'"; exit 1 ;;
     esac
 done
-(( ${#BACKEND[@]} > 0 )) || [[ -n "$UI_TAG" ]] || { echo "ERROR: nothing to release"; exit 1; }
+# --deploy-only with nothing named still deploys: it pulls the box and applies any chart change
+# (e.g. a gateway routing edit) without building an image.
+(( ${#BACKEND[@]} > 0 )) || [[ -n "$UI_TAG" ]] || ! $BUILD || { echo "ERROR: nothing to release"; exit 1; }
 
 run() {
     if $DRY_RUN; then echo "  [dry-run] $*"; else echo "  \$ $*"; "$@"; fi
@@ -111,7 +113,13 @@ fi
 before=\$(git rev-parse HEAD)
 git pull --ff-only
 echo '--- tags moved by this pull (all of these will roll) ---'
-git diff \"\$before\"..HEAD -- charts/*/values.yaml | grep -E '^[+-] +tag:' || echo '  (none)'"
+git diff \"\$before\"..HEAD -- charts/*/values.yaml | grep -E '^[+-] +tag:' || echo '  (none)'
+# Routing (gateway chart: ops.dalaillama.in, api/minio hosts, certificates) ships with the release
+# that changed it.
+if ! git diff --quiet \"\$before\"..HEAD -- charts/gateway; then
+    echo '--- gateway chart changed: upgrading the gateway release ---'
+    helm upgrade gateway charts/gateway -n istio-system -f charts/gateway/values.yaml
+fi"
 if (( ${#BACKEND[@]} > 0 )); then
     remote+="
 helm upgrade backend charts/backend-service -n ${NAMESPACE} -f charts/backend-service/values.yaml -f charts/backend-service/values-secret.yaml"
