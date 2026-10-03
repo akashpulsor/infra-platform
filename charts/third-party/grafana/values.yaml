@@ -22,7 +22,9 @@ env:
   GF_SECURITY_ADMIN_PASSWORD: "admin"
   GF_AUTH_BASIC_ENABLED: "false"
   GF_AUTH_ANONYMOUS_ENABLED: "true"
-  GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+  # Editor, as grafana.ini says: environment variables override grafana.ini, so Istio's demo default
+  # (Admin) here silently won over the ops config.
+  GF_AUTH_ANONYMOUS_ORG_ROLE: Editor
 
 # Expose on port 3000 to match the Istio docs
 service:
