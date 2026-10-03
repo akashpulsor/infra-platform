@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.380-shot-images
+  tag: 0.1.381-lock-balance
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
