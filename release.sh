@@ -42,6 +42,13 @@ run() {
 }
 
 cd "$SCRIPT_DIR"
+
+# Fail before touching anything: a stopped Docker Desktop otherwise fails every build in turn.
+if ! $DRY_RUN && ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker engine is not reachable -- start Docker Desktop, wait for 'Engine running', retry."
+    exit 1
+fi
+
 run git pull --ff-only
 
 # --- 1+2. Backend: pin tags in build-and-push.sh, then build + push + patch values.yaml ---------
