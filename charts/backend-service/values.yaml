@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.69-lock-stamp"
+      tag: "0.2.70-next-brief"
     service:
       port: 8080
       targetPort: 8080
@@ -1049,7 +1049,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: creative-planning-service
-      tag: "0.1.27-lock-balance"
+      tag: "0.1.28-next-brief"
     service:
       port: 8080
       targetPort: 8080

@@ -48,9 +48,9 @@ SERVICES=(
     "llm-gateway:0.2.63-lighting-staging"
     "video-generation-service:0.2.91-ref-order"
     "post-production-service:0.1.33-accept-flush"
-    "pre-production-service:0.2.69-lock-stamp"
+    "pre-production-service:0.2.70-next-brief"
     "critic-service:0.1.2-gemini-embedding-001"
-    "creative-planning-service:0.1.27-lock-balance"
+    "creative-planning-service:0.1.28-next-brief"
     "trend-intelligence-service:0.1.0"
     "chat-service:0.1.5-project-tracing"
 )

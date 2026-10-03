@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.381-lock-balance
+  tag: 0.1.382-next-brief
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
