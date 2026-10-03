@@ -2,8 +2,11 @@
 # One-shot release: build -> push -> bump chart tags (commit + push) -> deploy on the Hetzner box.
 #
 # Usage (Git Bash, from anywhere):
-#   ./release.sh <service>:<tag> [<service>:<tag> ...] [--dry-run] [--no-deploy]
+#   ./release.sh <service>:<tag> [<service>:<tag> ...] [--dry-run] [--no-deploy] [--deploy-only]
 #   ./release.sh billing-service:5.0.114-lock-balance creator-ui:0.1.381-lock-balance
+#
+# --deploy-only skips build/push/commit -- for retrying the box step once the images and the
+# chart commit are already out.
 #
 # Backend services reuse build-and-push.sh (its SERVICES entry is updated to the new tag first, so
 # that array stays the release's source of truth). creator-ui is built from the UI repo. Both chart
@@ -22,6 +25,7 @@ NAMESPACE="apps"
 
 DRY_RUN=false
 DEPLOY=true
+BUILD=true
 BACKEND=()
 UI_TAG=""
 
@@ -29,6 +33,7 @@ for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=true ;;
         --no-deploy) DEPLOY=false ;;
+        --deploy-only) BUILD=false ;;
         -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
         creator-ui:*) UI_TAG="${arg#*:}" ;;
         *:*) BACKEND+=("$arg") ;;
@@ -42,6 +47,9 @@ run() {
 }
 
 cd "$SCRIPT_DIR"
+summary="$(printf '%s, ' "${BACKEND[@]}" ${UI_TAG:+"creator-ui ${UI_TAG}"} | sed 's/:/ /g; s/, $//')"
+
+if $BUILD; then
 
 # Fail before touching anything: a stopped Docker Desktop otherwise fails every build in turn.
 if ! $DRY_RUN && ! docker info >/dev/null 2>&1; then
@@ -75,7 +83,6 @@ if [[ -n "$UI_TAG" ]]; then
 fi
 
 # --- 3. One commit for the whole release --------------------------------------------------------
-summary="$(printf '%s, ' "${BACKEND[@]}" ${UI_TAG:+"creator-ui ${UI_TAG}"} | sed 's/:/ /g; s/, $//')"
 if $DRY_RUN; then
     echo "  [dry-run] git commit -m \"${summary}\" && git push"
 elif git diff --quiet -- release.sh build-and-push.sh charts/backend-service/values.yaml charts/creator-ui/values.yaml; then
@@ -86,11 +93,21 @@ else
     git push
 fi
 
+fi
+
 # --- 4. Deploy on the box: pull, show every tag the pull moves, upgrade only what changed -------
 $DEPLOY || { echo "Skipping deploy (--no-deploy)."; exit 0; }
 
 remote="set -euo pipefail
 cd ${REMOTE_REPO}
+# Someone editing the box's checkout by hand would make the pull silently diverge from git, so
+# stop and show it rather than stash or discard work that isn't ours to throw away.
+if ! git diff --quiet; then
+    echo 'ERROR: ${REMOTE_REPO} has local edits on the box -- review them, then stash or commit:'
+    git status --short
+    git diff --stat
+    exit 1
+fi
 before=\$(git rev-parse HEAD)
 git pull --ff-only
 echo '--- tags moved by this pull (all of these will roll) ---'
