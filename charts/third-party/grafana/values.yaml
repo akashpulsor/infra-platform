@@ -1,0 +1,113 @@
+# Istio 1.27.2's samples/addons/values-grafana.yaml, plus this platform's datasource and ops settings.
+# The dashboards ConfigMaps it mounts come from the observability-config chart.
+# Avoid creating a bunch of RBAC rules for features we are not enabling
+rbac:
+  create: false
+  pspEnabled: false
+
+# Disable test pods
+testFramework:
+  enabled: false
+
+podLabels:
+  sidecar.istio.io/inject: "false"
+
+# Demo only, so we will have no authentication
+admin:
+  existingSecret: ""
+ldap:
+  existingSecret: true
+env:
+  GF_SECURITY_ADMIN_USER: "admin"
+  GF_SECURITY_ADMIN_PASSWORD: "admin"
+  GF_AUTH_BASIC_ENABLED: "false"
+  GF_AUTH_ANONYMOUS_ENABLED: "true"
+  GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+
+# Expose on port 3000 to match the Istio docs
+service:
+  port: 3000
+
+securityContext: null
+
+# Set up out dashboards
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: "istio"
+        orgId: 1
+        folder: "istio"
+        type: file
+        disableDeletion: false
+        options:
+          path: /var/lib/grafana/dashboards/istio
+      - name: "istio-services"
+        orgId: 1
+        folder: "istio-services"
+        type: file
+        disableDeletion: false
+        options:
+          path: /var/lib/grafana/dashboards/istio-services
+
+dashboardsConfigMaps:
+  istio: "istio-grafana-dashboards"
+  istio-services: "istio-services-grafana-dashboards"
+
+# Configure the prometheus data source. We expect prometheus:9090 in the same namespace
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        orgId: 1
+        url: http://prometheus:9090
+        access: proxy
+        isDefault: true
+        jsonData:
+          timeInterval: 15s
+        editable: true
+      - name: Loki
+        type: loki
+        uid: loki
+        orgId: 1
+        url: http://loki.istio-system.svc.cluster.local:3100
+        access: proxy
+        isDefault: false
+        jsonData:
+          timeInterval: 5s
+          maxLines: 5000
+        editable: true
+
+# Served at ops.dalaillama.in/grafana behind oauth2-proxy: login is the proxy's job, Grafana trusts its
+# X-Auth-Request-* headers. The /admin page embeds it as a tab, hence allow_embedding.
+grafana.ini:
+  analytics:
+    check_for_updates: false
+  grafana_net: null
+  server:
+    domain: ops.dalaillama.in
+    root_url: "%(protocol)s://%(domain)s/grafana"
+    serve_from_sub_path: true
+  auth:
+    disable_login_form: true
+  auth.anonymous:
+    enabled: true
+    org_role: Editor
+    hide_version: true
+  auth.proxy:
+    enabled: true
+    header_name: X-Auth-Request-Email
+    header_property: username
+    auto_sign_up: true
+    headers: "Email:X-Auth-Request-Email Name:X-Auth-Request-User"
+    enable_login_token: false
+  users:
+    allow_sign_up: false
+    default_theme: dark
+  dashboards:
+    default_home_dashboard_path: /var/lib/grafana/dashboards/istio-services/istio-mesh-dashboard.json
+  security:
+    allow_embedding: true
+    cookie_samesite: lax

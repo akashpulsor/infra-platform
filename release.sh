@@ -121,7 +121,11 @@ for chart in gateway observability-config; do
         echo \"--- \$chart chart changed: upgrading its release ---\"
         helm upgrade --install \$chart charts/\$chart -n istio-system -f charts/\$chart/values.yaml
     fi
-done"
+done
+# Third-party releases (charts/third-party/<release>/) whose values or pinned version changed.
+changed=\$(git diff --name-only \"\$before\"..HEAD -- charts/third-party | awk -F/ '{print \$3}' | grep -v releases.tsv | sort -u | tr '\\n' ' ' || true)
+if ! git diff --quiet \"\$before\"..HEAD -- charts/third-party/releases.tsv; then ./install-third-party.sh;
+elif [ -n \"\$changed\" ]; then ./install-third-party.sh \$changed; fi"
 if (( ${#BACKEND[@]} > 0 )); then
     remote+="
 helm upgrade backend charts/backend-service -n ${NAMESPACE} -f charts/backend-service/values.yaml -f charts/backend-service/values-secret.yaml"

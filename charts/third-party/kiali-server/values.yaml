@@ -1,0 +1,30 @@
+# Istio 1.27.2's samples/addons/values-kiali.yaml, plus this platform's host and Jaeger tracing.
+# auth.strategy stays anonymous: Kiali 2.x has no username/password strategy, and the host sits
+# behind the ops oauth2-proxy gate.
+# We set up anonymous authentication as this is for demos.
+auth:
+  strategy: anonymous
+deployment:
+  # Istio's gen.sh passes --set deployment.image_version=v2.12.
+  image_version: v2.12
+  pod_labels:
+    sidecar.istio.io/inject: "false"
+  ingress_enabled: false
+  image_pull_policy: IfNotPresent
+login_token:
+  signing_key: CHANGEME00000000
+external_services:
+  # Traces inside Kiali's own UI, from the "tracing" Service (grpc-query :16685) Jaeger creates.
+  tracing:
+    enabled: true
+    provider: jaeger
+    in_cluster_url: "http://tracing.istio-system:16685/jaeger"
+    use_grpc: true
+# Served at its own host rather than under a shared /kiali path; without these Kiali builds broken
+# links and redirects. The health probes follow web_root.
+server:
+  web_root: /
+  web_fqdn: monitor.dalaillama.in
+  web_schema: https
+  web_port: 443
+

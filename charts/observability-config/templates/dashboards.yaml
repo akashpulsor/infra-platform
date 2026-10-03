@@ -1,0 +1,21 @@
+{{- if .Values.dashboards.enabled }}
+# Grafana's dashboards, mounted by the grafana release (dashboardsConfigMaps in
+# charts/third-party/grafana/values.yaml). Istio's own dashboards plus ours (spring-boot-jvm, from the
+# backend services' /actuator/prometheus metrics). Add a dashboard by dropping its JSON into
+# files/dashboards/<folder>/.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-grafana-dashboards
+  namespace: istio-system
+data:
+{{ (.Files.Glob "files/dashboards/istio/*.json").AsConfig | indent 2 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-services-grafana-dashboards
+  namespace: istio-system
+data:
+{{ (.Files.Glob "files/dashboards/istio-services/*.json").AsConfig | indent 2 }}
+{{- end }}

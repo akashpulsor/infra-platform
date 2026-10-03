@@ -211,11 +211,10 @@ run_deploy() {
 
   if [[ "$SKIP_OBSERVABILITY" != "true" ]]; then
     step "Installing Istio observability addons"
-    kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/prometheus.yaml
-    kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/grafana.yaml
-    kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/kiali.yaml
-    kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/jaeger.yaml
-    kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/extras/zipkin.yaml
+    # Jaeger and Grafana's dashboards first (observability-config), then the Prometheus, Grafana and
+    # Kiali releases they feed -- see charts/third-party/releases.tsv.
+    helm upgrade --install observability-config charts/observability-config -n istio-system       -f charts/observability-config/values.yaml
+    ./install-third-party.sh prometheus grafana kiali-server
   fi
 
   if [[ "$ENABLE_PBX_CORE" == "true" || "$ENABLE_AI_SERVICE" == "true" ]]; then

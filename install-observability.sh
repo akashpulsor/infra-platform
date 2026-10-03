@@ -318,7 +318,7 @@ adopt_into_release() {
 
 apply_observability_config() {
     log "Applying observability config (Alloy Faro receiver, Grafana Loki datasource + ops config)"
-    adopt_into_release observability-config configmap/alloy-faro-receiver-config deployment/alloy-faro service/alloy-faro         configmap/grafana-loki-datasource configmap/grafana
+    adopt_into_release observability-config configmap/alloy-faro-receiver-config deployment/alloy-faro service/alloy-faro configmap/grafana-loki-datasource         deployment/jaeger service/tracing service/zipkin service/jaeger-collector         configmap/istio-grafana-dashboards configmap/istio-services-grafana-dashboards
     helm upgrade --install observability-config "$SCRIPT_DIR/charts/observability-config" -n "$ISTIO_NS" \
         -f "$SCRIPT_DIR/charts/observability-config/values.yaml"
     # Grafana and Alloy read their ConfigMaps at start-up.

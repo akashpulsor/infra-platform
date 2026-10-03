@@ -1,0 +1,8 @@
+# Third-party charts this platform runs, installed and upgraded by install-third-party.sh (bootstrap,
+# and release.sh whenever a release's values file changes). One release per line:
+# release<TAB>namespace<TAB>chart<TAB>repo<TAB>version. Values live in charts/third-party/<release>/values.yaml.
+# Versions match what Istio 1.27.2's samples/addons were generated from, so the move from those sample
+# manifests to these releases changed no running object.
+grafana	istio-system	grafana	https://grafana.github.io/helm-charts	9.2.2
+prometheus	istio-system	prometheus	https://prometheus-community.github.io/helm-charts	27.23.0
+kiali-server	istio-system	kiali-server	https://kiali.org/helm-charts	2.12.0

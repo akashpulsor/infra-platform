@@ -3,7 +3,15 @@
 alloyFaro:
   enabled: true
 
-# Grafana's Loki datasource and the ops-dashboard config that overrides the Istio-shipped grafana
-# ConfigMap (templates/grafana.yaml). Grafana reads both on restart.
+# The Loki datasource ConfigMap (templates/grafana.yaml). Grafana itself, and its grafana.ini and
+# datasources, are the grafana release (charts/third-party/grafana/values.yaml).
 grafana:
+  enabled: true
+
+# Jaeger all-in-one (templates/jaeger.yaml), Istio's addon manifest.
+jaeger:
+  enabled: true
+
+# Grafana's dashboard ConfigMaps (templates/dashboards.yaml, JSON in files/dashboards/).
+dashboards:
   enabled: true

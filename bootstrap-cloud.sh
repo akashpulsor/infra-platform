@@ -697,109 +697,14 @@ install_observability() {
   need_cmd jq
   mkdir -p "$GENERATED_DIR"
 
-  kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/prometheus.yaml
-
-  # Patch Grafana's addon manifest to add a real backend dashboard (JVM heap/
-  # GC, HTTP request rate+latency, HikariCP pool) sourced from the
-  # /actuator/prometheus metrics charts/backend-service's Deployments already
-  # expose via prometheus.io/scrape annotations -- real data, not a blank
-  # panel. Inserted as a new key into the existing
-  # istio-services-grafana-dashboards ConfigMap (already mounted and
-  # registered as a dashboard provider path by this same addon), so no
-  # Deployment/volume changes are needed. The value is produced with jq
-  # (already a dependency) rather than hand-escaped, and inserted via `sed r`
-  # rather than `awk -v` -- awk's -v assignment interprets backslash escapes
-  # in its argument, which corrupts a pre-escaped JSON string.
-  local grafana_manifest="$GENERATED_DIR/grafana.generated.yaml"
-  local dashboard_insert="$GENERATED_DIR/spring-boot-jvm-dashboard.insert.yaml"
-  local dashboard_json="$REPO_PATH/charts/gateway/dashboards/spring-boot-jvm.json"
-  if [[ -f "$dashboard_json" ]]; then
-    printf '  spring-boot-jvm-dashboard.json: %s\n' \
-      "$(jq -c . "$dashboard_json" | jq -Rs .)" > "$dashboard_insert"
-    curl -fsSL https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/grafana.yaml \
-      | awk '
-          /istio-workload-dashboard\.json:/ { seen_workload=1 }
-          seen_workload && /^kind: ConfigMap$/ && !inserted {
-            print "__INSERT_SPRING_BOOT_DASHBOARD__"
-            inserted=1
-          }
-          { print }
-        ' \
-      | sed -e "/__INSERT_SPRING_BOOT_DASHBOARD__/r $dashboard_insert" -e '/__INSERT_SPRING_BOOT_DASHBOARD__/d' \
-      > "$grafana_manifest"
-  else
-    warn "charts/gateway/dashboards/spring-boot-jvm.json not found; deploying Grafana without the custom backend dashboard."
-    curl -fsSL https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/grafana.yaml > "$grafana_manifest"
-  fi
-  kubectl apply -f "$grafana_manifest"
-
-  # Jaeger instead of Zipkin: Kiali's tracing integration only supports
-  # "jaeger" or "tempo" as a provider (verified against Kiali's config
-  # source), so Zipkin traces could never surface inside Kiali's own
-  # password-protected UI. Jaeger's addon also stands up a Service literally
-  # named "zipkin" on :9411 that accepts Zipkin-format spans into the same
-  # collector -- and the default IstioOperator profile (used by
-  # install_istio() above) already points
-  # meshConfig.defaultConfig.tracing.zipkin.address at that exact
-  # "zipkin.istio-system:9411" address -- so sidecars keep sending spans with
-  # zero mesh config changes, they just land in Jaeger's storage instead.
-  kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/jaeger.yaml
-
-  # Patch Kiali's addon manifest before applying it:
-  #   - auth.strategy stays "anonymous" -- Kiali removed the built-in
-  #     username/password "login" strategy (confirmed via pod logs: quay.io/
-  #     kiali/kiali:v2.12 crash-loops with "FTL invalid authentication
-  #     strategy [login]"). Kiali 2.x only accepts anonymous/openid/
-  #     openshift/header, and openid would need a dedicated Keycloak client
-  #     registration; anonymous is the option that actually starts without
-  #     more infra, so this endpoint isn't password-gated by Kiali itself --
-  #     rely on the generic hostname (below) for obscurity in the meantime.
-  #   - server.web_root: /kiali -> / and add web_fqdn/web_schema/web_port,
-  #     since it's served at its own dedicated host (monitor.$DOMAIN) rather
-  #     than under a shared host's /kiali path -- without this Kiali
-  #     generates broken links/redirects for its external URL.
-  #   - liveness/readiness/startup probe paths: /kiali/healthz -> /healthz,
-  #     to match the web_root change above. Without this the probes keep
-  #     hitting the old /kiali/healthz path, get 404s against the app now
-  #     serving at web_root "/", and kubelet kills+restarts the container
-  #     forever even though Kiali itself started and is healthy.
-  #   - external_services.tracing: enabled + provider: jaeger, pointed at the
-  #     "tracing" Service (grpc-query :16685) Jaeger's addon creates, so
-  #     traces show up inside Kiali's own UI instead of needing a separate
-  #     tracing UI exposed on its own.
-  local kiali_manifest="$GENERATED_DIR/kiali.generated.yaml"
-  curl -fsSL https://raw.githubusercontent.com/istio/istio/release-1.27/samples/addons/kiali.yaml \
-    | awk -v host="monitor.$DOMAIN" '
-        /^      web_root: \/kiali$/ { sub(/\/kiali$/, "/") }
-        /path: \/kiali\/healthz$/ { sub(/\/kiali\/healthz$/, "/healthz") }
-        /^      tracing:$/ { in_tracing=1 }
-        in_tracing && /^        enabled: false$/ {
-          sub(/enabled: false/, "enabled: true")
-          print
-          print "        provider: jaeger"
-          print "        in_cluster_url: \"http://tracing.istio-system:16685/jaeger\""
-          print "        use_grpc: true"
-          in_tracing=0
-          next
-        }
-        { print }
-        /^      port: 20001$/ {
-          print "      web_fqdn: " host
-          print "      web_schema: https"
-          print "      web_port: 443"
-        }
-      ' > "$kiali_manifest"
-  kubectl apply -f "$kiali_manifest"
-
-  # Grafana Faro (browser RUM) receiver for creator-ui, forwarding traces
-  # into the Jaeger deployed above. See alloy-faro-receiver.yaml for why
-  # (faro.receiver only supports logs/traces outputs, and there's no Loki
-  # deployed yet, so Faro's own JS-error/console-log capture has nowhere to
-  # go for now -- traces + web vitals correlate into Jaeger/Kiali).
-  # Grafana's ops config comes later, from install-observability.sh, once the Istio addon's own
-  # grafana ConfigMap can be adopted into the release.
-  helm upgrade --install observability-config "$REPO_PATH/charts/observability-config" -n istio-system \
-    -f "$REPO_PATH/charts/observability-config/values.yaml" --set grafana.enabled=false
+  # Prometheus, Grafana and Kiali are Helm releases of the same charts Istio's samples/addons are
+  # generated from (charts/third-party/releases.tsv, values in charts/third-party/<release>/). Jaeger
+  # and Grafana's dashboards (Istio's plus spring-boot-jvm) are in the observability-config chart, which
+  # goes first so the dashboard ConfigMaps exist when Grafana mounts them. Kiali is served at its own
+  # host (monitor.<domain>, set in its values) with Jaeger tracing; Jaeger also serves the "zipkin"
+  # Service the mesh's default tracing address already points at.
+  helm upgrade --install observability-config "$REPO_PATH/charts/observability-config" -n istio-system     -f "$REPO_PATH/charts/observability-config/values.yaml"
+  "$REPO_PATH/install-third-party.sh" prometheus grafana kiali-server
 
   kubectl rollout status deployment/prometheus -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
   kubectl rollout status deployment/grafana -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
