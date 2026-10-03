@@ -159,36 +159,7 @@ apply_cloudflare_issuer() {
     --from-literal=api-token="$CLOUDFLARE_API_TOKEN" \
     --dry-run=client -o yaml | kubectl apply -f -
 
-  local template_path="$repo_path/cloudflare-clusterissuer.yaml"
-  local generated_path="$repo_path/cloudflare-clusterissuer.generated.yaml"
-
-  if [[ -f "$template_path" ]]; then
-    sed "s/admin@dalaillama.in/${ACME_EMAIL}/g" "$template_path" > "$generated_path"
-  else
-    cat > "$generated_path" <<EOF
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
-spec:
-  acme:
-    email: $ACME_EMAIL
-    server: https://acme-v02.api.letsencrypt.org/directory
-    privateKeySecretRef:
-      name: letsencrypt-prod
-    solvers:
-      - selector:
-          dnsZones:
-            - "dalaillama.in"
-        dns01:
-          cloudflare:
-            apiTokenSecretRef:
-              name: cloudflare-api-token-secret
-              key: api-token
-EOF
-  fi
-
-  kubectl apply -f "$generated_path"
+  # The letsencrypt-prod ClusterIssuer itself is rendered by the gateway chart.
 }
 
 configure_optional_services() {

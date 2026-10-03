@@ -1,0 +1,10 @@
+apiVersion: v2
+name: observability-config
+description: >-
+  This platform's own configuration on top of the observability stack in istio-system -- the
+  Alloy Faro receiver for creator-ui browser telemetry, and Grafana's Loki datasource and
+  ops-dashboard settings. The tools themselves (Istio addons, the alloy and loki charts) are
+  installed by install-observability.sh / bootstrap-cloud.sh; this chart holds what we wrote.
+type: application
+version: 1.0.0
+appVersion: "1.0"

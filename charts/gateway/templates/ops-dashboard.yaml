@@ -4,8 +4,7 @@
 # ops.dalaillama.in resolves to the same LB as the platform. Path prefixes route
 # to the observability tools (all in istio-system) and the in-tree /admin route
 # hosted by creator-ui. Auth for every path is enforced by oauth2-proxy via the
-# EnvoyFilter in ops-oauth2-authz.yaml -- keep that file installed alongside
-# this one, they are two halves of the same gate.
+# policy in templates/ops-auth.yaml -- same chart, same flag, so they always ship together.
 #
 # Part of the gateway release since it moved out of manifests/ -- release.sh upgrades this
 # chart on the box whenever charts/gateway changes, so a routing change ships with the release

@@ -114,12 +114,14 @@ before=\$(git rev-parse HEAD)
 git pull --ff-only
 echo '--- tags moved by this pull (all of these will roll) ---'
 git diff \"\$before\"..HEAD -- charts/*/values.yaml | grep -E '^[+-] +tag:' || echo '  (none)'
-# Routing (gateway chart: ops.dalaillama.in, api/minio hosts, certificates) ships with the release
-# that changed it.
-if ! git diff --quiet \"\$before\"..HEAD -- charts/gateway; then
-    echo '--- gateway chart changed: upgrading the gateway release ---'
-    helm upgrade gateway charts/gateway -n istio-system -f charts/gateway/values.yaml
-fi"
+# Platform charts (routing, certificates and the ops gate in gateway; our observability config in
+# observability-config) ship with the release that changed them.
+for chart in gateway observability-config; do
+    if ! git diff --quiet \"\$before\"..HEAD -- charts/\$chart; then
+        echo \"--- \$chart chart changed: upgrading its release ---\"
+        helm upgrade --install \$chart charts/\$chart -n istio-system -f charts/\$chart/values.yaml
+    fi
+done"
 if (( ${#BACKEND[@]} > 0 )); then
     remote+="
 helm upgrade backend charts/backend-service -n ${NAMESPACE} -f charts/backend-service/values.yaml -f charts/backend-service/values-secret.yaml"

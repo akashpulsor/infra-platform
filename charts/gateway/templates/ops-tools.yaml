@@ -1,3 +1,6 @@
+{{- if .Values.opsDashboard.enabled }}
+# Rendered by Helm since it moved out of manifests/ -- release.sh upgrades this chart on the box
+# whenever its directory changes in a pull, so a change ships with the release that made it.
 # Per-tool subdomains for the ops stack: grafana / prometheus / jaeger / kiali / loki each get
 # their own https://<tool>.dalaillama.in URL, protected by the same oauth2-proxy + dalai_admin
 # gate as ops.dalaillama.in.
@@ -184,3 +187,4 @@ spec:
     - match: [{ uri: { prefix: /oauth2/ } }]
       route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
     - route: [{ destination: { host: loki.istio-system.svc.cluster.local, port: { number: 3100 } } }]
+{{- end }}

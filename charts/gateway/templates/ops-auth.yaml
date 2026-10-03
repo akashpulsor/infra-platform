@@ -1,3 +1,6 @@
+{{- if .Values.opsDashboard.enabled }}
+# Rendered by Helm since it moved out of manifests/ -- release.sh upgrades this chart on the box
+# whenever its directory changes in a pull, so a change ships with the release that made it.
 # Istio-native external authorization gate for ops.dalaillama.in.
 #
 # Uses Istio's AuthorizationPolicy with action: CUSTOM + a mesh-config-declared
@@ -39,3 +42,4 @@ spec:
               - loki.dalaillama.in
             notPaths:
               - /oauth2/*
+{{- end }}

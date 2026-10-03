@@ -415,47 +415,7 @@ install_cert_manager() {
     --dry-run=client -o yaml | kubectl apply -f -
 
   info "Cloudflare token secret is ready in namespace cert-manager"
-
-  apply_cloudflare_cluster_issuer
-}
-
-apply_cloudflare_cluster_issuer() {
-  # charts/gateway's Certificate/Ingress resources reference this ClusterIssuer by name
-  # (issuerRef / cert-manager.io/cluster-issuer: letsencrypt-prod) -- without it, deploy_gateway()
-  # creates Certificate objects that can never be satisfied and wait_for_certificates() hangs for
-  # the full HELM_TIMEOUT before failing.
-  log "Applying Cloudflare ClusterIssuer"
-  mkdir -p "$GENERATED_DIR"
-  local template_path="$REPO_PATH/cloudflare-clusterissuer.yaml"
-  local generated_path="$GENERATED_DIR/cloudflare-clusterissuer.generated.yaml"
-
-  if [[ -f "$template_path" ]]; then
-    sed "s/admin@dalaillama.in/${ACME_EMAIL}/g" "$template_path" > "$generated_path"
-  else
-    cat > "$generated_path" <<EOF
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
-spec:
-  acme:
-    email: $ACME_EMAIL
-    server: https://acme-v02.api.letsencrypt.org/directory
-    privateKeySecretRef:
-      name: letsencrypt-prod
-    solvers:
-      - selector:
-          dnsZones:
-            - "$DOMAIN"
-        dns01:
-          cloudflare:
-            apiTokenSecretRef:
-              name: cloudflare-api-token-secret
-              key: api-token
-EOF
-  fi
-
-  kubectl apply -f "$generated_path"
+  # The letsencrypt-prod ClusterIssuer that uses it is rendered by the gateway chart (deploy_gateway).
 }
 
 install_istio() {
@@ -642,6 +602,7 @@ deploy_gateway() {
     -n istio-system \
     -f "$REPO_PATH/charts/gateway/values.yaml" \
     --set-string clusterIssuer.dns01.email="$ACME_EMAIL" \
+    --set-string clusterIssuer.dns01.zone="$DOMAIN" \
     --wait \
     --timeout "$HELM_TIMEOUT"
 }
@@ -835,9 +796,10 @@ install_observability() {
   # (faro.receiver only supports logs/traces outputs, and there's no Loki
   # deployed yet, so Faro's own JS-error/console-log capture has nowhere to
   # go for now -- traces + web vitals correlate into Jaeger/Kiali).
-  if [[ -f "$REPO_PATH/alloy-faro-receiver.yaml" ]]; then
-    kubectl apply -f "$REPO_PATH/alloy-faro-receiver.yaml"
-  fi
+  # Grafana's ops config comes later, from install-observability.sh, once the Istio addon's own
+  # grafana ConfigMap can be adopted into the release.
+  helm upgrade --install observability-config "$REPO_PATH/charts/observability-config" -n istio-system \
+    -f "$REPO_PATH/charts/observability-config/values.yaml" --set grafana.enabled=false
 
   kubectl rollout status deployment/prometheus -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true
   kubectl rollout status deployment/grafana -n istio-system --timeout="$ROLLOUT_TIMEOUT" || true

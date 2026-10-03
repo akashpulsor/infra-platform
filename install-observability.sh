@@ -293,39 +293,32 @@ EOF
 
 apply_ops_virtualservice() {
     log "Wiring VirtualService: ops.dalaillama.in → oauth2-proxy → Grafana/Kiali/Prometheus/Jaeger"
-    # The ops Gateway/Certificate/VirtualService live in the gateway chart (templates/ops-dashboard.yaml).
+    # ops.dalaillama.in, the per-tool subdomains (grafana./prometheus./jaeger./kiali./loki.) and the
+    # oauth2-proxy gate in front of them all live in the gateway chart. DNS for the subdomains must
+    # point at the same LB before cert-manager can issue their certificates.
     helm upgrade --install gateway "$SCRIPT_DIR/charts/gateway" -n "$ISTIO_NS" -f "$SCRIPT_DIR/charts/gateway/values.yaml"
-    kubectl apply -f "$SCRIPT_DIR/manifests/ops-oauth2-authz.yaml"
-    # Per-tool subdomains -- grafana./prometheus./jaeger./kiali./loki.dalaillama.in.
-    # DNS records for these must exist (A record → same LB IP as ops.dalaillama.in) before
-    # cert-manager can complete the ACME HTTP-01 challenge; the Gateway/VirtualService itself
-    # applies fine either way. The AuthorizationPolicy in ops-oauth2-authz.yaml is already
-    # scoped to these hosts too.
-    kubectl apply -f "$SCRIPT_DIR/manifests/ops-tool-subdomains.yaml"
 }
 
-apply_alloy_faro_config() {
-    log "Reconciling alloy-faro receiver config (CORS + Loki writer + Jaeger exporter)"
-    kubectl apply -f "$SCRIPT_DIR/manifests/alloy-faro-receiver.yaml"
-    kubectl -n "$ISTIO_NS" rollout restart deploy/alloy-faro 2>/dev/null || true
-    kubectl -n "$ISTIO_NS" rollout status deploy/alloy-faro --timeout=60s 2>/dev/null || true
+# Lets a Helm release take over objects that already exist (applied by hand before, or created by an
+# Istio addon such as the grafana ConfigMap): Helm refuses to install over anything it does not own.
+adopt_into_release() {
+    local release="$1"; shift
+    local resource
+    for resource in "$@"; do
+        kubectl -n "$ISTIO_NS" get "$resource" >/dev/null 2>&1 || continue
+        kubectl -n "$ISTIO_NS" annotate "$resource" meta.helm.sh/release-name="$release"             meta.helm.sh/release-namespace="$ISTIO_NS" --overwrite >/dev/null
+        kubectl -n "$ISTIO_NS" label "$resource" app.kubernetes.io/managed-by=Helm --overwrite >/dev/null
+    done
 }
 
-apply_grafana_loki_datasource() {
-    log "Adding Loki as a Grafana datasource"
-    kubectl apply -f "$SCRIPT_DIR/manifests/grafana-loki-datasource.yaml"
-    # kubectl rollout restart picks up the new datasource ConfigMap on the next reconcile.
-    kubectl -n "$ISTIO_NS" rollout restart deploy/grafana || true
-}
-
-apply_grafana_ops_config() {
-    log "Applying ops-dashboard Grafana config (subpath / auth.proxy / anonymous Editor / home dashboard)"
-    # Overrides the Istio-shipped grafana ConfigMap with ops-friendly defaults. Kept in a
-    # separate manifest so re-applying the Istio addon doesn't clobber it. See the manifest for
-    # the specific settings changed and why.
-    kubectl apply -f "$SCRIPT_DIR/manifests/grafana-ops-config.yaml"
-    kubectl -n "$ISTIO_NS" rollout restart deploy/grafana || true
-    kubectl -n "$ISTIO_NS" rollout status deploy/grafana --timeout=120s || true
+apply_observability_config() {
+    log "Applying observability config (Alloy Faro receiver, Grafana Loki datasource + ops config)"
+    adopt_into_release observability-config configmap/alloy-faro-receiver-config deployment/alloy-faro service/alloy-faro         configmap/grafana-loki-datasource configmap/grafana
+    helm upgrade --install observability-config "$SCRIPT_DIR/charts/observability-config" -n "$ISTIO_NS" \
+        -f "$SCRIPT_DIR/charts/observability-config/values.yaml"
+    # Grafana and Alloy read their ConfigMaps at start-up.
+    kubectl -n "$ISTIO_NS" rollout restart deploy/alloy-faro deploy/grafana 2>/dev/null || true
+    kubectl -n "$ISTIO_NS" rollout status deploy/grafana --timeout=120s 2>/dev/null || true
 }
 
 main() {
@@ -334,9 +327,7 @@ main() {
     install_oauth2_proxy
     patch_mesh_config_extension_provider
     apply_ops_virtualservice
-    apply_grafana_loki_datasource
-    apply_grafana_ops_config
-    apply_alloy_faro_config
+    apply_observability_config
     log "Done. Visit https://${OPS_HOST}/grafana (or /kiali, /prom, /jaeger). Log in as a Keycloak user with the dalai_admin role."
 }
 

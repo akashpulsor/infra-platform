@@ -1,0 +1,9 @@
+# Browser telemetry receiver for creator-ui (templates/alloy-faro.yaml): ConfigMap + Deployment +
+# Service in istio-system. Its CORS list must include every SPA origin that posts to it.
+alloyFaro:
+  enabled: true
+
+# Grafana's Loki datasource and the ops-dashboard config that overrides the Istio-shipped grafana
+# ConfigMap (templates/grafana.yaml). Grafana reads both on restart.
+grafana:
+  enabled: true
