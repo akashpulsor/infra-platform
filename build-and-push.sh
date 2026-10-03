@@ -45,7 +45,7 @@ SERVICES=(
     "tenant-service:5.0.91-admin-activate-toggle"
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.115-lock-floor"
-    "llm-gateway:0.2.63-lighting-staging"
+    "llm-gateway:0.2.65-creative-direction"
     "video-generation-service:0.2.91-ref-order"
     "post-production-service:0.1.33-accept-flush"
     "pre-production-service:0.2.72-creative-direction"
