@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.65-creative-direction"
+      tag: "0.2.66-video-studio"
     service:
       port: 8080
       targetPort: 8080
@@ -588,7 +588,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.91-ref-order"
+      tag: "0.2.92-video-studio"
     service:
       port: 8080
       targetPort: 8080
@@ -715,7 +715,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.33-accept-flush"
+      tag: "0.1.34-shot-frames"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.72-creative-direction"
+      tag: "0.2.73-video-studio"
     service:
       port: 8080
       targetPort: 8080

@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.384-creative-direction
+  tag: 0.1.385-video-studio
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
