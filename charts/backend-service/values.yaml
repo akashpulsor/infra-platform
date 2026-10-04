@@ -455,7 +455,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.66-video-studio"
+      tag: "0.2.67-raga-plan"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.74-dub-reader"
+      tag: "0.2.75-raga-step-shot"
     service:
       port: 8080
       targetPort: 8080
@@ -1049,7 +1049,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: creative-planning-service
-      tag: "0.1.29-creative-context"
+      tag: "0.1.30-client-budget"
     service:
       port: 8080
       targetPort: 8080
