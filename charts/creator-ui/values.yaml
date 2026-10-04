@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.390-budget-step-trends
+  tag: 0.1.391-quote-box-range
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
