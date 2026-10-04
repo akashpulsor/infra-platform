@@ -588,7 +588,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.94-migrations"
+      tag: "0.2.95-shot-controls"
     service:
       port: 8080
       targetPort: 8080
@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.73-video-studio"
+      tag: "0.2.74-dub-reader"
     service:
       port: 8080
       targetPort: 8080
