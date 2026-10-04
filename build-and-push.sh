@@ -46,7 +46,7 @@ SERVICES=(
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.115-lock-floor"
     "llm-gateway:0.2.66-video-studio"
-    "video-generation-service:0.2.95-shot-controls"
+    "video-generation-service:0.2.96-batch-release"
     "post-production-service:0.1.36-migrations"
     "pre-production-service:0.2.74-dub-reader"
     "critic-service:0.1.2-gemini-embedding-001"

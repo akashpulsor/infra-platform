@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.387-shot-controls
+  tag: 0.1.388-shot-panel
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
