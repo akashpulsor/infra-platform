@@ -588,7 +588,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.92-video-controls"
+      tag: "0.2.93-conform"
     service:
       port: 8080
       targetPort: 8080
@@ -715,7 +715,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.34-frames-queued"
+      tag: "0.1.35-conform"
     service:
       port: 8080
       targetPort: 8080

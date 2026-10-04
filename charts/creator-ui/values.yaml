@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.385-video-controls
+  tag: 0.1.386-conform
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
