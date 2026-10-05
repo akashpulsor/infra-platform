@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.81-ops-projects"
+      tag: "0.2.82-no-actor-names"
     service:
       port: 8080
       targetPort: 8080
