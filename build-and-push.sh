@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.2.69-step-continuity"
     "video-generation-service:0.2.96-batch-release"
     "post-production-service:0.1.36-migrations"
-    "pre-production-service:0.2.79-continuity"
+    "pre-production-service:0.2.80-frame-check"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.30-client-budget"
     "trend-intelligence-service:0.1.0"
