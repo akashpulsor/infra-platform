@@ -24,7 +24,7 @@ external_services:
 # links and redirects. The health probes follow web_root.
 server:
   web_root: /
-  web_fqdn: monitor.dalaillama.in
+  web_fqdn: kiali.dalaillama.in
   web_schema: https
   web_port: 443
 

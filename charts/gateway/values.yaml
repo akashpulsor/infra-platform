@@ -105,19 +105,16 @@ ingress:
           pathType: Prefix
 
     monitor:
-      # Kiali's UI, at a deliberately generic hostname/cert name rather than
-      # "kiali.dalaillama.in" -- the public TLS cert's SAN is visible in
-      # public Certificate Transparency logs regardless of auth, so it
-      # shouldn't broadcast which specific tool is running.
-      # Password-protected via Kiali's own "login" auth strategy (see
-      # bootstrap-cloud.sh's install_observability/ensure_kiali_login_auth) --
-      # not just network obscurity. Only created when INSTALL_OBSERVABILITY=true
-      # actually deploys the kiali Service into istio-system.
+      # Public on purpose, so ONLY the Faro ingestion path is routed here -- any other path has no
+      # route and 404s. This host used to serve Kiali at "/", but Kiali runs with auth.strategy
+      # anonymous (Kiali 2.x has no password login) and this host is not behind the ops
+      # oauth2-proxy gate, so the whole mesh map was readable by anyone. Kiali is served only at
+      # kiali.dalaillama.in, which is gated (gateway templates/ops-tools.yaml + ops-auth.yaml).
       enabled: true
       namespace: istio-system
       host: monitor.dalaillama.in
-      serviceName: kiali
-      servicePort: 20001
+      serviceName: alloy-faro
+      servicePort: 12347
       tlsSecretName: monitor-dalaillama-in-tls
 
       paths:
@@ -142,8 +139,6 @@ ingress:
           rewriteRegex:
             match: "^/faro(/.*)$"
             rewrite: '\1'
-        - path: /
-          pathType: Prefix
 istio:
   enabled: true
   namespace: istio-system
