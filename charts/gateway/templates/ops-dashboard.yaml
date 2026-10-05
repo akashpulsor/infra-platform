@@ -96,16 +96,14 @@ spec:
             host: oauth2-proxy.apps.svc.cluster.local
             port:
               number: 4180
+    # Grafana lives at grafana.dalaillama.in only (third-party/grafana values root_url).
     - match:
         - uri:
             prefix: /grafana
-      rewrite:
+      redirect:
+        authority: grafana.dalaillama.in
         uri: /
-      route:
-        - destination:
-            host: grafana.istio-system.svc.cluster.local
-            port:
-              number: 3000
+        redirectCode: 302
     # Kiali + Prometheus don't natively serve on a subpath -- their startup probes hit /,
     # which fails 404 if we change web_root or route-prefix. Keeping the URI-rewrite approach
     # so the tools serve at root inside the pod; a follow-up should move them to their own

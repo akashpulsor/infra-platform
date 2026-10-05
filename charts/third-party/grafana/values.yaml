@@ -82,16 +82,19 @@ datasources:
           maxLines: 5000
         editable: true
 
-# Served at ops.dalaillama.in/grafana behind oauth2-proxy: login is the proxy's job, Grafana trusts its
-# X-Auth-Request-* headers. The /admin page embeds it as a tab, hence allow_embedding.
+# Served at https://grafana.dalaillama.in/ (its own host, at the root) behind oauth2-proxy: login is
+# the proxy's job, Grafana trusts its X-Auth-Request-* headers. root_url must be that host --
+# Grafana builds its redirects from it, and the old ops.dalaillama.in/grafana sub-path value sent
+# every visitor to a route that stripped the prefix Grafana expected, so it never rendered.
+# ops.dalaillama.in/grafana now just redirects here (gateway chart, ops-dashboard.yaml).
 grafana.ini:
   analytics:
     check_for_updates: false
   grafana_net: null
   server:
-    domain: ops.dalaillama.in
-    root_url: "%(protocol)s://%(domain)s/grafana"
-    serve_from_sub_path: true
+    domain: grafana.dalaillama.in
+    root_url: "https://grafana.dalaillama.in/"
+    serve_from_sub_path: false
   auth:
     disable_login_form: true
   auth.anonymous:
