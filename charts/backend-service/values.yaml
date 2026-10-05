@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.83-mg-frame-tick"
+      tag: "0.2.84-first-image"
     service:
       port: 8080
       targetPort: 8080
