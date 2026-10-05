@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.392-trends-on-demand
+  tag: 0.1.393-cast-library
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
