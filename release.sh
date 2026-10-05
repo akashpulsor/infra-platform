@@ -126,9 +126,15 @@ done
 changed=\$(git diff --name-only \"\$before\"..HEAD -- charts/third-party | awk -F/ '{print \$3}' | grep -v releases.tsv | sort -u | tr '\\n' ' ' || true)
 if ! git diff --quiet \"\$before\"..HEAD -- charts/third-party/releases.tsv; then ./install-third-party.sh;
 elif [ -n \"\$changed\" ]; then ./install-third-party.sh \$changed; fi"
+# The backend chart also carries routing (apiPaths timeouts/retries), so a chart-only edit must
+# upgrade it even when no backend service is named.
+backend_named=$( (( ${#BACKEND[@]} > 0 )) && echo true || echo false )
+remote+="
+if ${backend_named} || ! git diff --quiet \"\$before\"..HEAD -- charts/backend-service; then
+    echo '--- upgrading backend release ---'
+    helm upgrade backend charts/backend-service -n ${NAMESPACE} -f charts/backend-service/values.yaml -f charts/backend-service/values-secret.yaml
+fi"
 if (( ${#BACKEND[@]} > 0 )); then
-    remote+="
-helm upgrade backend charts/backend-service -n ${NAMESPACE} -f charts/backend-service/values.yaml -f charts/backend-service/values-secret.yaml"
     for entry in "${BACKEND[@]}"; do
         remote+="
 kubectl -n ${NAMESPACE} rollout status deploy/${entry%%:*} --timeout=600s"
