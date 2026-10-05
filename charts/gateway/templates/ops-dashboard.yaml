@@ -71,6 +71,23 @@ spec:
       redirect:
         uri: /admin
         redirectCode: 302
+    # Before the ext-authz pathPrefix was removed (istiod values), a sign-in could save
+    # /oauth2/auth/<page> as its return address, and that URL shows a bare "Authenticated".
+    # Old history/bookmarks still lead there, so send them to the page they meant. Must precede
+    # /oauth2/ below; the bare /oauth2/auth (no trailing slash) still reaches oauth2-proxy.
+    - match:
+        - uri:
+            prefix: /oauth2/auth/grafana
+      redirect:
+        authority: grafana.dalaillama.in
+        uri: /
+        redirectCode: 302
+    - match:
+        - uri:
+            prefix: /oauth2/auth/
+      redirect:
+        uri: /admin
+        redirectCode: 302
     - match:
         - uri:
             prefix: /oauth2/
