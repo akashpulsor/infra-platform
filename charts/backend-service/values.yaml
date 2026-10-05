@@ -1106,7 +1106,12 @@ services:
       livenessPath: /actuator/health/liveness
       readinessPath: /actuator/health/readiness
     apiPaths:
-      - /v1/trend-reports
+      # POST blocks on one LLM call that the service allows up to 120s (LLM_GATEWAY_TIMEOUT_MS).
+      # The 30s / 3x10s-retry default 504'd every generation slower than 10s and re-ran the
+      # non-idempotent POST up to three times -- three paid reports per click.
+      - path: /v1/trend-reports
+        timeout: 150s
+        retries: false
     internalApiPaths:
       - /api/v1/internal
       - /actuator
