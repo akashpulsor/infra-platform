@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.397-provider-costs
+  tag: 0.1.398-mg-frame-tick
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
