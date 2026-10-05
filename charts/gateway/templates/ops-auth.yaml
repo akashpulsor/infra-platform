@@ -40,6 +40,11 @@ spec:
               - jaeger.dalaillama.in
               - kiali.dalaillama.in
               - loki.dalaillama.in
+              # MinIO Console: its own login stays, this puts the ops login (dalai_admin) in front
+              # so the console isn't reachable from the internet at all. The login callback lands
+              # on ops.dalaillama.in and the session cookie covers .dalaillama.in, so the console
+              # host needs no /oauth2/ route of its own.
+              - console.dalaillama.in
             notPaths:
               - /oauth2/*
 {{- end }}
