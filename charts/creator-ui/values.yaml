@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.398-mg-frame-tick
+  tag: 0.1.399-client-footage
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
