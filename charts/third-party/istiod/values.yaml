@@ -32,7 +32,11 @@ meshConfig:
     envoyExtAuthzHttp:
       service: oauth2-proxy.apps.svc.cluster.local
       port: 4180
-      pathPrefix: /oauth2/auth
+      # No pathPrefix: the check must reach oauth2-proxy's reverse-proxy path, whose upstream is
+      # static://200. With pathPrefix /oauth2/auth every signed-in check hit oauth2-proxy's own
+      # /oauth2/auth handler, which answers 202 "Authenticated" -- Envoy allows only 200, so it
+      # denied the request and showed that body instead of Grafana / Kiali / the admin page.
+      # /oauth2/* itself never gets checked (ops-auth.yaml notPaths), so nothing collides.
       timeout: 5s
       includeRequestHeadersInCheck:
       - cookie
