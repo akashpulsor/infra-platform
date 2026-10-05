@@ -1,0 +1,968 @@
+{
+ "uid": "dalai-platform-overview",
+ "title": "Platform Overview",
+ "description": "Health of every backend service: traffic, errors, latency, memory and CPU. Actuator health checks are excluded.",
+ "tags": [
+  "dalai",
+  "platform"
+ ],
+ "timezone": "browser",
+ "editable": true,
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "30s",
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "templating": {
+  "list": [
+   {
+    "name": "ds_prom",
+    "label": "Prometheus",
+    "type": "datasource",
+    "query": "prometheus",
+    "hide": 2,
+    "current": {},
+    "refresh": 1
+   },
+   {
+    "name": "service",
+    "label": "Service",
+    "type": "query",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "${ds_prom}"
+    },
+    "query": {
+     "query": "label_values(http_server_requests_seconds_count{namespace=\"apps\"}, app)",
+     "refId": "svc"
+    },
+    "definition": "label_values(http_server_requests_seconds_count{namespace=\"apps\"}, app)",
+    "refresh": 2,
+    "multi": true,
+    "includeAll": true,
+    "allValue": ".+",
+    "sort": 1,
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    }
+   }
+  ]
+ },
+ "annotations": {
+  "list": []
+ },
+ "links": [
+  {
+   "title": "Platform dashboards",
+   "type": "dashboards",
+   "tags": [
+    "dalai"
+   ],
+   "asDropdown": true
+  }
+ ],
+ "panels": [
+  {
+   "id": 1,
+   "type": "row",
+   "title": "Right now",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "Requests / sec",
+   "description": "API calls per second across the selected services (5 min average).",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 6,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum(rate(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\"}[5m]))",
+     "legendFormat": "",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps",
+     "decimals": 2,
+     "color": {
+      "mode": "thresholds"
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "area",
+    "textMode": "value"
+   }
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "Error rate (5xx)",
+   "description": "Share of requests that failed with a server error. Above 1% is worth a look, above 5% is a problem.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 6,
+    "y": 1,
+    "w": 6,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "(sum(rate(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\", status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\"}[5m])), 1e-9)",
+     "legendFormat": "",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit",
+     "decimals": 2,
+     "color": {
+      "mode": "thresholds"
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 0.01
+       },
+       {
+        "color": "red",
+        "value": 0.05
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "area",
+    "textMode": "value"
+   }
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "Average latency",
+   "description": "Mean time to answer a request over the last 5 minutes.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 1,
+    "w": 6,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum(rate(http_server_requests_seconds_sum{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\"}[5m])), 1e-9)",
+     "legendFormat": "",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "decimals": 2,
+     "color": {
+      "mode": "thresholds"
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       },
+       {
+        "color": "red",
+        "value": 5
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "area",
+    "textMode": "value"
+   }
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "Services up",
+   "description": "Backend services Prometheus can currently scrape.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 18,
+    "y": 1,
+    "w": 6,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "count(sum by (app) (up{namespace=\"apps\", job=\"kubernetes-pods\", app=~\"$service\"}) > 0)",
+     "legendFormat": "",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "decimals": 2,
+     "color": {
+      "mode": "thresholds"
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "area",
+    "textMode": "value"
+   }
+  },
+  {
+   "id": 6,
+   "type": "row",
+   "title": "Traffic and errors",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 5,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 7,
+   "type": "timeseries",
+   "title": "Requests / sec by service",
+   "description": "Which services are busy.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 6,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum by (app) (rate(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\"}[5m]))",
+     "legendFormat": "{{app}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 12,
+      "showPoints": "never",
+      "drawStyle": "line",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 8,
+   "type": "timeseries",
+   "title": "Server errors (5xx) / min by service",
+   "description": "Failed requests per minute. Open Service Logs for the same service and time to see why.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 6,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum by (app) (increase(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\", status=~\"5..\"}[1m]))",
+     "legendFormat": "{{app}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 60,
+      "showPoints": "never",
+      "drawStyle": "bars",
+      "spanNulls": true,
+      "stacking": {
+       "mode": "normal",
+       "group": "A"
+      }
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Average latency by service",
+   "description": "Slow services stand out here. Long LLM / video calls make some services slow by design.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum by (app) (rate(http_server_requests_seconds_sum{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\"}[5m])) / sum by (app) (rate(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\"}[5m]))",
+     "legendFormat": "{{app}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 12,
+      "showPoints": "never",
+      "drawStyle": "line",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 10,
+   "type": "timeseries",
+   "title": "Client errors (4xx) / min by service",
+   "description": "Rejected requests: bad input, not found, unauthorised.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 14,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum by (app) (increase(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\", status=~\"4..\"}[1m]))",
+     "legendFormat": "{{app}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 60,
+      "showPoints": "never",
+      "drawStyle": "bars",
+      "spanNulls": true,
+      "stacking": {
+       "mode": "normal",
+       "group": "A"
+      }
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 11,
+   "type": "row",
+   "title": "Endpoints",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 22,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 12,
+   "type": "table",
+   "title": "Slowest endpoints (average, last 6h)",
+   "description": "Endpoints to optimise first.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 23,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "topk(15, sum by (app, method, uri) (increase(http_server_requests_seconds_sum{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\"}[6h])) / sum by (app, method, uri) (increase(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\"}[6h])) > 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "format": "table",
+     "instant": true
+    }
+   ],
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "Time": true
+      },
+      "renameByName": {
+       "app": "Service",
+       "uri": "Endpoint",
+       "method": "Method",
+       "Value": "Avg time"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "align": "auto"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Avg time",
+      "desc": true
+     }
+    ]
+   }
+  },
+  {
+   "id": 13,
+   "type": "table",
+   "title": "Failing endpoints (5xx, last 24h)",
+   "description": "Where server errors come from.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 23,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "topk(15, sum by (app, method, uri) (increase(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\", status=~\"5..\"}[24h])) > 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "format": "table",
+     "instant": true
+    }
+   ],
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "Time": true
+      },
+      "renameByName": {
+       "app": "Service",
+       "uri": "Endpoint",
+       "method": "Method",
+       "Value": "Errors"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "align": "auto"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Errors",
+      "desc": true
+     }
+    ]
+   }
+  },
+  {
+   "id": 14,
+   "type": "row",
+   "title": "Resources",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 32,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 15,
+   "type": "timeseries",
+   "title": "Memory by service",
+   "description": "Working-set memory of each service's main container. The node has 16 GB.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 33,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum by (container) (container_memory_working_set_bytes{namespace=\"apps\", container=~\"$service\"})",
+     "legendFormat": "{{container}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "bytes",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 12,
+      "showPoints": "never",
+      "drawStyle": "line",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 16,
+   "type": "timeseries",
+   "title": "CPU by service",
+   "description": "CPU cores used by each service's main container.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 33,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum by (container) (rate(container_cpu_usage_seconds_total{namespace=\"apps\", container=~\"$service\"}[5m]))",
+     "legendFormat": "{{container}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 12,
+      "showPoints": "never",
+      "drawStyle": "line",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 17,
+   "type": "timeseries",
+   "title": "Database pool in use",
+   "description": "Active Postgres connections per service. Any 'waiting' means the pool is exhausted.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 41,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum by (app) (hikaricp_connections_active{namespace=\"apps\", app=~\"$service\"})",
+     "legendFormat": "{{app}} active",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum by (app) (hikaricp_connections_pending{namespace=\"apps\", app=~\"$service\"})",
+     "legendFormat": "{{app}} waiting",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 12,
+      "showPoints": "never",
+      "drawStyle": "line",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 18,
+   "type": "timeseries",
+   "title": "JVM heap used",
+   "description": "Java heap per service. A line that only climbs suggests a leak.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 41,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "sum by (app) (jvm_memory_used_bytes{namespace=\"apps\", area=\"heap\", app=~\"$service\"})",
+     "legendFormat": "{{app}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "bytes",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 12,
+      "showPoints": "never",
+      "drawStyle": "line",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  }
+ ]
+}

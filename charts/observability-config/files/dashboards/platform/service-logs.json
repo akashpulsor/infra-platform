@@ -1,0 +1,278 @@
+{
+ "uid": "dalai-service-logs",
+ "title": "Service Logs",
+ "description": "Pick a service, a level and an optional search text. Errors over time on top, the matching log lines below.",
+ "tags": [
+  "dalai",
+  "platform"
+ ],
+ "timezone": "browser",
+ "editable": true,
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "",
+ "time": {
+  "from": "now-1h",
+  "to": "now"
+ },
+ "templating": {
+  "list": [
+   {
+    "name": "ds_loki",
+    "label": "Loki",
+    "type": "datasource",
+    "query": "loki",
+    "hide": 2,
+    "current": {},
+    "refresh": 1
+   },
+   {
+    "name": "service",
+    "label": "Service",
+    "type": "query",
+    "datasource": {
+     "type": "loki",
+     "uid": "${ds_loki}"
+    },
+    "query": {
+     "label": "app",
+     "stream": "",
+     "type": 1,
+     "refId": "svc"
+    },
+    "definition": "label_values(app)",
+    "refresh": 2,
+    "multi": true,
+    "includeAll": true,
+    "allValue": ".+",
+    "sort": 1,
+    "current": {
+     "text": "pre-production-service",
+     "value": [
+      "pre-production-service"
+     ]
+    }
+   },
+   {
+    "name": "level",
+    "label": "Level",
+    "type": "custom",
+    "query": "ERROR,WARN,INFO,DEBUG",
+    "multi": true,
+    "includeAll": true,
+    "allValue": ".*",
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    },
+    "options": [
+     {
+      "text": "ERROR",
+      "value": "ERROR",
+      "selected": false
+     },
+     {
+      "text": "WARN",
+      "value": "WARN",
+      "selected": false
+     },
+     {
+      "text": "INFO",
+      "value": "INFO",
+      "selected": false
+     },
+     {
+      "text": "DEBUG",
+      "value": "DEBUG",
+      "selected": false
+     }
+    ]
+   },
+   {
+    "name": "search",
+    "label": "Search (text, shot id, request id\u2026)",
+    "type": "textbox",
+    "query": "",
+    "current": {
+     "text": "",
+     "value": ""
+    }
+   }
+  ]
+ },
+ "annotations": {
+  "list": []
+ },
+ "links": [
+  {
+   "title": "Platform dashboards",
+   "type": "dashboards",
+   "tags": [
+    "dalai"
+   ],
+   "asDropdown": true
+  }
+ ],
+ "panels": [
+  {
+   "id": 19,
+   "type": "timeseries",
+   "title": "Log lines by level",
+   "description": "Volume of matching lines. A spike in ERROR is where to look.",
+   "datasource": {
+    "type": "loki",
+    "uid": "${ds_loki}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "loki",
+      "uid": "${ds_loki}"
+     },
+     "expr": "sum by (level) (count_over_time({app=~\"$service\", level=~\"(?i)${level:regex}\"} |~ \"(?i)$search\" [$__interval]))",
+     "legendFormat": "{{level}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 60,
+      "showPoints": "never",
+      "drawStyle": "bars",
+      "spanNulls": true,
+      "stacking": {
+       "mode": "normal",
+       "group": "A"
+      }
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 20,
+   "type": "timeseries",
+   "title": "Errors by service (all services)",
+   "description": "ERROR lines per service across the whole platform, ignoring the filters above.",
+   "datasource": {
+    "type": "loki",
+    "uid": "${ds_loki}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "loki",
+      "uid": "${ds_loki}"
+     },
+     "expr": "sum by (app) (count_over_time({namespace=\"apps\", level=~\"(?i)error\"} [$__interval]))",
+     "legendFormat": "{{app}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 60,
+      "showPoints": "never",
+      "drawStyle": "bars",
+      "spanNulls": true,
+      "stacking": {
+       "mode": "normal",
+       "group": "A"
+      }
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "sortBy": "Max",
+     "sortDesc": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 21,
+   "type": "logs",
+   "title": "Log lines",
+   "datasource": {
+    "type": "loki",
+    "uid": "${ds_loki}"
+   },
+   "description": "Newest first. Click a line to expand its fields (tenant, project, request id).",
+   "gridPos": {
+    "x": 0,
+    "y": 7,
+    "w": 24,
+    "h": 22
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "loki",
+      "uid": "${ds_loki}"
+     },
+     "expr": "{app=~\"$service\", level=~\"(?i)${level:regex}\"} |~ \"(?i)$search\"",
+     "legendFormat": "",
+     "refId": "A",
+     "maxLines": 1000
+    }
+   ],
+   "options": {
+    "showTime": true,
+    "wrapLogMessage": true,
+    "prettifyLogMessage": false,
+    "enableLogDetails": true,
+    "sortOrder": "Descending",
+    "dedupStrategy": "none",
+    "showLabels": false,
+    "showCommonLabels": false
+   }
+  }
+ ]
+}

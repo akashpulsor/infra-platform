@@ -37,6 +37,13 @@ dashboardProviders:
   dashboardproviders.yaml:
     apiVersion: 1
     providers:
+      - name: "platform"
+        orgId: 1
+        folder: "Dalai Platform"
+        type: file
+        disableDeletion: false
+        options:
+          path: /var/lib/grafana/dashboards/platform
       - name: "istio"
         orgId: 1
         folder: "istio"
@@ -52,7 +59,10 @@ dashboardProviders:
         options:
           path: /var/lib/grafana/dashboards/istio-services
 
+# platform-grafana-dashboards must exist before Grafana starts: release.sh upgrades
+# observability-config (which renders it) before the third-party releases.
 dashboardsConfigMaps:
+  platform: "platform-grafana-dashboards"
   istio: "istio-grafana-dashboards"
   istio-services: "istio-services-grafana-dashboards"
 
@@ -112,7 +122,7 @@ grafana.ini:
     allow_sign_up: false
     default_theme: dark
   dashboards:
-    default_home_dashboard_path: /var/lib/grafana/dashboards/istio-services/istio-mesh-dashboard.json
+    default_home_dashboard_path: /var/lib/grafana/dashboards/platform/platform-overview.json
   security:
     allow_embedding: true
     cookie_samesite: lax

@@ -18,4 +18,14 @@ metadata:
   namespace: istio-system
 data:
 {{ (.Files.Glob "files/dashboards/istio-services/*.json").AsConfig | indent 2 }}
+---
+# This platform's own dashboards (Platform Overview, Service Logs), generated from live metric and
+# log labels -- see the "Dalai Platform" provider in charts/third-party/grafana/values.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-grafana-dashboards
+  namespace: istio-system
+data:
+{{ (.Files.Glob "files/dashboards/platform/*.json").AsConfig | indent 2 }}
 {{- end }}
