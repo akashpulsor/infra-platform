@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.2.68-rates-no-empty-parts"
     "video-generation-service:0.2.96-batch-release"
     "post-production-service:0.1.36-migrations"
-    "pre-production-service:0.2.77-cast-library"
+    "pre-production-service:0.2.78-step-prompt"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.30-client-budget"
     "trend-intelligence-service:0.1.0"
