@@ -588,7 +588,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.97-skip-client-footage"
+      tag: "0.2.98-no-music-bake"
     service:
       port: 8080
       targetPort: 8080
@@ -715,7 +715,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.37-client-footage"
+      tag: "0.1.39-sound-layer-worker"
     service:
       port: 8080
       targetPort: 8080

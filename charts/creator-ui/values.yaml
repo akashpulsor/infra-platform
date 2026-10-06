@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.401-client-footage-upload
+  tag: 0.1.403-sound-layer-worker
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
