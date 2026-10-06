@@ -715,7 +715,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.36-migrations"
+      tag: "0.1.37-client-footage"
     service:
       port: 8080
       targetPort: 8080
