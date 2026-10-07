@@ -876,7 +876,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.86-skip-client-footage"
+      tag: "0.2.87-client-music-plan"
     service:
       port: 8080
       targetPort: 8080

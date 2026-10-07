@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.2.70-provider-costs"
     "video-generation-service:0.2.98-no-music-bake"
     "post-production-service:0.1.39-sound-layer-worker"
-    "pre-production-service:0.2.86-skip-client-footage"
+    "pre-production-service:0.2.87-client-music-plan"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.30-client-budget"
     "trend-intelligence-service:0.1.0"
