@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.404-client-music-plan
+  tag: 0.1.405-creator-showcase
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
