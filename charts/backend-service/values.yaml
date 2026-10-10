@@ -125,6 +125,12 @@ services:
 
       # see pre-production-service's own apiPaths comment above.
       - /api/v1/public/tenant-config
+      # Creator showcase (public, no login). Each prefix is listed on its own, never the bare
+      # /api/v1/public -- see the collision note above.
+      - /api/v1/public/creators
+      - /api/v1/public/showcase
+      - /api/v1/public/brands
+      - /api/v1/public/outreach
       - /ws
     internalApiPaths:
       - /api/v1/internal
@@ -199,6 +205,15 @@ services:
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
       SERVER_PORT: "8080"
+      # Creator showcase: public pages (landing, /creators, /c/<handle>) are served by platform-ui.
+      # Change when the root domain points at platform-ui.
+      SHOWCASE_PUBLIC_BASE_URL: "https://platform.dalaillama.in"
+      # Creator showcase: YOUTUBE normally; SELF serves platform films from our own copy (fallback).
+      VIDEO_HOST_PLATFORM_FILMS: "YOUTUBE"
+      # Turn on once the official-channel secrets are in place.
+      YT_OFFICIAL_ENABLED: "false"
+      # A public video on our own channel, checked nightly by the video-host health probe.
+      YT_PROBE_VIDEO_ID: ""
   # --- PRODUCT SERVICE ---
 
   productService:
@@ -1755,6 +1770,31 @@ secrets:
   # in as SMTP_USERNAME/SMTP_PASSWORD/SMTP_FROM env vars; host/port default to Hostinger in
   # application.yml. Blank values in values.yaml keep the secret shape stable; the real ones
   # go in values-secret.yaml on the deploy host and are never committed.
+  # YouTube Data API v3 key for tenant-service (creator showcase). Restrict it in Google Cloud to
+  # the YouTube Data API and the box's IP. Real value in values-secret.yaml on the deploy host.
+  youtube:
+    name: dalai-backend-youtube
+    apiKeyKey: api-key
+    # Dalaillama's own channel: OAuth client from the Workspace-owned Cloud project (consent
+    # screen Internal), refresh token from ops' one-time consent. Empty = official uploads off.
+    officialClientIdKey: official-client-id
+    officialClientSecretKey: official-client-secret
+    officialRefreshTokenKey: official-refresh-token
+    values:
+      apiKey: ""
+      officialClientId: ""
+      officialClientSecret: ""
+      officialRefreshToken: ""
+  # Creator showcase secrets. brandSession: HMAC key for brand session tokens (empty = a random key
+  # per start; brands sign in again after each restart). outreachPepper: mixed into recipient
+  # hashes; set ONCE and never change it, or every unsubscribe and cooldown is forgotten.
+  showcase:
+    name: dalai-backend-showcase
+    brandSessionKey: brand-session-secret
+    outreachPepperKey: outreach-hash-pepper
+    values:
+      brandSession: ""
+      outreachPepper: ""
   smtp:
     name: dalai-backend-smtp
     usernameKey: smtp-username

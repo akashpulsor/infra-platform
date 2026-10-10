@@ -726,6 +726,48 @@ app.kubernetes.io/part-of: dalai-llama-backend
 {{- end -}}
 
 
+{{/* YouTube Data API key (creator showcase: channel linking, import, refresh). Optional: without
+it tenant-service answers YouTube requests with 503 "not set up yet". */}}
+{{- define "dalai-backend.youtube-envs" -}}
+- name: YOUTUBE_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.youtube.name }}
+      key: {{ .Values.secrets.youtube.apiKeyKey }}
+      optional: true
+- name: YT_OFFICIAL_CLIENT_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.youtube.name }}
+      key: {{ .Values.secrets.youtube.officialClientIdKey }}
+      optional: true
+- name: YT_OFFICIAL_CLIENT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.youtube.name }}
+      key: {{ .Values.secrets.youtube.officialClientSecretKey }}
+      optional: true
+- name: YT_OFFICIAL_REFRESH_TOKEN
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.youtube.name }}
+      key: {{ .Values.secrets.youtube.officialRefreshTokenKey }}
+      optional: true
+- name: BRAND_SESSION_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.showcase.name }}
+      key: {{ .Values.secrets.showcase.brandSessionKey }}
+      optional: true
+- name: OUTREACH_HASH_PEPPER
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.showcase.name }}
+      key: {{ .Values.secrets.showcase.outreachPepperKey }}
+      optional: true
+{{- end -}}
+
+
 {{/* MinIO Environment Variables */}}
 {{- define "dalai-backend.minio-envs" -}}
 - name: MINIO_ENDPOINT

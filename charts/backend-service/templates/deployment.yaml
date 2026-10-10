@@ -110,6 +110,7 @@ spec:
             {{- include "dalai-backend.provisioning-envs" $ | nindent 12 }}
             {{- include "dalai-backend.tenant-credential-envs" $ | nindent 12 }}
             {{- include "dalai-backend.smtp-envs" $ | nindent 12 }}
+            {{- include "dalai-backend.youtube-envs" $ | nindent 12 }}
             {{- end }}
             {{- if eq $serviceName "productService" }}
             {{- include "dalai-backend.product-integrations" $ | nindent 12 }}
