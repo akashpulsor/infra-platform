@@ -22,6 +22,9 @@ env:
   PLATFORM_URL: "https://platform.dalaillama.in"
   CREATOR_APP_URL: "https://creator.dalaillama.in"
   API_BASE_URL: "https://api.dalaillama.in/api/v1"
+  # Chrome extension the Marketing → YouTube tab pairs with (apps/chrome-extension; the manifest key
+  # pins this ID). Change to the Chrome Web Store ID once published there.
+  DALAI_EXTENSION_ID: "boldkceiciomdbmfffhjdgeloepjgeom"
   GA_MEASUREMENT_ID: "G-YVWC0J9JC3"
   # Grafana Faro (browser RUM) receiver -- see alloy-faro-receiver.yaml and
   # apps/creator-ui/src/faro.js. Traces + web vitals only for now (no Loki

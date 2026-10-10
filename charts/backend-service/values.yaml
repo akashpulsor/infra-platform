@@ -131,6 +131,10 @@ services:
       - /api/v1/public/showcase
       - /api/v1/public/brands
       - /api/v1/public/outreach
+      # Google sends the browser back here after a YouTube connect (rule 31).
+      - /api/v1/public/youtube
+      # Chrome extension API, authenticated by the extension's own token (rule 39).
+      - /api/v1/extension
       - /ws
     internalApiPaths:
       - /api/v1/internal
@@ -1792,9 +1796,14 @@ secrets:
     name: dalai-backend-showcase
     brandSessionKey: brand-session-secret
     outreachPepperKey: outreach-hash-pepper
+    # Google OAuth client (Web application) for YouTube connections (rules 31-33).
+    googleClientIdKey: google-oauth-client-id
+    googleClientSecretKey: google-oauth-client-secret
     values:
       brandSession: ""
       outreachPepper: ""
+      googleClientId: ""
+      googleClientSecret: ""
   smtp:
     name: dalai-backend-smtp
     usernameKey: smtp-username

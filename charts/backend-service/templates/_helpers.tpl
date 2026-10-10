@@ -765,6 +765,18 @@ it tenant-service answers YouTube requests with 503 "not set up yet". */}}
       name: {{ .Values.secrets.showcase.name }}
       key: {{ .Values.secrets.showcase.outreachPepperKey }}
       optional: true
+- name: GOOGLE_OAUTH_CLIENT_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.showcase.name }}
+      key: {{ .Values.secrets.showcase.googleClientIdKey }}
+      optional: true
+- name: GOOGLE_OAUTH_CLIENT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.showcase.name }}
+      key: {{ .Values.secrets.showcase.googleClientSecretKey }}
+      optional: true
 {{- end -}}
 
 
