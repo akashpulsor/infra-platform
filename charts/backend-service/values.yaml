@@ -1799,11 +1799,14 @@ secrets:
     # Google OAuth client (Web application) for YouTube connections (rules 31-33).
     googleClientIdKey: google-oauth-client-id
     googleClientSecretKey: google-oauth-client-secret
+    # Hunter.io key for the shared brand directory (rule 42).
+    hunterApiKeyKey: hunter-api-key
     values:
       brandSession: ""
       outreachPepper: ""
       googleClientId: ""
       googleClientSecret: ""
+      hunterApiKey: ""
   smtp:
     name: dalai-backend-smtp
     usernameKey: smtp-username
