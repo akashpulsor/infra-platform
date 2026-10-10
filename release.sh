@@ -4,14 +4,15 @@
 # Usage (Git Bash, from anywhere):
 #   ./release.sh <service>:<tag> [<service>:<tag> ...] [--dry-run] [--no-deploy] [--deploy-only]
 #   ./release.sh billing-service:5.0.114-lock-balance creator-ui:0.1.381-lock-balance
+#   ./release.sh platform-ui:1.0.1-creator-showcase
 #
 # --deploy-only skips build/push/commit -- for retrying the box step once the images and the
 # chart commit are already out.
 #
 # Backend services reuse build-and-push.sh (its SERVICES entry is updated to the new tag first, so
-# that array stays the release's source of truth). creator-ui is built from the UI repo. Both chart
-# values files plus build-and-push.sh are committed in ONE commit and pushed, then the box pulls
-# and runs helm upgrade for only the releases that changed.
+# that array stays the release's source of truth). creator-ui and platform-ui are built from the UI
+# repo. The chart values files plus build-and-push.sh are committed in ONE commit and pushed, then
+# the box pulls and runs helm upgrade for only the releases that changed.
 
 set -euo pipefail
 
@@ -28,6 +29,7 @@ DEPLOY=true
 BUILD=true
 BACKEND=()
 UI_TAG=""
+PLATFORM_UI_TAG=""
 
 for arg in "$@"; do
     case "$arg" in
@@ -36,20 +38,21 @@ for arg in "$@"; do
         --deploy-only) BUILD=false ;;
         -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
         creator-ui:*) UI_TAG="${arg#*:}" ;;
+        platform-ui:*) PLATFORM_UI_TAG="${arg#*:}" ;;
         *:*) BACKEND+=("$arg") ;;
         *) echo "ERROR: expected <service>:<tag>, got '$arg'"; exit 1 ;;
     esac
 done
 # --deploy-only with nothing named still deploys: it pulls the box and applies any chart change
 # (e.g. a gateway routing edit) without building an image.
-(( ${#BACKEND[@]} > 0 )) || [[ -n "$UI_TAG" ]] || ! $BUILD || { echo "ERROR: nothing to release"; exit 1; }
+(( ${#BACKEND[@]} > 0 )) || [[ -n "$UI_TAG" ]] || [[ -n "$PLATFORM_UI_TAG" ]] || ! $BUILD || { echo "ERROR: nothing to release"; exit 1; }
 
 run() {
     if $DRY_RUN; then echo "  [dry-run] $*"; else echo "  \$ $*"; "$@"; fi
 }
 
 cd "$SCRIPT_DIR"
-summary="$(printf '%s, ' "${BACKEND[@]}" ${UI_TAG:+"creator-ui ${UI_TAG}"} | sed 's/:/ /g; s/, $//')"
+summary="$(printf '%s, ' "${BACKEND[@]}" ${UI_TAG:+"creator-ui ${UI_TAG}"} ${PLATFORM_UI_TAG:+"platform-ui ${PLATFORM_UI_TAG}"} | sed 's/:/ /g; s/, $//')"
 
 if $BUILD; then
 
@@ -84,13 +87,22 @@ if [[ -n "$UI_TAG" ]]; then
     run sed -i "s|^  tag: .*|  tag: ${UI_TAG}|" charts/creator-ui/values.yaml
 fi
 
+# --- 1+2. platform-ui (landing, creator showcase, brand pages): build + push + patch its chart --
+if [[ -n "$PLATFORM_UI_TAG" ]]; then
+    [[ -d "$UI_REPO" ]] || { echo "ERROR: UI repo not found; set UI_REPO=/path/to/dalai-llama"; exit 1; }
+    image="${REGISTRY}/platform-ui:${PLATFORM_UI_TAG}"
+    run docker build -f "${UI_REPO}/apps/platform-ui/Dockerfile" -t "$image" "$UI_REPO"
+    run docker push "$image"
+    run sed -i "s|^  tag: .*|  tag: ${PLATFORM_UI_TAG}|" charts/platform-ui/values.yaml
+fi
+
 # --- 3. One commit for the whole release --------------------------------------------------------
 if $DRY_RUN; then
     echo "  [dry-run] git commit -m \"${summary}\" && git push"
-elif git diff --quiet -- release.sh build-and-push.sh charts/backend-service/values.yaml charts/creator-ui/values.yaml; then
+elif git diff --quiet -- release.sh build-and-push.sh charts/backend-service/values.yaml charts/creator-ui/values.yaml charts/platform-ui/values.yaml; then
     echo "  No chart changes to commit (tags already matched)."
 else
-    git add release.sh build-and-push.sh charts/backend-service/values.yaml charts/creator-ui/values.yaml
+    git add release.sh build-and-push.sh charts/backend-service/values.yaml charts/creator-ui/values.yaml charts/platform-ui/values.yaml
     git commit -m "$summary"
     git push
 fi
@@ -145,8 +157,13 @@ if [[ -n "$UI_TAG" ]]; then
 helm upgrade creator-ui charts/creator-ui -n ${NAMESPACE} -f charts/creator-ui/values.yaml
 kubectl -n ${NAMESPACE} rollout status deploy/creator-ui --timeout=300s"
 fi
+if [[ -n "$PLATFORM_UI_TAG" ]]; then
+    remote+="
+helm upgrade --install platform-ui charts/platform-ui -n ${NAMESPACE} -f charts/platform-ui/values.yaml
+kubectl -n ${NAMESPACE} rollout status deploy/platform-ui --timeout=300s"
+fi
 remote+="
-kubectl -n ${NAMESPACE} get pods -o wide | grep -E '$(printf '%s|' "${BACKEND[@]%%:*}" ${UI_TAG:+creator-ui} | sed 's/|$//')'"
+kubectl -n ${NAMESPACE} get pods -o wide | grep -E '$(printf '%s|' "${BACKEND[@]%%:*}" ${UI_TAG:+creator-ui} ${PLATFORM_UI_TAG:+platform-ui} | sed 's/|$//')'"
 
 if $DRY_RUN; then
     echo "  [dry-run] ssh -i ${SSH_KEY} ${SERVER} <<'REMOTE'"; echo "$remote"; echo "REMOTE"

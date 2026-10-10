@@ -99,6 +99,9 @@ spec:
 
           - X-Tenant-ID
 
+          # Creator showcase: anonymous visitor id for plays, likes and reports.
+          - X-Visitor-Id
+
         allowCredentials: true
 
         maxAge: 86400s
