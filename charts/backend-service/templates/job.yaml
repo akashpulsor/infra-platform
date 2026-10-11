@@ -104,7 +104,7 @@ spec:
                     -s "redirectUris=$REDIRECT_URIS" \
                     -s 'webOrigins=["*"]' \
                     -s directAccessGrantsEnabled=true \
-                    -s 'attributes={"pkce.code.challenge.method":"S256"}'
+                    -s 'attributes={"pkce.code.challenge.method":"S256","post.logout.redirect.uris":"+"}'
                 else
                   $KCADM create clients -r $REALM \
                     -s clientId=$CLIENT_ID \
@@ -115,7 +115,7 @@ spec:
                     -s 'webOrigins=["*"]' \
                     -s standardFlowEnabled=true \
                     -s directAccessGrantsEnabled=true \
-                    -s 'attributes={"pkce.code.challenge.method":"S256"}'
+                    -s 'attributes={"pkce.code.challenge.method":"S256","post.logout.redirect.uris":"+"}'
                   echo "  ✓ Created client: $CLIENT_ID"
                 fi
               }
@@ -126,7 +126,7 @@ spec:
               echo "▶ Step 4: Creating/updating public clients..."
 
               create_public_client "platform-ui" \
-                '["https://app.'$DOMAIN'/*","https://platform.'$DOMAIN'/*","http://localhost:5173/*","http://localhost:3000/*"]' \
+                '["https://app.'$DOMAIN'/*","https://platform.'$DOMAIN'/*","https://brands.'$DOMAIN'/*","http://localhost:5173/*","http://localhost:3000/*"]' \
                 "Platform UI"
 
               create_public_client "dashboard-ui" \
