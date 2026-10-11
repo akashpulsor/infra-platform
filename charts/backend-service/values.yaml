@@ -222,7 +222,8 @@ services:
       SHOWCASE_PUBLIC_BASE_URL: "https://brands.dalaillama.in"
       BRANDS_SIGN_IN_PAGE_URL: "https://brands.dalaillama.in/brands/sign-in/"
       # Creator showcase: YOUTUBE normally; SELF serves platform films from our own copy (fallback).
-      VIDEO_HOST_PLATFORM_FILMS: "YOUTUBE"
+      # Platform films play from our own (stamped) copy, so private and unlisted uploads show on profiles too.
+      VIDEO_HOST_PLATFORM_FILMS: "SELF"
       # Turn on once the official-channel secrets are in place.
       YT_OFFICIAL_ENABLED: "false"
       # A public video on our own channel, checked nightly by the video-host health probe.
