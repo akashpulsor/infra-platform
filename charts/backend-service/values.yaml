@@ -619,7 +619,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.103-timeline-v2"
+      tag: "0.2.104-incremental-regen"
     service:
       port: 8080
       targetPort: 8080
