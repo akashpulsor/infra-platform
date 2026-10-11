@@ -224,6 +224,8 @@ services:
       # Creator showcase: YOUTUBE normally; SELF serves platform films from our own copy (fallback).
       # Platform films play from our own (stamped) copy, so private and unlisted uploads show on profiles too.
       VIDEO_HOST_PLATFORM_FILMS: "SELF"
+      # One film is enough for a profile to show while profiles are bootstrapping.
+      SHOWCASE_MIN_INITIAL_PICKS: "1"
       # Turn on once the official-channel secrets are in place.
       YT_OFFICIAL_ENABLED: "false"
       # A public video on our own channel, checked nightly by the video-host health probe.
