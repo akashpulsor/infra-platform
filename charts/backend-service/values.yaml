@@ -165,7 +165,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.107"
+      tag: "5.0.108"
     service:
       port: 8080
       targetPort: 8080
