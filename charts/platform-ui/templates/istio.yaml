@@ -6,6 +6,9 @@ metadata:
 spec:
   hosts:
     - {{ .Values.istio.host | quote }}
+    {{- range .Values.istio.extraHosts }}
+    - {{ . | quote }}
+    {{- end }}
   gateways:
     - {{ .Values.istio.gatewayName }}
   http:
