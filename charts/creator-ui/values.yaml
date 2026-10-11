@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.405-creator-showcase
+  tag: 0.1.406
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
