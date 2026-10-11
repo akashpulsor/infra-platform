@@ -11,6 +11,9 @@ service:
 istio:
   enabled: true
   host: platform.dalaillama.in
+  # The brand-facing address; the same pages answer on both.
+  extraHosts:
+    - brands.dalaillama.in
   gatewayName: istio-system/central-gateway
   pathPrefix: /
 

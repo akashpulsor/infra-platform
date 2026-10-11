@@ -18,6 +18,8 @@ global:
         value: "https://dashboard.dalaillama.in"
       - type: exact
         value: "https://platform.dalaillama.in"
+      - type: exact
+        value: "https://brands.dalaillama.in"
       - type: regex
         value: "https://.*\\.dalaillama\\.in"
       - type: prefix
@@ -204,14 +206,15 @@ services:
       HEALTH_CHECK_ENABLED: "true"
       HEALTH_CHECK_INTERVAL_SECONDS: "60"
       HEALTH_CHECK_FAILURE_THRESHOLD: "3"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
       SERVER_PORT: "8080"
-      # Creator showcase: public pages (landing, /creators, /c/<handle>) are served by platform-ui.
-      # Change when the root domain points at platform-ui.
-      SHOWCASE_PUBLIC_BASE_URL: "https://platform.dalaillama.in"
+      # Creator showcase: public pages (landing, /creators, /c/<handle>, brand sign-in and home) are
+      # served by platform-ui on brands.dalaillama.in; platform.dalaillama.in keeps serving old links.
+      SHOWCASE_PUBLIC_BASE_URL: "https://brands.dalaillama.in"
+      BRANDS_SIGN_IN_PAGE_URL: "https://brands.dalaillama.in/brands/sign-in/"
       # Creator showcase: YOUTUBE normally; SELF serves platform films from our own copy (fallback).
       VIDEO_HOST_PLATFORM_FILMS: "YOUTUBE"
       # Turn on once the official-channel secrets are in place.
@@ -299,7 +302,7 @@ services:
       HEALTH_CHECK_ENABLED: "true"
       HEALTH_CHECK_INTERVAL_SECONDS: "60"
       HEALTH_CHECK_FAILURE_THRESHOLD: "3"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
@@ -383,7 +386,7 @@ services:
       SQL_LOG_LEVEL: "WARN"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -499,7 +502,7 @@ services:
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -642,7 +645,7 @@ services:
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -734,7 +737,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.40"
+      tag: "0.1.41"
     service:
       port: 8080
       targetPort: 8080
@@ -771,7 +774,7 @@ services:
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -930,7 +933,7 @@ services:
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -996,7 +999,7 @@ services:
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -1093,7 +1096,7 @@ services:
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -1164,7 +1167,7 @@ services:
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -1226,7 +1229,7 @@ services:
       SHOW_SQL: "false"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SERVER_PORT: "8080"
@@ -1284,7 +1287,7 @@ services:
       SQL_LOG_LEVEL: "WARN"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://localhost:5184,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://creator.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5181,http://localhost:5182,http://localhost:5184,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES: "*"
@@ -1458,7 +1461,7 @@ services:
       SQL_LOG_LEVEL: "WARN"
       SPRING_FLYWAY_ENABLED: "true"
       LOG_LEVEL: "INFO"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       KAMAILIO_JSONRPC_URL: "http://sip.dalaillama.in:5060/jsonrpc"
@@ -1682,7 +1685,7 @@ services:
       AI_RESULT_TOPIC: "ai-transcript-results"
       KAFKA_REG_TOPIC: "pbx-registration-events"
       KAFKA_CALL_TOPIC: "pbx-call-events"
-      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
+      CORS_ALLOWED_ORIGINS: "https://dalaillama-dev.local:8443,https://dashboard.dalaillama.in,https://platform.dalaillama.in,https://brands.dalaillama.in,http://localhost:8081,http://localhost:5177,http://localhost:5172,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://auth.localhost:8081"
       CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
       CORS_MAX_AGE: "86400"
       KAMAILIO_JSONRPC_URL: "http://sip.dalaillama.in:5060/jsonrpc"

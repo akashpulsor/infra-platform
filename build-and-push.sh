@@ -47,7 +47,7 @@ SERVICES=(
     "billing-service:5.0.117-mail-packs"
     "llm-gateway:0.2.70-provider-costs"
     "video-generation-service:0.2.98-no-music-bake"
-    "post-production-service:0.1.40"
+    "post-production-service:0.1.41"
     "pre-production-service:0.2.89"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.31-brief-from-request"
