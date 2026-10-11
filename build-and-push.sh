@@ -50,7 +50,7 @@ SERVICES=(
     "post-production-service:0.1.41"
     "pre-production-service:0.2.89"
     "critic-service:0.1.2-gemini-embedding-001"
-    "creative-planning-service:0.1.31-brief-from-request"
+    "creative-planning-service:0.1.32"
     "trend-intelligence-service:0.1.0"
     "chat-service:0.1.5-project-tracing"
 )
