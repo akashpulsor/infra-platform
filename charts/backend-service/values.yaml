@@ -40,6 +40,12 @@ keycloak:
 
   # issuer claim in token remains external; jwksUri is just where to fetch signing keys.
   jwksUri: http://keycloak.apps.svc.cluster.local:80/realms/dalai-llama/protocol/openid-connect/certs
+  # Other realms whose tokens services accept. Istio rejects a token from an issuer not listed here
+  # ("Jwt issuer is not configured") before it reaches the service. brands: the brand console's own
+  # realm (CREATOR_SHOWCASE rule 46), checked again by tenant-service.
+  extraIssuers:
+    - issuerUrl: https://auth.dalaillama.in/realms/brands
+      jwksUri: http://keycloak.apps.svc.cluster.local:80/realms/brands/protocol/openid-connect/certs
   adminUrl: http://keycloak.apps.svc.cluster.local:80
   adminRealm: master
   adminClientId: admin-cli

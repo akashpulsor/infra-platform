@@ -162,6 +162,16 @@ spec:
 
       forwardOriginalToken: true
 
+    {{- range $.Values.keycloak.extraIssuers }}
+
+    - issuer: {{ .issuerUrl | quote }}
+
+      jwksUri: {{ .jwksUri | quote }}
+
+      forwardOriginalToken: true
+
+    {{- end }}
+
 ---
 
 # NOTE: Istio AuthorizationPolicy (DENY) removed.
