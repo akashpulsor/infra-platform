@@ -616,7 +616,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.101-one-prompt-flow"
+      tag: "0.2.102-prompt-versions"
     service:
       port: 8080
       targetPort: 8080
