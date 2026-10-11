@@ -783,6 +783,12 @@ it tenant-service answers YouTube requests with 503 "not set up yet". */}}
       name: {{ .Values.secrets.showcase.name }}
       key: {{ .Values.secrets.showcase.hunterApiKeyKey }}
       optional: true
+- name: APOLLO_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.showcase.name }}
+      key: {{ .Values.secrets.showcase.apolloApiKeyKey }}
+      optional: true
 {{- end -}}
 
 

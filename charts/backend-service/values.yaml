@@ -1804,12 +1804,15 @@ secrets:
     googleClientSecretKey: google-oauth-client-secret
     # Hunter.io key for the shared brand directory (rule 42).
     hunterApiKeyKey: hunter-api-key
+    # Apollo.io key for the people directory (rule 44).
+    apolloApiKeyKey: apollo-api-key
     values:
       brandSession: ""
       outreachPepper: ""
       googleClientId: ""
       googleClientSecret: ""
       hunterApiKey: ""
+      apolloApiKey: ""
   smtp:
     name: dalai-backend-smtp
     usernameKey: smtp-username
