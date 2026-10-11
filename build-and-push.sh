@@ -48,7 +48,7 @@ SERVICES=(
     "llm-gateway:0.2.71-clone-files"
     "video-generation-service:0.2.102-prompt-versions"
     "post-production-service:0.1.41"
-    "pre-production-service:0.2.89"
+    "pre-production-service:0.4.0-consent-poster"
     "critic-service:0.1.2-gemini-embedding-001"
     "creative-planning-service:0.1.32"
     "trend-intelligence-service:0.1.0"

@@ -905,7 +905,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.2.89"
+      tag: "0.4.0-consent-poster"
     service:
       port: 8080
       targetPort: 8080
