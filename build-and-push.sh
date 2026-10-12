@@ -45,7 +45,7 @@ SERVICES=(
     "tenant-service:5.0.110"
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.117-mail-packs"
-    "llm-gateway:0.2.72-timeline-v2"
+    "llm-gateway:0.2.73-prompts-frames"
     "video-generation-service:0.2.105-frames"
     "post-production-service:0.1.41"
     "pre-production-service:0.4.0-consent-poster"
