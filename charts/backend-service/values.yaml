@@ -619,7 +619,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: video-generation-service
-      tag: "0.2.108-recorded-take"
+      tag: "0.2.109-multi-speaker"
     service:
       port: 8080
       targetPort: 8080
@@ -746,7 +746,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.42-clip-versions"
+      tag: "0.1.43-multi-speaker"
     service:
       port: 8080
       targetPort: 8080
