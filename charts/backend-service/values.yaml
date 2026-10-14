@@ -165,7 +165,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.114-poster"
+      tag: "5.0.115-own-player"
     service:
       port: 8080
       targetPort: 8080
@@ -746,7 +746,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.44-topaz"
+      tag: "0.1.45-latest-film"
     service:
       port: 8080
       targetPort: 8080
@@ -907,7 +907,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.4.3-poster-frame"
+      tag: "0.4.4-showcase-film"
     service:
       port: 8080
       targetPort: 8080
