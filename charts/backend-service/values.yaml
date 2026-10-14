@@ -165,7 +165,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.113-profile-first"
+      tag: "5.0.114-poster"
     service:
       port: 8080
       targetPort: 8080
@@ -746,7 +746,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.43-multi-speaker"
+      tag: "0.1.44-in-use"
     service:
       port: 8080
       targetPort: 8080
@@ -907,7 +907,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.4.2-mg-edit"
+      tag: "0.4.3-poster-frame"
     service:
       port: 8080
       targetPort: 8080
