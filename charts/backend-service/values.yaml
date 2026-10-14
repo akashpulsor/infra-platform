@@ -165,7 +165,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.115-own-player"
+      tag: "5.0.116-company"
     service:
       port: 8080
       targetPort: 8080
@@ -486,7 +486,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: llm-gateway
-      tag: "0.2.75-topaz"
+      tag: "0.2.76-topaz-price"
     service:
       port: 8080
       targetPort: 8080
