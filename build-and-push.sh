@@ -45,7 +45,7 @@ SERVICES=(
     "tenant-service:5.0.114-poster"
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.117-mail-packs"
-    "llm-gateway:0.2.74-mg-enhance"
+    "llm-gateway:0.2.75-topaz"
     "video-generation-service:0.2.110-shot-lines"
     "post-production-service:0.1.44-topaz"
     "pre-production-service:0.4.3-poster-frame"
