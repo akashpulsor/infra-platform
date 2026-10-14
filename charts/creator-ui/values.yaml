@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.423-clip-squeeze
+  tag: 0.1.424-controls
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
