@@ -46,7 +46,7 @@ SERVICES=(
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.117-mail-packs"
     "llm-gateway:0.2.73-prompts-frames"
-    "video-generation-service:0.2.106-shot-length"
+    "video-generation-service:0.2.107-clip-squeeze"
     "post-production-service:0.1.41"
     "pre-production-service:0.4.1-shot-length"
     "critic-service:0.1.2-gemini-embedding-001"
