@@ -165,7 +165,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.112-channels"
+      tag: "5.0.113-profile-first"
     service:
       port: 8080
       targetPort: 8080
@@ -746,7 +746,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: post-production-service
-      tag: "0.1.41"
+      tag: "0.1.42-clip-versions"
     service:
       port: 8080
       targetPort: 8080
