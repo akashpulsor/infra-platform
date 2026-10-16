@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.430-savings
+  tag: 0.1.431-break-even
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
