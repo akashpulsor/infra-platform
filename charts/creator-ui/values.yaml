@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.428-own-player
+  tag: 0.1.429-lower-handles
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
