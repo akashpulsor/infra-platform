@@ -46,7 +46,7 @@ SERVICES=(
     "product-service:5.0.98-honest-payment-error"
     "billing-service:5.0.117-mail-packs"
     "llm-gateway:0.2.76-topaz-price"
-    "video-generation-service:0.2.110-shot-lines"
+    "video-generation-service:0.2.111-savings"
     "post-production-service:0.1.45-latest-film"
     "pre-production-service:0.4.4-showcase-film"
     "critic-service:0.1.2-gemini-embedding-001"

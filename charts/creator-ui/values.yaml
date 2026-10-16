@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.429-lower-handles
+  tag: 0.1.430-savings
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
