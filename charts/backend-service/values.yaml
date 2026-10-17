@@ -165,7 +165,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.117-lower-handles"
+      tag: "5.0.118-profile-upload"
     service:
       port: 8080
       targetPort: 8080
