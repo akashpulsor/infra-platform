@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.432-profile-upload
+  tag: 0.1.433-request-routing
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
