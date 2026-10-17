@@ -165,7 +165,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.118-profile-upload"
+      tag: "5.0.119-request-routing"
     service:
       port: 8080
       targetPort: 8080
@@ -910,7 +910,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.4.4-showcase-film"
+      tag: "0.4.5-review-token"
     service:
       port: 8080
       targetPort: 8080
@@ -1083,7 +1083,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: creative-planning-service
-      tag: "0.1.32"
+      tag: "0.1.33-brief-progress"
     service:
       port: 8080
       targetPort: 8080
