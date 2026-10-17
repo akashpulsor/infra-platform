@@ -226,6 +226,9 @@ services:
       VIDEO_HOST_PLATFORM_FILMS: "SELF"
       # One film is enough for a profile to show while profiles are bootstrapping.
       SHOWCASE_MIN_INITIAL_PICKS: "1"
+      # Videos creators upload to their profile play from MinIO through links signed for this
+      # public host (ShowcaseMediaStore); the in-cluster hostname would not resolve for browsers.
+      MINIO_PUBLIC_URL: "https://media.dalaillama.in"
       # Turn on once the official-channel secrets are in place.
       YT_OFFICIAL_ENABLED: "false"
       # A public video on our own channel, checked nightly by the video-host health probe.
