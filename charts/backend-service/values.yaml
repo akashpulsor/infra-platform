@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.124-merged-digest"
+      tag: "5.0.125-mail-requests"
     service:
       port: 8080
       targetPort: 8080

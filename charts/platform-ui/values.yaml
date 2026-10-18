@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/platform-ui
-  tag: 1.0.19-merged-grid
+  tag: 1.0.20-mail-requests
   pullPolicy: IfNotPresent
 
 replicaCount: 1
