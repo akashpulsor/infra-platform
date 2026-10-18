@@ -165,7 +165,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.119-request-routing"
+      tag: "5.0.120-request-brief"
     service:
       port: 8080
       targetPort: 8080
@@ -1083,7 +1083,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: creative-planning-service
-      tag: "0.1.33-brief-progress"
+      tag: "0.1.34-request-pricing"
     service:
       port: 8080
       targetPort: 8080
