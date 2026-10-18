@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/platform-ui
-  tag: 1.0.16-clean-cards
+  tag: 1.0.17-video-cards
   pullPolicy: IfNotPresent
 
 replicaCount: 1
