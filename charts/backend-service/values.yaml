@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.123-daily-send-cap"
+      tag: "5.0.124-merged-digest"
     service:
       port: 8080
       targetPort: 8080
