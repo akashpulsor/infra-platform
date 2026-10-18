@@ -1785,7 +1785,7 @@ secrets:
       keyId: ""
       keySecret: ""
       webhookSecret: ""
-  # Hostinger shared-hosting SMTP (smtp.hostinger.com:465 SSL). billing-service pulls these
+  # Hostinger shared-hosting SMTP (smtp.hostinger.com:587 STARTTLS). billing- and tenant-service pull these
   # in as SMTP_USERNAME/SMTP_PASSWORD/SMTP_FROM env vars; host/port default to Hostinger in
   # application.yml. Blank values in values.yaml keep the secret shape stable; the real ones
   # go in values-secret.yaml on the deploy host and are never committed.
