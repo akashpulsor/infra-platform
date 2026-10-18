@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/platform-ui
-  tag: 1.0.17-video-cards
+  tag: 1.0.18-dropdowns
   pullPolicy: IfNotPresent
 
 replicaCount: 1
