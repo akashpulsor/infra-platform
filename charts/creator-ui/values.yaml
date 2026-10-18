@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.437-expire-requests
+  tag: 0.1.438-daily-send-cap
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

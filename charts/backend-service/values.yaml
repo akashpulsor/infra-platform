@@ -165,7 +165,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.122-expire-requests"
+      tag: "5.0.123-daily-send-cap"
     service:
       port: 8080
       targetPort: 8080
@@ -372,7 +372,7 @@ services:
       type: Recreate
     image:
       repository: billing-service
-      tag: "5.0.117-mail-packs"
+      tag: "5.0.118-smtp-587"
     service:
       port: 8080
       targetPort: 8080
