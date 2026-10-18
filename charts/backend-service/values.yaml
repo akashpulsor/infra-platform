@@ -135,6 +135,22 @@ services:
       - /api/v1/public/tenant-config
       # Creator showcase (public, no login). Each prefix is listed on its own, never the bare
       # /api/v1/public -- see the collision note above.
+      # A brand's video request becomes a priced brief in creative-planning before it answers,
+      # which ran past the 10s per-try timeout (504 on 2026-10-18, first request after a release).
+      # Longer timeout and no retries: a retry would file the request twice. Listed before the
+      # prefixes they sit under, since Envoy takes the first match.
+      - path: /api/v1/public/brands/requests
+        exact: true
+        timeout: 60s
+        retries: false
+      - path: /api/v1/public/brands/me/requests
+        exact: true
+        timeout: 60s
+        retries: false
+      - path: ^/api/v1/public/creators/[^/]+/inquiries$
+        regex: true
+        timeout: 60s
+        retries: false
       - /api/v1/public/creators
       - /api/v1/public/showcase
       - /api/v1/public/brands

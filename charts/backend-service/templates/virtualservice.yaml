@@ -40,6 +40,7 @@ spec:
     {{- $timeout := "30s" }}
     {{- $retryEnabled := true }}
     {{- $exact := false }}
+    {{- $regex := false }}
     {{- if kindIs "map" $pathEntry }}
     {{- $path = $pathEntry.path }}
     {{- if $pathEntry.timeout }}
@@ -51,6 +52,9 @@ spec:
     {{- if hasKey $pathEntry "exact" }}
     {{- $exact = $pathEntry.exact }}
     {{- end }}
+    {{- if hasKey $pathEntry "regex" }}
+    {{- $regex = $pathEntry.regex }}
+    {{- end }}
     {{- end }}
 
     - match:
@@ -59,6 +63,9 @@ spec:
 {{- if $exact }}
 
             exact: {{ $path }}
+{{- else if $regex }}
+
+            regex: {{ $path | quote }}
 {{- else }}
 
             prefix: {{ $path }}
