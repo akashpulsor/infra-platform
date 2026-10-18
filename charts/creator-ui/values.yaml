@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.436-dropdowns
+  tag: 0.1.437-expire-requests
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

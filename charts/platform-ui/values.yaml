@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/platform-ui
-  tag: 1.0.18-dropdowns
+  tag: 1.0.19-merged-grid
   pullPolicy: IfNotPresent
 
 replicaCount: 1
