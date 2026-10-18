@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/platform-ui
-  tag: 1.0.14-inspiration-inline
+  tag: 1.0.15-masonry-header
   pullPolicy: IfNotPresent
 
 replicaCount: 1
