@@ -723,6 +723,12 @@ app.kubernetes.io/part-of: dalai-llama-backend
       name: {{ .Values.secrets.smtp.name }}
       key: {{ .Values.secrets.smtp.fromKey }}
       optional: true
+- name: SMTP_DKIM_PRIVATE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.smtp.name }}
+      key: {{ .Values.secrets.smtp.dkimPrivateKeyKey }}
+      optional: true
 {{- end -}}
 
 

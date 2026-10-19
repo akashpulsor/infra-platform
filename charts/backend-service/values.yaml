@@ -1846,7 +1846,11 @@ secrets:
     usernameKey: smtp-username
     passwordKey: smtp-password
     fromKey: smtp-from
+    # PEM (PKCS#8) private key tenant-service signs outreach mail with, DKIM d=partner.dalaillama.in
+    # (Hostinger signs only its own domains). Public half: dl1._domainkey.partner.dalaillama.in.
+    dkimPrivateKeyKey: smtp-dkim-private-key
     values:
       username: ""
       password: ""
       from: ""
+      dkimPrivateKey: ""
