@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.127-styled-mail"
+      tag: "5.0.128-dkim-bounces"
     service:
       port: 8080
       targetPort: 8080
