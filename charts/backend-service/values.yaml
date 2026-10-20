@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.128-dkim-bounces"
+      tag: "5.0.129-plan-caps"
     service:
       port: 8080
       targetPort: 8080
@@ -294,7 +294,7 @@ services:
       type: Recreate
     image:
       repository: product-service
-      tag: "5.0.98-honest-payment-error"
+      tag: "5.0.99-studio-plan"
     service:
       port: 8080
       targetPort: 8080
@@ -388,7 +388,7 @@ services:
       type: Recreate
     image:
       repository: billing-service
-      tag: "5.0.118-smtp-587"
+      tag: "5.0.119-half-yearly"
     service:
       port: 8080
       targetPort: 8080

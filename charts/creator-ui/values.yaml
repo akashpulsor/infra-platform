@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.439-video-ideas
+  tag: 0.1.440-studio-plan
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
