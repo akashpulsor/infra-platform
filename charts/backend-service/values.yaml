@@ -294,7 +294,7 @@ services:
       type: Recreate
     image:
       repository: product-service
-      tag: "5.0.99-studio-plan"
+      tag: "5.0.100-free-grants"
     service:
       port: 8080
       targetPort: 8080
