@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.130-inspiration-player"
+      tag: "5.0.131-base-1999"
     service:
       port: 8080
       targetPort: 8080
