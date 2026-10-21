@@ -176,6 +176,15 @@ spec:
             host: billing-service.apps.svc.cluster.local
             port:
               number: 8080
+    # Free plans tab: ops give a creator Studio or Pro free for a number of days.
+    - match:
+        - uri:
+            prefix: /api/v1/internal/admin/subscriptions
+      route:
+        - destination:
+            host: product-service.apps.svc.cluster.local
+            port:
+              number: 8080
     # Production's critics on/off (Pricing tab).
     - match:
         - uri:
