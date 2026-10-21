@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.440-studio-plan
+  tag: 0.1.441-free-grants
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
