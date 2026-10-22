@@ -432,6 +432,10 @@ services:
       defaultCurrency: INR
     razorpay:
       enabled: true
+      # RazorpayX Payouts (creator's share of each project). Set the RazorpayX business account
+      # number, then flip payoutsEnabled -- payouts opened before that wait in QUEUED.
+      payoutsEnabled: false
+      payoutAccountNumber: ""
   # --- LLM GATEWAY ---
 
   llmGateway:

@@ -674,6 +674,11 @@ app.kubernetes.io/part-of: dalai-llama-backend
       key: {{ .Values.secrets.razorpay.webhookSecretKey }}
 - name: RAZORPAY_MOCK_ENABLED
   value: {{ .Values.services.billingService.razorpay.mockEnabled | default false | quote }}
+# RazorpayX Payouts -- creators' share of each project. Nothing is sent until payoutsEnabled.
+- name: RAZORPAYX_PAYOUTS_ENABLED
+  value: {{ .Values.services.billingService.razorpay.payoutsEnabled | default false | quote }}
+- name: RAZORPAYX_ACCOUNT_NUMBER
+  value: {{ .Values.services.billingService.razorpay.payoutAccountNumber | default "" | quote }}
 
 {{- end }}
 
