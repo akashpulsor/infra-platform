@@ -388,7 +388,7 @@ services:
       type: Recreate
     image:
       repository: billing-service
-      tag: "5.0.119-half-yearly"
+      tag: "5.0.120-creator-payouts"
     service:
       port: 8080
       targetPort: 8080
@@ -930,7 +930,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: pre-production-service
-      tag: "0.4.5-review-token"
+      tag: "0.4.6-creator-payouts"
     service:
       port: 8080
       targetPort: 8080
@@ -1103,7 +1103,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: creative-planning-service
-      tag: "0.1.35-withdraw-link"
+      tag: "0.1.36-creator-payouts"
     service:
       port: 8080
       targetPort: 8080
