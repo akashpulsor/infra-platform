@@ -44,7 +44,7 @@ VALUES_FILE="${SCRIPT_DIR}/charts/backend-service/values.yaml"
 SERVICES=(
     "tenant-service:5.0.132"
     "product-service:5.0.101-grant-view-tx"
-    "billing-service:5.0.120-creator-payouts"
+    "billing-service:5.0.121-manual-payouts"
     "llm-gateway:0.2.77-topaz-fal-rate"
     "video-generation-service:0.2.112-break-even"
     "post-production-service:0.1.45-latest-film"

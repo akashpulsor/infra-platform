@@ -388,7 +388,7 @@ services:
       type: Recreate
     image:
       repository: billing-service
-      tag: "5.0.120-creator-payouts"
+      tag: "5.0.121-manual-payouts"
     service:
       port: 8080
       targetPort: 8080
