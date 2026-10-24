@@ -237,6 +237,10 @@ services:
       # served by platform-ui on brands.dalaillama.in; platform.dalaillama.in keeps serving old links.
       SHOWCASE_PUBLIC_BASE_URL: "https://brands.dalaillama.in"
       BRANDS_SIGN_IN_PAGE_URL: "https://brands.dalaillama.in/brands/sign-in/"
+      # Automatic picks (AutoPickJob: a film per opted-in brand, plus follower notices) are off
+      # ("-" disables a Spring cron). Put a cron back (default "0 30 12 * * *") to restart them.
+      # Creators' own sends, audience sends and the merged daily digest keep running.
+      OUTREACH_AUTO_PICK_CRON: "-"
       # Creator showcase: YOUTUBE normally; SELF serves platform films from our own copy (fallback).
       # Platform films play from our own (stamped) copy, so private and unlisted uploads show on profiles too.
       VIDEO_HOST_PLATFORM_FILMS: "SELF"
