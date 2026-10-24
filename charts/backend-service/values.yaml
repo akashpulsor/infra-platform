@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.132"
+      tag: "5.0.133-creator-mail"
     service:
       port: 8080
       targetPort: 8080
