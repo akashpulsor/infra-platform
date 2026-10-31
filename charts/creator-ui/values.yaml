@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.450-mail-style-choice
+  tag: 0.1.451-random-ideas
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

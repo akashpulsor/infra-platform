@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.140-inspiration-fill"
+      tag: "5.0.141-random-ideas"
     service:
       port: 8080
       targetPort: 8080
