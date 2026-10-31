@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.453-confirm-name
+  tag: 0.1.454-send-note
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
