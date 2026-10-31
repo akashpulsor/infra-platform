@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.142-maker-names"
+      tag: "5.0.143-test-name"
     service:
       port: 8080
       targetPort: 8080
