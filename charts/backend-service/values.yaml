@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.143-test-name"
+      tag: "5.0.144-brand-mail"
     service:
       port: 8080
       targetPort: 8080

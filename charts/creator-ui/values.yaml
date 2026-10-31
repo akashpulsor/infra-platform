@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.454-send-note
+  tag: 0.1.455-brand-mail
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
