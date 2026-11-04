@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.147-add-brand"
+      tag: "5.0.148-brand-matching"
     service:
       port: 8080
       targetPort: 8080
@@ -392,7 +392,7 @@ services:
       type: Recreate
     image:
       repository: billing-service
-      tag: "5.0.121-manual-payouts"
+      tag: "5.0.122-brand-matching"
     service:
       port: 8080
       targetPort: 8080
@@ -1107,7 +1107,7 @@ services:
     preStopSleepSeconds: 10
     image:
       repository: creative-planning-service
-      tag: "0.1.36-creator-payouts"
+      tag: "0.1.37-brand-matching"
     service:
       port: 8080
       targetPort: 8080
