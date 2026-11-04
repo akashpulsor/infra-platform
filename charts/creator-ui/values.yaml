@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.457-brand-matching
+  tag: 0.1.458-mail-history
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
