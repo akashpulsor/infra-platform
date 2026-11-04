@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.458-mail-history
+  tag: 0.1.459-brand-send
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:
