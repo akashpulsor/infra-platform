@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.149-mail-history"
+      tag: "5.0.150-mail-copy"
     service:
       port: 8080
       targetPort: 8080
