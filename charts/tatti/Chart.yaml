@@ -1,0 +1,4 @@
+apiVersion: v2
+name: tatti
+description: TATTI's video list service. Apart from Dalai Llama, in its own namespace, with no database.
+version: 0.1.0

@@ -1,0 +1,4 @@
+image:
+  repository: akashtripathi/tatti-service
+  tag: 0.1.0
+opsHost: tatti-ops.dalaillama.in

@@ -1,0 +1,82 @@
+{{- if .Values.opsDashboard.enabled }}
+# TATTI's video list service (charts/tatti), which stands apart from Dalai Llama. Only additions here:
+#   tatti.dalaillama.in      public, and only /list.json: phones download the signed list.
+#   tatti-ops.dalaillama.in  the page ops add videos on, behind the ops login (templates/ops-auth.yaml).
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: tatti-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https-tatti
+        protocol: HTTPS
+      hosts: [tatti.dalaillama.in]
+      tls: { mode: SIMPLE, credentialName: tatti-dalaillama-in-tls }
+    - port:
+        number: 443
+        name: https-tatti-ops
+        protocol: HTTPS
+      hosts: [tatti-ops.dalaillama.in]
+      tls: { mode: SIMPLE, credentialName: tatti-ops-dalaillama-in-tls }
+    - port:
+        number: 80
+        name: http-tatti-redirect
+        protocol: HTTP
+      hosts:
+        - tatti.dalaillama.in
+        - tatti-ops.dalaillama.in
+      tls:
+        httpsRedirect: true
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tatti-dalaillama-in-tls
+  namespace: istio-system
+spec:
+  secretName: tatti-dalaillama-in-tls
+  issuerRef: { name: letsencrypt-prod, kind: ClusterIssuer }
+  dnsNames: [tatti.dalaillama.in]
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tatti-ops-dalaillama-in-tls
+  namespace: istio-system
+spec:
+  secretName: tatti-ops-dalaillama-in-tls
+  issuerRef: { name: letsencrypt-prod, kind: ClusterIssuer }
+  dnsNames: [tatti-ops.dalaillama.in]
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: tatti-public
+  namespace: istio-system
+spec:
+  hosts: [tatti.dalaillama.in]
+  gateways: [tatti-gateway]
+  http:
+    # Only the list; anything else on this host gets a 404 from the gateway.
+    - match: [{ uri: { exact: /list.json } }]
+      route: [{ destination: { host: tatti.tatti.svc.cluster.local, port: { number: 8080 } } }]
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: tatti-ops
+  namespace: istio-system
+spec:
+  hosts: [tatti-ops.dalaillama.in]
+  gateways: [tatti-gateway]
+  http:
+    - match: [{ uri: { prefix: /oauth2/ } }]
+      route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
+    - route: [{ destination: { host: tatti.tatti.svc.cluster.local, port: { number: 8080 } } }]
+{{- end }}

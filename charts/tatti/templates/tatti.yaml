@@ -1,0 +1,83 @@
+# Capped so it can't take memory from Dalai Llama on the shared node. The signing key is a Secret made
+# by hand on the box (tatti-signing, key signing-private.pem) and never kept in git.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tatti-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tatti
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: tatti
+  template:
+    metadata:
+      labels:
+        app: tatti
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: tatti
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: OPS_HOST
+              value: {{ .Values.opsHost | quote }}
+            - name: DATA_DIR
+              value: /data
+            - name: SIGNING_KEY_FILE
+              value: /secrets/signing-private.pem
+            - name: NODE_OPTIONS
+              value: --max-old-space-size=48
+          resources:
+            requests:
+              cpu: 10m
+              memory: 48Mi
+            limits:
+              cpu: 200m
+              memory: 96Mi
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 30
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 60
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: signing
+              mountPath: /secrets
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: tatti-data
+        - name: signing
+          secret:
+            secretName: tatti-signing
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tatti
+spec:
+  selector:
+    app: tatti
+  ports:
+    - port: 8080
+      targetPort: 8080
