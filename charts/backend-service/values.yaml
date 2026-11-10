@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.151-brand-campaign"
+      tag: "5.0.152-oauth-scopes"
     service:
       port: 8080
       targetPort: 8080
