@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.152-oauth-scopes"
+      tag: "5.0.153-landing-placement"
     service:
       port: 8080
       targetPort: 8080
