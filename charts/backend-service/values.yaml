@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.153-landing-placement"
+      tag: "5.0.154-landing-fill"
     service:
       port: 8080
       targetPort: 8080
