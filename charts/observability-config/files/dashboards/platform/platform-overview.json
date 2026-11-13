@@ -9,7 +9,7 @@
  "timezone": "browser",
  "editable": true,
  "schemaVersion": 39,
- "version": 1,
+ "version": 2,
  "refresh": "30s",
  "time": {
   "from": "now-6h",
@@ -22,6 +22,15 @@
     "label": "Prometheus",
     "type": "datasource",
     "query": "prometheus",
+    "hide": 2,
+    "current": {},
+    "refresh": 1
+   },
+   {
+    "name": "ds_loki",
+    "label": "Loki",
+    "type": "datasource",
+    "query": "loki",
     "hide": 2,
     "current": {},
     "refresh": 1
@@ -715,13 +724,263 @@
    }
   },
   {
+   "id": 19,
+   "type": "row",
+   "title": "Failures",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 32,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 20,
+   "type": "table",
+   "title": "Failed requests (4xx and 5xx, last 24h)",
+   "description": "Every request a service answered with an error. Rejected input (validation, business rules) is 4xx, so it shows here and not in the 5xx panels.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 33,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "topk(25, sum by (app, method, uri, status) (increase(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\", status=~\"4..|5..\"}[24h])) > 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "format": "table",
+     "instant": true
+    }
+   ],
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "Time": true
+      },
+      "renameByName": {
+       "app": "Service",
+       "method": "Method",
+       "uri": "Endpoint",
+       "status": "Status",
+       "Value": "Failures"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "align": "auto"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Failures",
+      "desc": true
+     }
+    ]
+   }
+  },
+  {
+   "id": 21,
+   "type": "table",
+   "title": "Gateway failures (never reached the service, last 24h)",
+   "description": "Failed at the Istio mesh: timeouts, no healthy pod, refused connections. Code 0 = the connection dropped. Flags: UF couldn't connect, UT timed out, URX retries used up, UH no healthy pod.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 33,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "topk(25, sum by (destination_workload, response_code, response_flags) (increase(istio_requests_total{reporter=\"source\", destination_workload_namespace=\"apps\", destination_workload=~\"$service\", response_code=~\"5..|0\"}[24h])) > 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "format": "table",
+     "instant": true
+    }
+   ],
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "Time": true
+      },
+      "renameByName": {
+       "destination_workload": "Service",
+       "response_code": "Code",
+       "response_flags": "Flags",
+       "Value": "Failures"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "align": "auto"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Failures",
+      "desc": true
+     }
+    ]
+   }
+  },
+  {
+   "id": 22,
+   "type": "timeseries",
+   "title": "Error log lines / min by service",
+   "description": "Every error a service logged, including Kafka consumers, nightly jobs and outgoing mail, which never show in the request panels. Open Service Logs to read them.",
+   "datasource": {
+    "type": "loki",
+    "uid": "${ds_loki}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 42,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "loki",
+      "uid": "${ds_loki}"
+     },
+     "expr": "sum by (app) (count_over_time({namespace=\"apps\", app=~\"$service\", level=~\"(?i)error\"} [1m]))",
+     "legendFormat": "{{app}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "drawStyle": "bars",
+      "fillOpacity": 60,
+      "lineWidth": 1
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   }
+  },
+  {
+   "id": 23,
+   "type": "table",
+   "title": "Exceptions thrown (last 24h)",
+   "description": "Requests that threw, whatever status they returned, with the exception class.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_prom}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 42,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_prom}"
+     },
+     "expr": "topk(25, sum by (app, uri, exception) (increase(http_server_requests_seconds_count{namespace=\"apps\", app=~\"$service\", uri!~\"/actuator.*\", exception!~\"none|\"}[24h])) > 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "format": "table",
+     "instant": true
+    }
+   ],
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "Time": true
+      },
+      "renameByName": {
+       "app": "Service",
+       "uri": "Endpoint",
+       "exception": "Exception",
+       "Value": "Count"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "align": "auto"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Count",
+      "desc": true
+     }
+    ]
+   }
+  },
+  {
    "id": 14,
    "type": "row",
    "title": "Resources",
    "collapsed": false,
    "gridPos": {
     "x": 0,
-    "y": 32,
+    "y": 50,
     "w": 24,
     "h": 1
    },
@@ -738,7 +997,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 33,
+    "y": 51,
     "w": 12,
     "h": 8
    },
@@ -795,7 +1054,7 @@
    },
    "gridPos": {
     "x": 12,
-    "y": 33,
+    "y": 51,
     "w": 12,
     "h": 8
    },
@@ -852,7 +1111,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 41,
+    "y": 59,
     "w": 12,
     "h": 8
    },
@@ -918,7 +1177,7 @@
    },
    "gridPos": {
     "x": 12,
-    "y": 41,
+    "y": 59,
     "w": 12,
     "h": 8
    },
