@@ -130,7 +130,7 @@ metadata:
   namespace: istio-system
 spec:
   hosts: [grafana.dalaillama.in]
-  gateways: [ops-tools-gateway]
+  gateways: [ops-tools-gateway, central-gateway]  # central-gateway: HTTP/2 reuse of *.dalaillama.in connections (see ops-dashboard.yaml)
   http:
     - match: [{ uri: { prefix: /oauth2/ } }]
       route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
@@ -143,7 +143,7 @@ metadata:
   namespace: istio-system
 spec:
   hosts: [prometheus.dalaillama.in]
-  gateways: [ops-tools-gateway]
+  gateways: [ops-tools-gateway, central-gateway]  # central-gateway: HTTP/2 reuse of *.dalaillama.in connections (see ops-dashboard.yaml)
   http:
     - match: [{ uri: { prefix: /oauth2/ } }]
       route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
@@ -156,7 +156,7 @@ metadata:
   namespace: istio-system
 spec:
   hosts: [jaeger.dalaillama.in]
-  gateways: [ops-tools-gateway]
+  gateways: [ops-tools-gateway, central-gateway]  # central-gateway: HTTP/2 reuse of *.dalaillama.in connections (see ops-dashboard.yaml)
   http:
     - match: [{ uri: { prefix: /oauth2/ } }]
       route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
@@ -169,7 +169,7 @@ metadata:
   namespace: istio-system
 spec:
   hosts: [kiali.dalaillama.in]
-  gateways: [ops-tools-gateway]
+  gateways: [ops-tools-gateway, central-gateway]  # central-gateway: HTTP/2 reuse of *.dalaillama.in connections (see ops-dashboard.yaml)
   http:
     - match: [{ uri: { prefix: /oauth2/ } }]
       route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]
@@ -182,7 +182,7 @@ metadata:
   namespace: istio-system
 spec:
   hosts: [loki.dalaillama.in]
-  gateways: [ops-tools-gateway]
+  gateways: [ops-tools-gateway, central-gateway]  # central-gateway: HTTP/2 reuse of *.dalaillama.in connections (see ops-dashboard.yaml)
   http:
     - match: [{ uri: { prefix: /oauth2/ } }]
       route: [{ destination: { host: oauth2-proxy.apps.svc.cluster.local, port: { number: 4180 } } }]

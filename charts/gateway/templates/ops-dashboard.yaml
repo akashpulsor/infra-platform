@@ -58,8 +58,13 @@ metadata:
 spec:
   hosts:
     - ops.dalaillama.in
+  # Also central-gateway: its *.dalaillama.in cert covers ops., and both hosts share one IP, so a
+  # browser reuses an HTTP/2 connection opened for e.g. creator.dalaillama.in for ops. requests.
+  # Those arrive on central-gateway's routes; bound only to ops-gateway they got a 404 "sometimes".
+  # The ops login (ops-auth.yaml) matches by host on the ingress, so it applies either way.
   gateways:
     - ops-gateway
+    - central-gateway
   http:
     # Bare root -> /admin so an operator who typed the hostname lands on the unified ops UI
     # (tabs for Jobs, Live errors, LLM gateway logs, Tenants, Wallets, Grafana, Kiali, Prom,
