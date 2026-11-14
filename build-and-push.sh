@@ -42,7 +42,7 @@ VALUES_FILE="${SCRIPT_DIR}/charts/backend-service/values.yaml"
 # Every entry: "<service-dir>:<tag>"
 # The Dockerfile is expected at ${BACKEND_REPO}/<service-dir>/Dockerfile.
 SERVICES=(
-    "tenant-service:5.0.156-official-fallback"
+    "tenant-service:5.0.157-landing-all-films"
     "product-service:5.0.101-grant-view-tx"
     "billing-service:5.0.122-brand-matching"
     "llm-gateway:0.2.77-topaz-fal-rate"
