@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.155-portfolio-youtube"
+      tag: "5.0.156-official-fallback"
     service:
       port: 8080
       targetPort: 8080
