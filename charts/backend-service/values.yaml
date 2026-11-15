@@ -181,7 +181,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.158-landing-no-cap"
+      tag: "5.0.159-request-phone-utm"
     service:
       port: 8080
       targetPort: 8080
