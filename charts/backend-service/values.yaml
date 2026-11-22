@@ -116,6 +116,18 @@ services:
       livenessPath: /actuator/health/liveness
       readinessPath: /actuator/health/readiness
     apiPaths:
+      # Marketing → Contacts "Find missing emails": up to 25 Hunter lookups (20s timeout each) in
+      # one request, far past the 10s per-try default; a retry would re-run it while the first
+      # carries on. "Email me a test" sends over SMTP; a retry would mail the creator twice.
+      # Listed before /api/v1/tenants, since Envoy takes the first match.
+      - path: ^/api/v1/tenants/me/outreach/audiences/[^/]+/find-emails$
+        regex: true
+        timeout: 300s
+        retries: false
+      - path: /api/v1/tenants/me/outreach/test-send
+        exact: true
+        timeout: 60s
+        retries: false
       - /api/v1/tenants
       # Scoped to this controller's one real route (PublicTenantConfigController's only mapping is
 
