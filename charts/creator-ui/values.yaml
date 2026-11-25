@@ -1,6 +1,6 @@
 image:
   repository: akashtripathi/creator-ui
-  tag: 0.1.464-request-phone-utm
+  tag: 0.1.465-contacts-ux
   pullPolicy: IfNotPresent
 replicaCount: 1
 service:

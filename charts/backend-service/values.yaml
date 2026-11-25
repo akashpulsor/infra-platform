@@ -193,7 +193,7 @@ services:
       type: Recreate
     image:
       repository: tenant-service
-      tag: "5.0.159-request-phone-utm"
+      tag: "5.0.160-contacts-ux"
     service:
       port: 8080
       targetPort: 8080
